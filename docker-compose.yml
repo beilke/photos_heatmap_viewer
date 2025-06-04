@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  photo-heatmap:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./photo_library.db:/app/photo_library.db
+      - ./photo_heatmap_data.json:/app/photo_heatmap_data.json
+    restart: unless-stopped

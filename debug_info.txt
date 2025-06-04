@@ -1,0 +1,26 @@
+Debug information for photo heatmap viewer
+-----------------------------------------
+Current directory: U:\docker\projects\photos_heatmap_viewer
+JSON file path: U:\docker\projects\photos_heatmap_viewer\photo_heatmap_data.json
+JSON file exists: True
+JSON file size: 157 bytes
+
+Files in current directory:
+  - init_db.py (1217 bytes)
+  - process_photos.py (13961 bytes)
+  - index.html (35540 bytes)
+  - server.py (4996 bytes)
+  - README.md (3509 bytes)
+  - requirements.txt (15 bytes)
+  - maintain_db.py (4950 bytes)
+  - Dockerfile (359 bytes)
+  - docker-compose.yml (249 bytes)
+  - quickstart.ps1 (7548 bytes)
+  - photo_library.db (503808 bytes)
+  - create_empty_json.py (1668 bytes)
+  - fix_and_restart.ps1 (3304 bytes)
+  - index_fixed.html (35542 bytes)
+  - photo_heatmap_data.json (157 bytes)
+  - create_debug_data.py (1545 bytes)
+  - debug_map.html (5934 bytes)
+  - debug_info.txt (0 bytes)

@@ -1,0 +1,644 @@
+2025-06-04 14:08:22,302 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 14:08:22,318 - INFO - Found photo_heatmap_data.json with 2 entries
+2025-06-04 14:08:22,319 - INFO - Serving at http://localhost:8000
+2025-06-04 14:08:22,320 - INFO - Press Ctrl+C to stop the server
+2025-06-04 14:08:28,716 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 14:08:35,464 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 14:08:35,467 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:08:35,469 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 14:15:54,428 - INFO - Debug mode enabled - verbose logging activated
+2025-06-04 14:15:54,430 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 14:15:54,430 - INFO - Found photo_heatmap_data.json with size: 384 bytes
+2025-06-04 14:15:54,432 - INFO - JSON file starts with: [{"id": 1, "filename": "20240816_173056.jpg", "latitude": -22.620708055555557, "longitude": -45.6121...
+2025-06-04 14:15:54,433 - INFO - Found photo_heatmap_data.json with 2 entries
+2025-06-04 14:15:54,434 - INFO - Items with GPS coordinates: 2/2 (100.0%)
+2025-06-04 14:15:54,435 - INFO - Sample entry: {
+  "id": 1,
+  "filename": "20240816_173056.jpg",
+  "latitude": -22.620708055555557,
+  "longitude": -45.612164722222225,
+  "datetime": "2024-08-16T17:30:57",
+  "path": "D:\\photogps\\20240816_173056.jpg"
+}
+2025-06-04 14:15:54,436 - INFO - Serving at http://localhost:8000
+2025-06-04 14:15:54,437 - INFO - Press Ctrl+C to stop the server
+2025-06-04 14:16:00,971 - DEBUG - Regular file request: /
+2025-06-04 14:16:01,248 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 14:16:12,154 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 14:16:12,170 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:16:12,171 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 14:17:01,315 - INFO - Gracefully shutting down server...
+2025-06-04 14:25:25,051 - INFO - Debug logging enabled
+2025-06-04 14:25:25,052 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 14:25:25,054 - INFO - Found photo_heatmap_data.json with size: 384 bytes
+2025-06-04 14:25:25,058 - INFO - JSON file starts with: [{"id": 1, "filename": "20240816_173056.jpg", "latitude": -22.620708055555557, "longitude": -45.6121...
+2025-06-04 14:25:25,059 - INFO - Found photo_heatmap_data.json with 2 entries
+2025-06-04 14:25:25,061 - INFO - Serving at http://localhost:8000
+2025-06-04 14:25:25,062 - INFO - Press Ctrl+C to stop the server
+2025-06-04 14:25:32,900 - DEBUG - Regular file request: /
+2025-06-04 14:25:33,170 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 14:25:42,947 - DEBUG - Regular file request: /debug_map.html
+2025-06-04 14:25:42,955 - INFO - 127.0.0.1 - "GET /debug_map.html HTTP/1.1" 304 -
+2025-06-04 14:25:44,026 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 14:25:44,034 - INFO - Serving JSON file: photo_heatmap_data.json with 2 entries
+2025-06-04 14:25:44,035 - INFO - JSON data stats: 2/2 items have GPS coordinates
+2025-06-04 14:25:44,039 - INFO - 127.0.0.1 - "GET /photo_heatmap_data.json HTTP/1.1" 200 -
+2025-06-04 14:26:27,019 - DEBUG - Regular file request: /test_map.html
+2025-06-04 14:26:27,063 - INFO - 127.0.0.1 - "GET /test_map.html HTTP/1.1" 200 -
+2025-06-04 14:32:56,217 - INFO - Debug logging enabled
+2025-06-04 14:32:56,218 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 14:32:56,224 - INFO - Found photo_heatmap_data.json with size: 384 bytes
+2025-06-04 14:32:56,229 - INFO - JSON file starts with: [{"id": 1, "filename": "20240816_173056.jpg", "latitude": -22.620708055555557, "longitude": -45.6121...
+2025-06-04 14:32:56,230 - INFO - Found photo_heatmap_data.json with 2 entries
+2025-06-04 14:32:56,232 - INFO - Serving at http://localhost:8000
+2025-06-04 14:32:56,233 - INFO - Press Ctrl+C to stop the server
+2025-06-04 14:33:32,539 - DEBUG - Regular file request: /
+2025-06-04 14:33:32,803 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 14:33:34,851 - INFO - Photo request received: /photos/20240816_173056.jpg
+2025-06-04 14:33:34,853 - INFO - Serving photo: 20240816_173056.jpg
+2025-06-04 14:33:34,867 - DEBUG - Found photo path in DB: D:\photogps\20240816_173056.jpg
+2025-06-04 14:33:34,868 - DEBUG - Generating thumbnail for: D:\photogps\20240816_173056.jpg
+2025-06-04 14:33:34,953 - INFO - 127.0.0.1 - "GET /photos/20240816_173056.jpg HTTP/1.1" 200 -
+2025-06-04 14:33:34,954 - DEBUG - Successfully served thumbnail for: 20240816_173056.jpg
+2025-06-04 14:33:37,009 - INFO - Photo request received: /photos/20240816_171517.jpg
+2025-06-04 14:33:37,011 - INFO - Serving photo: 20240816_171517.jpg
+2025-06-04 14:33:37,019 - DEBUG - Found photo path in DB: D:\photogps\20240816_171517.jpg
+2025-06-04 14:33:37,021 - DEBUG - Generating thumbnail for: D:\photogps\20240816_171517.jpg
+2025-06-04 14:33:37,076 - INFO - 127.0.0.1 - "GET /photos/20240816_171517.jpg HTTP/1.1" 200 -
+2025-06-04 14:33:37,079 - DEBUG - Successfully served thumbnail for: 20240816_171517.jpg
+2025-06-04 14:33:48,591 - DEBUG - Regular file request: /test_map.html
+2025-06-04 14:33:48,600 - INFO - 127.0.0.1 - "GET /test_map.html HTTP/1.1" 304 -
+2025-06-04 14:33:48,655 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 14:33:48,663 - INFO - Serving JSON file: photo_heatmap_data.json with 2 entries
+2025-06-04 14:33:48,665 - INFO - JSON data stats: 2/2 items have GPS coordinates
+2025-06-04 14:33:48,670 - INFO - 127.0.0.1 - "GET /photo_heatmap_data.json HTTP/1.1" 304 -
+2025-06-04 14:33:52,229 - DEBUG - Regular file request: /
+2025-06-04 14:33:52,293 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 14:33:52,575 - DEBUG - Regular file request: /favicon.ico
+2025-06-04 14:33:52,593 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:33:52,597 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-04 14:33:56,757 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 14:33:56,760 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:33:56,761 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 14:34:16,124 - DEBUG - Regular file request: /
+2025-06-04 14:34:16,192 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 14:34:16,429 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 14:34:16,432 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:34:16,434 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 14:34:23,855 - DEBUG - Regular file request: /
+2025-06-04 14:34:23,861 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 14:34:23,900 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 14:34:23,905 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:34:23,908 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 14:34:39,798 - DEBUG - Regular file request: /debug_map.html
+2025-06-04 14:34:39,808 - INFO - 127.0.0.1 - "GET /debug_map.html HTTP/1.1" 304 -
+2025-06-04 14:35:09,392 - DEBUG - Regular file request: /minimal_map.html
+2025-06-04 14:35:09,400 - INFO - 127.0.0.1 - "GET /minimal_map.html HTTP/1.1" 200 -
+2025-06-04 14:35:21,124 - DEBUG - Regular file request: /test_map.html
+2025-06-04 14:35:21,136 - INFO - 127.0.0.1 - "GET /test_map.html HTTP/1.1" 304 -
+2025-06-04 14:36:00,058 - DEBUG - Regular file request: /test_map.html
+2025-06-04 14:36:00,068 - INFO - 127.0.0.1 - "GET /test_map.html HTTP/1.1" 304 -
+2025-06-04 14:36:24,260 - DEBUG - Regular file request: /
+2025-06-04 14:36:24,334 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 14:36:24,562 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 14:36:24,565 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:36:24,566 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 14:36:28,845 - DEBUG - Regular file request: /
+2025-06-04 14:36:28,851 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 14:36:28,894 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 14:36:28,900 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:36:28,901 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 14:45:07,310 - INFO - Gracefully shutting down server...
+2025-06-04 14:45:09,797 - INFO - Debug logging enabled
+2025-06-04 14:45:09,799 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 14:45:09,802 - INFO - Found photo_heatmap_data.json with size: 384 bytes
+2025-06-04 14:45:09,807 - INFO - JSON file starts with: [{"id": 1, "filename": "20240816_173056.jpg", "latitude": -22.620708055555557, "longitude": -45.6121...
+2025-06-04 14:45:09,808 - INFO - Found photo_heatmap_data.json with 2 entries
+2025-06-04 14:45:09,809 - INFO - Serving at http://localhost:8000
+2025-06-04 14:45:09,810 - INFO - Press Ctrl+C to stop the server
+2025-06-04 14:45:15,521 - DEBUG - Regular file request: /
+2025-06-04 14:45:15,787 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 14:45:21,037 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 14:45:21,039 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:45:21,040 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 14:45:23,701 - DEBUG - Regular file request: /
+2025-06-04 14:45:23,709 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 14:45:24,002 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 14:45:24,005 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:45:24,007 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 14:45:26,279 - DEBUG - Regular file request: /
+2025-06-04 14:45:26,286 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 14:45:26,329 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 14:45:26,331 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:45:26,332 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 14:45:28,828 - DEBUG - Regular file request: /
+2025-06-04 14:45:28,895 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 14:45:29,132 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 14:45:29,140 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:45:29,141 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 14:49:24,887 - DEBUG - Regular file request: /
+2025-06-04 14:49:24,954 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 14:49:24,988 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 14:49:24,993 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:49:24,994 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 14:52:09,139 - INFO - Debug logging enabled
+2025-06-04 14:52:09,142 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 14:52:09,146 - INFO - Found photo_heatmap_data.json with size: 384 bytes
+2025-06-04 14:52:09,150 - INFO - JSON file starts with: [{"id": 1, "filename": "20240816_173056.jpg", "latitude": -22.620708055555557, "longitude": -45.6121...
+2025-06-04 14:52:09,153 - INFO - Found photo_heatmap_data.json with 2 entries
+2025-06-04 14:52:09,155 - INFO - Serving at http://localhost:8000
+2025-06-04 14:52:09,156 - INFO - Press Ctrl+C to stop the server
+2025-06-04 14:52:19,351 - DEBUG - Regular file request: /
+2025-06-04 14:52:19,632 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 14:52:27,488 - DEBUG - Regular file request: /
+2025-06-04 14:52:27,496 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 14:52:27,913 - DEBUG - Regular file request: /favicon.ico
+2025-06-04 14:52:27,915 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:52:27,916 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-04 14:52:29,741 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 14:52:29,744 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:52:29,748 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 14:54:15,930 - DEBUG - Regular file request: /
+2025-06-04 14:54:15,994 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 14:54:19,790 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 14:54:19,794 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:54:19,796 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 14:54:31,694 - DEBUG - Regular file request: /
+2025-06-04 14:54:31,769 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 14:54:31,995 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 14:54:31,997 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 14:54:32,000 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 15:10:21,738 - DEBUG - Regular file request: /
+2025-06-04 15:10:21,809 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 15:10:21,861 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 15:10:21,867 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 15:10:21,872 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 15:14:09,433 - INFO - Debug logging enabled
+2025-06-04 15:14:09,434 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 15:14:09,438 - INFO - Found photo_heatmap_data.json with size: 384 bytes
+2025-06-04 15:14:09,447 - INFO - JSON file starts with: [{"id": 1, "filename": "20240816_173056.jpg", "latitude": -22.620708055555557, "longitude": -45.6121...
+2025-06-04 15:14:09,449 - INFO - Found photo_heatmap_data.json with 2 entries
+2025-06-04 15:14:09,451 - INFO - Serving at http://localhost:8000
+2025-06-04 15:14:09,452 - INFO - Press Ctrl+C to stop the server
+2025-06-04 15:14:12,631 - DEBUG - Regular file request: /
+2025-06-04 15:14:12,864 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 15:14:16,499 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 15:14:16,502 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 15:14:16,504 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 15:14:27,892 - DEBUG - Regular file request: /
+2025-06-04 15:14:27,944 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 15:14:28,190 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 15:14:28,194 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 15:14:28,195 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 15:22:47,958 - INFO - Gracefully shutting down server...
+2025-06-04 15:22:51,357 - INFO - Debug logging enabled
+2025-06-04 15:22:51,359 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 15:22:51,364 - INFO - Found photo_heatmap_data.json with size: 384 bytes
+2025-06-04 15:22:51,368 - INFO - JSON file starts with: [{"id": 1, "filename": "20240816_173056.jpg", "latitude": -22.620708055555557, "longitude": -45.6121...
+2025-06-04 15:22:51,369 - INFO - Found photo_heatmap_data.json with 2 entries
+2025-06-04 15:22:51,370 - INFO - Serving at http://localhost:8000
+2025-06-04 15:22:51,371 - INFO - Press Ctrl+C to stop the server
+2025-06-04 15:23:04,172 - DEBUG - Regular file request: /
+2025-06-04 15:23:04,423 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 15:23:07,706 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 15:23:07,708 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 15:23:07,709 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 15:23:08,763 - DEBUG - Regular file request: /
+2025-06-04 15:23:08,770 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 15:23:09,104 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 15:23:09,108 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 15:23:09,109 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 15:23:40,020 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 15:23:40,022 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 15:23:40,023 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 15:23:43,706 - DEBUG - Regular file request: /
+2025-06-04 15:23:43,754 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 15:23:43,794 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 15:23:43,797 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 15:23:43,800 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 15:23:44,376 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 15:23:44,384 - INFO - Serving JSON file: photo_heatmap_data.json with 2 entries
+2025-06-04 15:23:44,385 - INFO - JSON data stats: 2/2 items have GPS coordinates
+2025-06-04 15:23:44,388 - INFO - 127.0.0.1 - "GET /photo_heatmap_data.json HTTP/1.1" 304 -
+2025-06-04 15:23:49,240 - DEBUG - Regular file request: /
+2025-06-04 15:23:49,245 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 15:23:49,550 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 15:23:49,556 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 15:23:49,557 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 15:24:11,845 - INFO - Photo request received: /photos/20240816_171517.jpg
+2025-06-04 15:24:11,846 - INFO - Serving photo: 20240816_171517.jpg
+2025-06-04 15:24:11,862 - DEBUG - Found photo path in DB: D:\photogps\20240816_171517.jpg
+2025-06-04 15:24:11,864 - DEBUG - Generating thumbnail for: D:\photogps\20240816_171517.jpg
+2025-06-04 15:24:11,966 - INFO - 127.0.0.1 - "GET /photos/20240816_171517.jpg HTTP/1.1" 200 -
+2025-06-04 15:24:11,968 - DEBUG - Successfully served thumbnail for: 20240816_171517.jpg
+2025-06-04 16:14:01,100 - INFO - Gracefully shutting down server...
+2025-06-04 16:14:05,265 - INFO - Debug logging enabled
+2025-06-04 16:14:05,266 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 16:14:05,269 - INFO - Found photo_heatmap_data.json with size: 384 bytes
+2025-06-04 16:14:05,273 - INFO - JSON file starts with: [{"id": 1, "filename": "20240816_173056.jpg", "latitude": -22.620708055555557, "longitude": -45.6121...
+2025-06-04 16:14:05,274 - INFO - Found photo_heatmap_data.json with 2 entries
+2025-06-04 16:14:05,276 - INFO - Serving at http://localhost:8000
+2025-06-04 16:14:05,277 - INFO - Press Ctrl+C to stop the server
+2025-06-04 16:14:10,808 - DEBUG - Regular file request: /
+2025-06-04 16:14:11,096 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 16:14:11,433 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 16:14:11,439 - INFO - Serving JSON file: photo_heatmap_data.json with 2 entries
+2025-06-04 16:14:11,440 - INFO - JSON data stats: 2/2 items have GPS coordinates
+2025-06-04 16:14:11,447 - INFO - 127.0.0.1 - "GET /photo_heatmap_data.json HTTP/1.1" 304 -
+2025-06-04 16:14:16,877 - INFO - Photo request received: /photos/20240816_171517.jpg
+2025-06-04 16:14:16,879 - INFO - Serving photo: 20240816_171517.jpg
+2025-06-04 16:14:16,893 - DEBUG - Found photo path in DB: D:\photogps\20240816_171517.jpg
+2025-06-04 16:14:16,894 - DEBUG - Generating thumbnail for: D:\photogps\20240816_171517.jpg
+2025-06-04 16:14:16,994 - INFO - 127.0.0.1 - "GET /photos/20240816_171517.jpg HTTP/1.1" 200 -
+2025-06-04 16:14:16,996 - DEBUG - Successfully served thumbnail for: 20240816_171517.jpg
+2025-06-04 16:14:19,690 - INFO - Photo request received: /photos/20240816_173056.jpg
+2025-06-04 16:14:19,692 - INFO - Serving photo: 20240816_173056.jpg
+2025-06-04 16:14:19,701 - DEBUG - Found photo path in DB: D:\photogps\20240816_173056.jpg
+2025-06-04 16:14:19,704 - DEBUG - Generating thumbnail for: D:\photogps\20240816_173056.jpg
+2025-06-04 16:14:19,757 - INFO - 127.0.0.1 - "GET /photos/20240816_173056.jpg HTTP/1.1" 200 -
+2025-06-04 16:14:19,758 - DEBUG - Successfully served thumbnail for: 20240816_173056.jpg
+2025-06-04 16:14:23,055 - INFO - Photo request received: /photos/20240816_171517.jpg
+2025-06-04 16:14:23,057 - INFO - Serving photo: 20240816_171517.jpg
+2025-06-04 16:14:23,064 - DEBUG - Found photo path in DB: D:\photogps\20240816_171517.jpg
+2025-06-04 16:14:23,066 - DEBUG - Generating thumbnail for: D:\photogps\20240816_171517.jpg
+2025-06-04 16:14:23,124 - INFO - 127.0.0.1 - "GET /photos/20240816_171517.jpg HTTP/1.1" 200 -
+2025-06-04 16:14:23,125 - DEBUG - Successfully served thumbnail for: 20240816_171517.jpg
+2025-06-04 16:14:42,668 - INFO - Photo request received: /photos/20240816_171517.jpg
+2025-06-04 16:14:42,680 - INFO - Serving photo: 20240816_171517.jpg
+2025-06-04 16:14:42,699 - DEBUG - Found photo path in DB: D:\photogps\20240816_171517.jpg
+2025-06-04 16:14:42,700 - DEBUG - Generating thumbnail for: D:\photogps\20240816_171517.jpg
+2025-06-04 16:14:42,763 - INFO - 127.0.0.1 - "GET /photos/20240816_171517.jpg HTTP/1.1" 200 -
+2025-06-04 16:14:42,764 - DEBUG - Successfully served thumbnail for: 20240816_171517.jpg
+2025-06-04 16:21:44,438 - INFO - Gracefully shutting down server...
+2025-06-04 16:21:50,245 - INFO - Debug logging enabled
+2025-06-04 16:21:50,246 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 16:21:50,250 - INFO - Found photo_heatmap_data.json with size: 384 bytes
+2025-06-04 16:21:50,254 - INFO - JSON file starts with: [{"id": 1, "filename": "20240816_173056.jpg", "latitude": -22.620708055555557, "longitude": -45.6121...
+2025-06-04 16:21:50,255 - INFO - Found photo_heatmap_data.json with 2 entries
+2025-06-04 16:21:50,258 - INFO - Serving at http://localhost:8000
+2025-06-04 16:21:50,258 - INFO - Press Ctrl+C to stop the server
+2025-06-04 16:21:53,090 - DEBUG - Regular file request: /
+2025-06-04 16:21:53,362 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 16:21:56,647 - INFO - Photo request received: /photos/20240816_171517.jpg
+2025-06-04 16:21:56,648 - INFO - Serving photo: 20240816_171517.jpg
+2025-06-04 16:21:56,672 - DEBUG - Found photo path in DB: D:\photogps\20240816_171517.jpg
+2025-06-04 16:21:56,674 - DEBUG - Generating thumbnail for: D:\photogps\20240816_171517.jpg
+2025-06-04 16:21:56,780 - INFO - 127.0.0.1 - "GET /photos/20240816_171517.jpg HTTP/1.1" 200 -
+2025-06-04 16:21:56,781 - DEBUG - Successfully served thumbnail for: 20240816_171517.jpg
+2025-06-04 16:21:59,421 - INFO - Photo request received: /photos/20240816_173056.jpg
+2025-06-04 16:21:59,422 - INFO - Serving photo: 20240816_173056.jpg
+2025-06-04 16:21:59,431 - DEBUG - Found photo path in DB: D:\photogps\20240816_173056.jpg
+2025-06-04 16:21:59,432 - DEBUG - Generating thumbnail for: D:\photogps\20240816_173056.jpg
+2025-06-04 16:21:59,485 - INFO - 127.0.0.1 - "GET /photos/20240816_173056.jpg HTTP/1.1" 200 -
+2025-06-04 16:21:59,487 - DEBUG - Successfully served thumbnail for: 20240816_173056.jpg
+2025-06-04 16:45:56,032 - DEBUG - Regular file request: /
+2025-06-04 16:45:56,085 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 16:46:00,109 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 16:46:00,118 - INFO - Serving JSON file: photo_heatmap_data.json with 2 entries
+2025-06-04 16:46:00,119 - INFO - JSON data stats: 2/2 items have GPS coordinates
+2025-06-04 16:46:00,123 - INFO - 127.0.0.1 - "GET /photo_heatmap_data.json HTTP/1.1" 200 -
+2025-06-04 16:46:00,143 - DEBUG - Regular file request: /favicon.ico
+2025-06-04 16:46:00,146 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 16:46:00,147 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-04 16:46:08,505 - INFO - Photo request received: /photos/20240816_171517.jpg
+2025-06-04 16:46:08,508 - INFO - Serving photo: 20240816_171517.jpg
+2025-06-04 16:46:08,525 - DEBUG - Found photo path in DB: D:\photogps\20240816_171517.jpg
+2025-06-04 16:46:08,526 - DEBUG - Generating thumbnail for: D:\photogps\20240816_171517.jpg
+2025-06-04 16:46:08,584 - INFO - 127.0.0.1 - "GET /photos/20240816_171517.jpg HTTP/1.1" 200 -
+2025-06-04 16:46:08,586 - DEBUG - Successfully served thumbnail for: 20240816_171517.jpg
+2025-06-04 16:46:30,668 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 16:46:30,678 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 16:46:30,679 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 16:46:38,503 - INFO - Photo request received: /photos/20240816_171517.jpg
+2025-06-04 16:46:38,505 - INFO - Serving photo: 20240816_171517.jpg
+2025-06-04 16:46:38,526 - DEBUG - Found photo path in DB: D:\photogps\20240816_171517.jpg
+2025-06-04 16:46:38,528 - DEBUG - Generating thumbnail for: D:\photogps\20240816_171517.jpg
+2025-06-04 16:46:38,602 - INFO - 127.0.0.1 - "GET /photos/20240816_171517.jpg HTTP/1.1" 200 -
+2025-06-04 16:46:38,604 - DEBUG - Successfully served thumbnail for: 20240816_171517.jpg
+2025-06-04 16:47:27,901 - INFO - Photo request received: /photos/20240816_171517.jpg
+2025-06-04 16:47:27,906 - INFO - Serving photo: 20240816_171517.jpg
+2025-06-04 16:47:27,930 - DEBUG - Found photo path in DB: D:\photogps\20240816_171517.jpg
+2025-06-04 16:47:27,932 - DEBUG - Generating thumbnail for: D:\photogps\20240816_171517.jpg
+2025-06-04 16:47:28,014 - INFO - 127.0.0.1 - "GET /photos/20240816_171517.jpg HTTP/1.1" 200 -
+2025-06-04 16:47:28,015 - DEBUG - Successfully served thumbnail for: 20240816_171517.jpg
+2025-06-04 16:54:07,691 - DEBUG - Regular file request: /
+2025-06-04 16:54:07,746 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 16:54:07,786 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 16:54:07,792 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 16:54:07,793 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 16:54:08,178 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 16:54:08,190 - INFO - Serving JSON file: photo_heatmap_data.json with 2 entries
+2025-06-04 16:54:08,192 - INFO - JSON data stats: 2/2 items have GPS coordinates
+2025-06-04 16:54:08,197 - INFO - 127.0.0.1 - "GET /photo_heatmap_data.json HTTP/1.1" 200 -
+2025-06-04 16:54:08,537 - DEBUG - Regular file request: /favicon.ico
+2025-06-04 16:54:08,553 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 16:54:08,559 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-04 16:54:10,483 - INFO - Photo request received: /photos/20240816_171517.jpg
+2025-06-04 16:54:10,484 - INFO - Serving photo: 20240816_171517.jpg
+2025-06-04 16:54:10,502 - DEBUG - Found photo path in DB: D:\photogps\20240816_171517.jpg
+2025-06-04 16:54:10,503 - DEBUG - Generating thumbnail for: D:\photogps\20240816_171517.jpg
+2025-06-04 16:54:10,572 - INFO - 127.0.0.1 - "GET /photos/20240816_171517.jpg HTTP/1.1" 200 -
+2025-06-04 16:54:10,573 - DEBUG - Successfully served thumbnail for: 20240816_171517.jpg
+2025-06-04 16:54:22,668 - INFO - Gracefully shutting down server...
+2025-06-04 16:54:26,216 - INFO - Debug logging enabled
+2025-06-04 16:54:26,218 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 16:54:26,223 - INFO - Found photo_heatmap_data.json with size: 384 bytes
+2025-06-04 16:54:26,227 - INFO - JSON file starts with: [{"id": 1, "filename": "20240816_173056.jpg", "latitude": -22.620708055555557, "longitude": -45.6121...
+2025-06-04 16:54:26,229 - INFO - Found photo_heatmap_data.json with 2 entries
+2025-06-04 16:54:26,231 - INFO - Serving at http://localhost:8000
+2025-06-04 16:54:26,231 - INFO - Press Ctrl+C to stop the server
+2025-06-04 16:54:28,033 - DEBUG - Regular file request: /
+2025-06-04 16:54:28,296 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 16:54:30,945 - INFO - Photo request received: /photos/20240816_171517.jpg
+2025-06-04 16:54:30,946 - INFO - Serving photo: 20240816_171517.jpg
+2025-06-04 16:54:30,962 - DEBUG - Found photo path in DB: D:\photogps\20240816_171517.jpg
+2025-06-04 16:54:30,963 - DEBUG - Generating thumbnail for: D:\photogps\20240816_171517.jpg
+2025-06-04 16:54:31,067 - INFO - 127.0.0.1 - "GET /photos/20240816_171517.jpg HTTP/1.1" 200 -
+2025-06-04 16:54:31,070 - DEBUG - Successfully served thumbnail for: 20240816_171517.jpg
+2025-06-04 16:54:39,576 - INFO - Photo request received: /photos/20240816_173056.jpg
+2025-06-04 16:54:39,577 - INFO - Serving photo: 20240816_173056.jpg
+2025-06-04 16:54:39,588 - DEBUG - Found photo path in DB: D:\photogps\20240816_173056.jpg
+2025-06-04 16:54:39,589 - DEBUG - Generating thumbnail for: D:\photogps\20240816_173056.jpg
+2025-06-04 16:54:39,646 - INFO - 127.0.0.1 - "GET /photos/20240816_173056.jpg HTTP/1.1" 200 -
+2025-06-04 16:54:39,647 - DEBUG - Successfully served thumbnail for: 20240816_173056.jpg
+2025-06-04 17:00:23,035 - INFO - Gracefully shutting down server...
+2025-06-04 17:03:01,909 - INFO - Debug logging enabled
+2025-06-04 17:03:01,910 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 17:03:01,916 - INFO - Found photo_heatmap_data.json with size: 384 bytes
+2025-06-04 17:03:01,921 - INFO - JSON file starts with: [{"id": 1, "filename": "20240816_173056.jpg", "latitude": -22.620708055555557, "longitude": -45.6121...
+2025-06-04 17:03:01,923 - INFO - Found photo_heatmap_data.json with 2 entries
+2025-06-04 17:03:01,925 - INFO - Serving at http://localhost:8000
+2025-06-04 17:03:01,926 - INFO - Press Ctrl+C to stop the server
+2025-06-04 17:03:05,591 - DEBUG - Regular file request: /
+2025-06-04 17:03:05,837 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 17:04:49,058 - DEBUG - Regular file request: /
+2025-06-04 17:04:49,106 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 17:04:49,448 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 17:04:49,554 - DEBUG - Regular file request: /favicon.ico
+2025-06-04 17:04:49,556 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 17:04:49,557 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-04 17:04:49,847 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 17:04:51,447 - DEBUG - Regular file request: /
+2025-06-04 17:04:51,451 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 17:04:51,514 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 17:04:51,706 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 17:04:53,797 - INFO - Gracefully shutting down server...
+2025-06-04 17:04:57,252 - INFO - Debug logging enabled
+2025-06-04 17:04:57,253 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 17:04:57,258 - INFO - Found photo_heatmap_data.json with size: 384 bytes
+2025-06-04 17:04:57,262 - INFO - JSON file starts with: [{"id": 1, "filename": "20240816_173056.jpg", "latitude": -22.620708055555557, "longitude": -45.6121...
+2025-06-04 17:04:57,264 - INFO - Found photo_heatmap_data.json with 2 entries
+2025-06-04 17:04:57,266 - INFO - Serving at http://localhost:8000
+2025-06-04 17:04:57,266 - INFO - Press Ctrl+C to stop the server
+2025-06-04 17:04:59,799 - DEBUG - Regular file request: /
+2025-06-04 17:05:00,061 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 17:05:00,302 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 17:05:00,335 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 17:05:00,646 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 17:11:10,361 - INFO - Gracefully shutting down server...
+2025-06-04 17:11:13,805 - INFO - Debug logging enabled
+2025-06-04 17:11:13,807 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 17:11:13,812 - INFO - Found photo_heatmap_data.json with size: 384 bytes
+2025-06-04 17:11:13,816 - INFO - JSON file starts with: [{"id": 1, "filename": "20240816_173056.jpg", "latitude": -22.620708055555557, "longitude": -45.6121...
+2025-06-04 17:11:13,818 - INFO - Found photo_heatmap_data.json with 2 entries
+2025-06-04 17:11:13,820 - INFO - Serving at http://localhost:8000
+2025-06-04 17:11:13,820 - INFO - Press Ctrl+C to stop the server
+2025-06-04 17:11:16,009 - DEBUG - Regular file request: /
+2025-06-04 17:11:16,283 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 17:11:16,521 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 17:11:16,528 - INFO - Serving JSON file: photo_heatmap_data.json with 2 entries
+2025-06-04 17:11:16,530 - INFO - JSON data stats: 2/2 items have GPS coordinates
+2025-06-04 17:11:16,531 - INFO - 127.0.0.1 - "GET /photo_heatmap_data.json HTTP/1.1" 200 -
+2025-06-04 17:11:19,865 - INFO - Full photo request received: /photos/20240816_171517.jpg
+2025-06-04 17:11:19,867 - INFO - Serving original photo: 20240816_171517.jpg
+2025-06-04 17:11:19,883 - DEBUG - Found photo path in DB: D:\photogps\20240816_171517.jpg
+2025-06-04 17:11:19,886 - INFO - 127.0.0.1 - "GET /photos/20240816_171517.jpg HTTP/1.1" 200 -
+2025-06-04 17:11:19,907 - DEBUG - Successfully served original photo: 20240816_171517.jpg
+2025-06-04 17:11:26,590 - INFO - Full photo request received: /photos/20240816_171517.jpg
+2025-06-04 17:11:26,592 - INFO - Serving original photo: 20240816_171517.jpg
+2025-06-04 17:11:26,603 - DEBUG - Found photo path in DB: D:\photogps\20240816_171517.jpg
+2025-06-04 17:11:26,604 - INFO - 127.0.0.1 - "GET /photos/20240816_171517.jpg HTTP/1.1" 200 -
+2025-06-04 17:11:26,653 - DEBUG - Successfully served original photo: 20240816_171517.jpg
+2025-06-04 17:11:37,043 - INFO - Full photo request received: /photos/20240816_173056.jpg
+2025-06-04 17:11:37,044 - INFO - Serving original photo: 20240816_173056.jpg
+2025-06-04 17:11:37,054 - DEBUG - Found photo path in DB: D:\photogps\20240816_173056.jpg
+2025-06-04 17:11:37,055 - INFO - 127.0.0.1 - "GET /photos/20240816_173056.jpg HTTP/1.1" 200 -
+2025-06-04 17:11:37,071 - DEBUG - Successfully served original photo: 20240816_173056.jpg
+2025-06-04 17:15:36,721 - DEBUG - Regular file request: /
+2025-06-04 17:15:36,769 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 17:15:37,033 - DEBUG - Regular file request: /favicon.ico
+2025-06-04 17:15:37,037 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 17:15:37,038 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-04 17:15:39,129 - DEBUG - Regular file request: /
+2025-06-04 17:15:39,133 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 17:15:53,228 - INFO - Gracefully shutting down server...
+2025-06-04 17:15:59,951 - INFO - Debug logging enabled
+2025-06-04 17:15:59,953 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 17:15:59,956 - INFO - Found photo_heatmap_data.json with size: 384 bytes
+2025-06-04 17:15:59,960 - INFO - JSON file starts with: [{"id": 1, "filename": "20240816_173056.jpg", "latitude": -22.620708055555557, "longitude": -45.6121...
+2025-06-04 17:15:59,961 - INFO - Found photo_heatmap_data.json with 2 entries
+2025-06-04 17:15:59,963 - INFO - Serving at http://localhost:8000
+2025-06-04 17:15:59,965 - INFO - Press Ctrl+C to stop the server
+2025-06-04 17:16:03,160 - DEBUG - Regular file request: /
+2025-06-04 17:16:03,397 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 17:16:03,623 - DEBUG - Regular file request: /favicon.ico
+2025-06-04 17:16:03,626 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 17:16:03,627 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-04 17:16:06,370 - DEBUG - Regular file request: /
+2025-06-04 17:16:06,374 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 17:16:07,169 - DEBUG - Regular file request: /
+2025-06-04 17:16:07,177 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 17:16:08,007 - DEBUG - Regular file request: /
+2025-06-04 17:16:08,012 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 17:21:00,171 - DEBUG - Regular file request: /
+2025-06-04 17:21:00,228 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 17:21:00,448 - DEBUG - Regular file request: /favicon.ico
+2025-06-04 17:21:00,455 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 17:21:00,456 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-04 17:21:10,122 - INFO - Gracefully shutting down server...
+2025-06-04 17:21:13,042 - INFO - Debug logging enabled
+2025-06-04 17:21:13,044 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 17:21:13,050 - INFO - Found photo_heatmap_data.json with size: 384 bytes
+2025-06-04 17:21:13,054 - INFO - JSON file starts with: [{"id": 1, "filename": "20240816_173056.jpg", "latitude": -22.620708055555557, "longitude": -45.6121...
+2025-06-04 17:21:13,056 - INFO - Found photo_heatmap_data.json with 2 entries
+2025-06-04 17:21:13,058 - INFO - Serving at http://localhost:8000
+2025-06-04 17:21:13,059 - INFO - Press Ctrl+C to stop the server
+2025-06-04 17:21:15,440 - DEBUG - Regular file request: /
+2025-06-04 17:21:15,680 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 17:21:18,322 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-04 17:21:18,325 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 17:21:18,327 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-04 17:23:53,986 - DEBUG - Regular file request: /
+2025-06-04 17:23:54,035 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 17:23:54,506 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 17:23:54,518 - INFO - Serving JSON file: photo_heatmap_data.json with 2 entries
+2025-06-04 17:23:54,522 - INFO - JSON data stats: 2/2 items have GPS coordinates
+2025-06-04 17:23:54,523 - INFO - 127.0.0.1 - "GET /photo_heatmap_data.json HTTP/1.1" 200 -
+2025-06-04 17:23:54,542 - DEBUG - Regular file request: /favicon.ico
+2025-06-04 17:23:54,544 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 17:23:54,545 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-04 17:23:57,860 - INFO - Full photo request received: /photos/20240816_171517.jpg
+2025-06-04 17:23:57,861 - INFO - Serving original photo: 20240816_171517.jpg
+2025-06-04 17:23:57,882 - DEBUG - Found photo path in DB: D:\photogps\20240816_171517.jpg
+2025-06-04 17:23:57,883 - INFO - 127.0.0.1 - "GET /photos/20240816_171517.jpg HTTP/1.1" 200 -
+2025-06-04 17:23:57,928 - DEBUG - Successfully served original photo: 20240816_171517.jpg
+2025-06-04 17:23:59,854 - INFO - Full photo request received: /photos/20240816_173056.jpg
+2025-06-04 17:23:59,855 - INFO - Serving original photo: 20240816_173056.jpg
+2025-06-04 17:23:59,866 - DEBUG - Found photo path in DB: D:\photogps\20240816_173056.jpg
+2025-06-04 17:23:59,867 - INFO - 127.0.0.1 - "GET /photos/20240816_173056.jpg HTTP/1.1" 200 -
+2025-06-04 17:23:59,899 - DEBUG - Successfully served original photo: 20240816_173056.jpg
+2025-06-04 17:29:04,144 - DEBUG - Regular file request: /
+2025-06-04 17:29:04,195 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-04 17:29:04,578 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 17:29:04,586 - INFO - Serving JSON file: photo_heatmap_data.json with 2 entries
+2025-06-04 17:29:04,587 - INFO - JSON data stats: 2/2 items have GPS coordinates
+2025-06-04 17:29:04,588 - INFO - 127.0.0.1 - "GET /photo_heatmap_data.json HTTP/1.1" 200 -
+2025-06-04 17:29:04,604 - DEBUG - Regular file request: /favicon.ico
+2025-06-04 17:29:04,606 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-04 17:29:04,608 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-04 17:29:07,506 - INFO - Full photo request received: /photos/20240816_171517.jpg
+2025-06-04 17:29:07,507 - INFO - Serving original photo: 20240816_171517.jpg
+2025-06-04 17:29:07,522 - DEBUG - Found photo path in DB: D:\photogps\20240816_171517.jpg
+2025-06-04 17:29:07,523 - INFO - 127.0.0.1 - "GET /photos/20240816_171517.jpg HTTP/1.1" 200 -
+2025-06-04 17:29:07,538 - DEBUG - Successfully served original photo: 20240816_171517.jpg
+2025-06-04 17:29:09,751 - INFO - Full photo request received: /photos/20240816_173056.jpg
+2025-06-04 17:29:09,753 - INFO - Serving original photo: 20240816_173056.jpg
+2025-06-04 17:29:09,762 - DEBUG - Found photo path in DB: D:\photogps\20240816_173056.jpg
+2025-06-04 17:29:09,764 - INFO - 127.0.0.1 - "GET /photos/20240816_173056.jpg HTTP/1.1" 200 -
+2025-06-04 17:29:09,777 - DEBUG - Successfully served original photo: 20240816_173056.jpg
+2025-06-04 17:29:20,589 - INFO - Full photo request received: /photos/20240816_173056.jpg
+2025-06-04 17:29:20,590 - INFO - Serving original photo: 20240816_173056.jpg
+2025-06-04 17:29:20,607 - DEBUG - Found photo path in DB: D:\photogps\20240816_173056.jpg
+2025-06-04 17:29:20,608 - INFO - 127.0.0.1 - "GET /photos/20240816_173056.jpg HTTP/1.1" 200 -
+2025-06-04 17:29:20,638 - DEBUG - Successfully served original photo: 20240816_173056.jpg
+2025-06-04 17:29:25,993 - INFO - Full photo request received: /photos/20240816_173056.jpg
+2025-06-04 17:29:25,994 - INFO - Serving original photo: 20240816_173056.jpg
+2025-06-04 17:29:26,005 - DEBUG - Found photo path in DB: D:\photogps\20240816_173056.jpg
+2025-06-04 17:29:26,007 - INFO - 127.0.0.1 - "GET /photos/20240816_173056.jpg HTTP/1.1" 200 -
+2025-06-04 17:29:26,060 - DEBUG - Successfully served original photo: 20240816_173056.jpg
+2025-06-04 17:29:39,752 - INFO - Gracefully shutting down server...
+2025-06-04 17:31:15,221 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 17:31:15,222 - INFO - Found photo_heatmap_data.json with size: 239782 bytes
+2025-06-04 17:31:15,242 - INFO - JSON file starts with: [{"id": 1, "filename": "IMG_6115.JPG", "latitude": null, "longitude": null, "datetime": "2024-09-01T...
+2025-06-04 17:31:15,248 - INFO - Found photo_heatmap_data.json with 1099 entries
+2025-06-04 17:31:15,251 - INFO - Serving at http://localhost:8000
+2025-06-04 17:31:15,252 - INFO - Press Ctrl+C to stop the server
+2025-06-04 17:31:17,417 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 17:31:17,669 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 17:31:17,679 - INFO - Serving JSON file: photo_heatmap_data.json with 1099 entries
+2025-06-04 17:31:17,681 - INFO - JSON data stats: 1099/1099 items have GPS coordinates
+2025-06-04 17:31:17,682 - INFO - 127.0.0.1 - "GET /photo_heatmap_data.json HTTP/1.1" 200 -
+2025-06-04 17:32:04,724 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 17:32:04,905 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 17:32:04,940 - INFO - Serving JSON file: photo_heatmap_data.json with 1099 entries
+2025-06-04 17:32:04,941 - INFO - JSON data stats: 1099/1099 items have GPS coordinates
+2025-06-04 17:32:04,942 - INFO - 127.0.0.1 - "GET /photo_heatmap_data.json HTTP/1.1" 200 -
+2025-06-04 17:32:12,825 - INFO - Gracefully shutting down server...
+2025-06-04 17:32:23,010 - INFO - Debug logging enabled
+2025-06-04 17:32:23,012 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 17:32:23,017 - INFO - Found photo_heatmap_data.json with size: 239782 bytes
+2025-06-04 17:32:23,045 - INFO - JSON file starts with: [{"id": 1, "filename": "IMG_6115.JPG", "latitude": null, "longitude": null, "datetime": "2024-09-01T...
+2025-06-04 17:32:23,051 - INFO - Found photo_heatmap_data.json with 1099 entries
+2025-06-04 17:32:23,053 - INFO - Serving at http://localhost:8000
+2025-06-04 17:32:23,054 - INFO - Press Ctrl+C to stop the server
+2025-06-04 17:32:26,629 - DEBUG - Regular file request: /
+2025-06-04 17:32:26,880 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 17:32:27,140 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 17:32:27,150 - INFO - Serving JSON file: photo_heatmap_data.json with 1099 entries
+2025-06-04 17:32:27,152 - INFO - JSON data stats: 1099/1099 items have GPS coordinates
+2025-06-04 17:32:27,153 - INFO - 127.0.0.1 - "GET /photo_heatmap_data.json HTTP/1.1" 200 -
+2025-06-04 17:33:45,116 - INFO - Gracefully shutting down server...
+2025-06-04 17:34:18,569 - INFO - Debug logging enabled
+2025-06-04 17:34:18,570 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-04 17:34:18,575 - INFO - Found photo_heatmap_data.json with size: 239782 bytes
+2025-06-04 17:34:18,592 - INFO - JSON file starts with: [{"id": 1, "filename": "IMG_6115.JPG", "latitude": null, "longitude": null, "datetime": "2024-09-01T...
+2025-06-04 17:34:18,597 - INFO - Found photo_heatmap_data.json with 1099 entries
+2025-06-04 17:34:18,600 - INFO - Serving at http://localhost:8000
+2025-06-04 17:34:18,601 - INFO - Press Ctrl+C to stop the server
+2025-06-04 17:34:20,608 - DEBUG - Regular file request: /
+2025-06-04 17:34:20,869 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-04 17:34:21,142 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-04 17:34:21,152 - INFO - Serving JSON file: photo_heatmap_data.json with 1099 entries
+2025-06-04 17:34:21,154 - INFO - JSON data stats: 1099/1099 items have GPS coordinates
+2025-06-04 17:34:21,156 - INFO - 127.0.0.1 - "GET /photo_heatmap_data.json HTTP/1.1" 200 -
+2025-06-04 17:35:37,235 - INFO - Full photo request received: /photos/IMG_5960.jpg
+2025-06-04 17:35:37,236 - INFO - Serving original photo: IMG_5960.jpg
+2025-06-04 17:35:37,251 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5960.jpg
+2025-06-04 17:35:37,252 - INFO - 127.0.0.1 - "GET /photos/IMG_5960.jpg HTTP/1.1" 200 -
+2025-06-04 17:35:38,017 - DEBUG - Successfully served original photo: IMG_5960.jpg
+2025-06-04 17:35:40,322 - INFO - Full photo request received: /photos/IMG_5961.jpg
+2025-06-04 17:35:40,323 - INFO - Serving original photo: IMG_5961.jpg
+2025-06-04 17:35:40,330 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5961.jpg
+2025-06-04 17:35:40,331 - INFO - 127.0.0.1 - "GET /photos/IMG_5961.jpg HTTP/1.1" 200 -
+2025-06-04 17:35:40,341 - DEBUG - Successfully served original photo: IMG_5961.jpg
+2025-06-04 17:35:42,890 - INFO - Full photo request received: /photos/IMG_5958.jpg
+2025-06-04 17:35:42,891 - INFO - Serving original photo: IMG_5958.jpg
+2025-06-04 17:35:42,897 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5958.jpg
+2025-06-04 17:35:42,899 - INFO - 127.0.0.1 - "GET /photos/IMG_5958.jpg HTTP/1.1" 200 -
+2025-06-04 17:35:43,626 - DEBUG - Successfully served original photo: IMG_5958.jpg
+2025-06-04 17:35:47,808 - INFO - Full photo request received: /photos/IMG_5957.jpg
+2025-06-04 17:35:47,810 - INFO - Serving original photo: IMG_5957.jpg
+2025-06-04 17:35:47,818 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5957.jpg
+2025-06-04 17:35:47,819 - INFO - 127.0.0.1 - "GET /photos/IMG_5957.jpg HTTP/1.1" 200 -
+2025-06-04 17:35:47,849 - DEBUG - Successfully served original photo: IMG_5957.jpg
+2025-06-04 17:35:50,426 - INFO - Full photo request received: /photos/IMG_5944.JPG
+2025-06-04 17:35:50,427 - INFO - Serving original photo: IMG_5944.JPG
+2025-06-04 17:35:50,436 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5944.JPG
+2025-06-04 17:35:50,437 - INFO - 127.0.0.1 - "GET /photos/IMG_5944.JPG HTTP/1.1" 200 -
+2025-06-04 17:35:51,144 - DEBUG - Successfully served original photo: IMG_5944.JPG
+2025-06-04 17:35:52,823 - INFO - Full photo request received: /photos/IMG_5943.JPG
+2025-06-04 17:35:52,824 - INFO - Serving original photo: IMG_5943.JPG
+2025-06-04 17:35:52,837 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5943.JPG
+2025-06-04 17:35:52,838 - INFO - 127.0.0.1 - "GET /photos/IMG_5943.JPG HTTP/1.1" 200 -
+2025-06-04 17:35:52,842 - DEBUG - Successfully served original photo: IMG_5943.JPG
+2025-06-04 17:35:55,806 - INFO - Full photo request received: /photos/IMG_5948.JPG
+2025-06-04 17:35:55,807 - INFO - Serving original photo: IMG_5948.JPG
+2025-06-04 17:35:55,813 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5948.JPG
+2025-06-04 17:35:55,814 - INFO - 127.0.0.1 - "GET /photos/IMG_5948.JPG HTTP/1.1" 200 -
+2025-06-04 17:35:56,546 - DEBUG - Successfully served original photo: IMG_5948.JPG
+2025-06-04 17:35:58,640 - INFO - Full photo request received: /photos/IMG_5945.JPG
+2025-06-04 17:35:58,642 - INFO - Serving original photo: IMG_5945.JPG
+2025-06-04 17:35:58,650 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5945.JPG
+2025-06-04 17:35:58,658 - INFO - 127.0.0.1 - "GET /photos/IMG_5945.JPG HTTP/1.1" 200 -
+2025-06-04 17:35:58,662 - DEBUG - Successfully served original photo: IMG_5945.JPG
+2025-06-04 17:36:14,924 - INFO - Full photo request received: /photos/IMG_0483.jpg
+2025-06-04 17:36:14,925 - INFO - Serving original photo: IMG_0483.jpg
+2025-06-04 17:36:14,939 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_0483.jpg
+2025-06-04 17:36:14,940 - INFO - 127.0.0.1 - "GET /photos/IMG_0483.jpg HTTP/1.1" 200 -
+2025-06-04 17:36:15,766 - DEBUG - Successfully served original photo: IMG_0483.jpg
+2025-06-04 17:36:23,237 - INFO - Full photo request received: /photos/IMG_5765.jpg
+2025-06-04 17:36:23,238 - INFO - Serving original photo: IMG_5765.jpg
+2025-06-04 17:36:23,252 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5765.jpg
+2025-06-04 17:36:23,253 - INFO - 127.0.0.1 - "GET /photos/IMG_5765.jpg HTTP/1.1" 200 -
+2025-06-04 17:36:23,267 - DEBUG - Successfully served original photo: IMG_5765.jpg
+2025-06-04 17:36:26,426 - INFO - Full photo request received: /photos/IMG_5764.jpg
+2025-06-04 17:36:26,427 - INFO - Serving original photo: IMG_5764.jpg
+2025-06-04 17:36:26,435 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5764.jpg
+2025-06-04 17:36:26,436 - INFO - 127.0.0.1 - "GET /photos/IMG_5764.jpg HTTP/1.1" 200 -
+2025-06-04 17:36:27,257 - DEBUG - Successfully served original photo: IMG_5764.jpg
+2025-06-04 17:36:28,924 - INFO - Full photo request received: /photos/IMG_5763.jpg
+2025-06-04 17:36:28,925 - INFO - Serving original photo: IMG_5763.jpg
+2025-06-04 17:36:28,932 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5763.jpg
+2025-06-04 17:36:28,933 - INFO - 127.0.0.1 - "GET /photos/IMG_5763.jpg HTTP/1.1" 200 -
+2025-06-04 17:36:28,965 - DEBUG - Successfully served original photo: IMG_5763.jpg
+2025-06-04 17:36:30,870 - INFO - Full photo request received: /photos/IMG_1078.jpg
+2025-06-04 17:36:30,870 - INFO - Serving original photo: IMG_1078.jpg
+2025-06-04 17:36:30,879 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_1078.jpg
+2025-06-04 17:36:30,880 - INFO - 127.0.0.1 - "GET /photos/IMG_1078.jpg HTTP/1.1" 200 -
+2025-06-04 17:36:31,728 - DEBUG - Successfully served original photo: IMG_1078.jpg
+2025-06-04 17:36:34,187 - INFO - Full photo request received: /photos/IMG_1077.jpg
+2025-06-04 17:36:34,188 - INFO - Serving original photo: IMG_1077.jpg
+2025-06-04 17:36:34,196 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_1077.jpg
+2025-06-04 17:36:34,197 - INFO - 127.0.0.1 - "GET /photos/IMG_1077.jpg HTTP/1.1" 200 -
+2025-06-04 17:36:34,391 - DEBUG - Successfully served original photo: IMG_1077.jpg
+2025-06-04 17:36:36,006 - INFO - Full photo request received: /photos/IMG_1076.jpg
+2025-06-04 17:36:36,007 - INFO - Serving original photo: IMG_1076.jpg
+2025-06-04 17:36:36,014 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_1076.jpg
+2025-06-04 17:36:36,016 - INFO - 127.0.0.1 - "GET /photos/IMG_1076.jpg HTTP/1.1" 200 -
+2025-06-04 17:36:36,837 - DEBUG - Successfully served original photo: IMG_1076.jpg
+2025-06-04 17:36:38,764 - INFO - Full photo request received: /photos/IMG_1075.jpg
+2025-06-04 17:36:38,765 - INFO - Serving original photo: IMG_1075.jpg
+2025-06-04 17:36:38,775 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_1075.jpg
+2025-06-04 17:36:38,776 - INFO - 127.0.0.1 - "GET /photos/IMG_1075.jpg HTTP/1.1" 200 -
+2025-06-04 17:36:38,991 - DEBUG - Successfully served original photo: IMG_1075.jpg
+2025-06-04 17:36:57,971 - INFO - Gracefully shutting down server...

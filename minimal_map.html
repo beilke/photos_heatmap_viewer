@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Photo Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { width: 100%; height: 100vh; }
+        #info { 
+            position: absolute; 
+            bottom: 10px; 
+            right: 10px; 
+            background: white; 
+            padding: 10px; 
+            border-radius: 5px; 
+            z-index: 1000;
+            font-family: Arial, sans-serif;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="info">Loading data...</div>
+
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([-22.62, -45.61], 13);  // Set to coordinates from your JSON
+
+        // Add base map layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Info div for logging
+        const infoDiv = document.getElementById('info');
+        
+        // Helper function to log to both console and info div
+        function log(message, data) {
+            const timestamp = new Date().toLocaleTimeString();
+            console.log(`[${timestamp}] ${message}`, data || '');
+            
+            if (data) {
+                let dataText;
+                try {
+                    dataText = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data);
+                } catch (e) {
+                    dataText = '[Complex object]';
+                }
+                infoDiv.innerHTML += `<div><strong>${timestamp}: ${message}</strong><pre>${dataText}</pre></div>`;
+            } else {
+                infoDiv.innerHTML += `<div><strong>${timestamp}: ${message}</strong></div>`;
+            }
+        }
+
+        // Log any errors
+        window.addEventListener('error', function(e) {
+            log('ERROR: ' + e.message);
+            return false;
+        });
+        
+        // Load the photo data
+        fetch('photo_heatmap_data.json')
+            .then(response => {
+                log('Fetch response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                log('Data loaded, items:', data.length);
+                
+                // Check for any GPS data
+                const withGPS = data.filter(photo => photo.latitude && photo.longitude);
+                log('Photos with GPS:', withGPS.length);
+                
+                // Add a simple marker for each photo with GPS data
+                let bounds = null;
+                
+                withGPS.forEach(photo => {
+                    // Log each photo being processed
+                    log('Adding photo:', photo.filename);
+                    
+                    // Create marker
+                    const marker = L.marker([photo.latitude, photo.longitude])
+                        .addTo(map)
+                        .bindPopup(`
+                            <strong>${photo.filename}</strong><br>
+                            ${photo.datetime ? new Date(photo.datetime).toLocaleString() : 'No date'}<br>
+                            <img src="photos/${encodeURIComponent(photo.filename)}" style="max-width:150px; max-height:150px;" 
+                                 onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
+                        `);
+                    
+                    // Add to bounds
+                    if (!bounds) {
+                        bounds = L.latLngBounds([photo.latitude, photo.longitude], [photo.latitude, photo.longitude]);
+                    } else {
+                        bounds.extend([photo.latitude, photo.longitude]);
+                    }
+                });
+                
+                // Fit map to bounds if we have any
+                if (bounds) {
+                    log('Fitting map to bounds:', bounds);
+                    map.fitBounds(bounds);
+                }
+                
+                // Add click handler to show coordinates
+                map.on('click', function(e) {
+                    log('Map clicked at:', e.latlng);
+                });
+            })
+            .catch(error => {
+                log('Error loading data:', error.message);
+                infoDiv.innerHTML = `<div style="color: red;"><strong>Error:</strong> ${error.message}</div>`;
+            });
+    </script>
+</body>
+</html>

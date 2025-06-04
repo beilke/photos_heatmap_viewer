@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Heatmap Viewer - Simplified</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <!-- Add MarkerCluster if you want clustering -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #map { 
+            width: 100%; 
+            height: 100vh; 
+        }
+        .controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+        .debug-panel {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            max-width: 400px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .loading button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #4CAF50;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="controls">
+        <h3>Photo Heatmap</h3>
+        <div>
+            <label for="intensity">Intensity: </label>
+            <input type="range" id="intensity" min="1" max="30" value="15">
+        </div>
+        <div>
+            <label for="radius">Radius: </label>
+            <input type="range" id="radius" min="5" max="50" value="25">
+        </div>
+        <div>
+            <input type="checkbox" id="showMarkers" checked>
+            <label for="showMarkers">Show Photos</label>
+        </div>
+        <div>
+            <button id="updateMap">Update Map</button>
+        </div>
+        <div id="photoCount"></div>
+    </div>
+    <div class="debug-panel" id="debugPanel"></div>
+    <div class="loading" id="loading">
+        <h2>Loading photo data...</h2>
+        <p>Please wait while we load your photo data.</p>
+        <button onclick="location.reload()">Retry</button>
+    </div>
+
+    <script>
+        // Debug logging function
+        function debugLog(message, data) {
+            const timestamp = new Date().toLocaleTimeString();
+            console.log(`[${timestamp}] ${message}`, data || '');
+            
+            const panel = document.getElementById('debugPanel');
+            if (panel) {
+                let dataText = '';
+                if (data) {
+                    try {
+                        dataText = typeof data === 'object' ? 
+                            `<pre>${JSON.stringify(data, null, 2)}</pre>` : 
+                            `<pre>${data}</pre>`;
+                    } catch (e) {
+                        dataText = '<pre>[Complex object]</pre>';
+                    }
+                }
+                panel.innerHTML += `<div><strong>[${timestamp}]</strong> ${message} ${dataText}</div>`;
+                panel.scrollTop = panel.scrollHeight;
+            }
+        }
+        
+        // Catch all errors
+        window.addEventListener('error', function(e) {
+            debugLog('ERROR: ' + e.message);
+            return false;
+        });
+
+        // Initialize map
+        debugLog('Initializing map');
+        const map = L.map('map').setView([0, 0], 2);
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // UI elements
+        const intensitySlider = document.getElementById('intensity');
+        const radiusSlider = document.getElementById('radius');
+        const showMarkersCheckbox = document.getElementById('showMarkers');
+        const updateMapButton = document.getElementById('updateMap');
+        const photoCountElement = document.getElementById('photoCount');
+        const loadingElement = document.getElementById('loading');
+        
+        // Global variables
+        let photoData = [];
+        let heatLayer = null;
+        let markerGroup = null;
+        
+        // Load photo data
+        function loadPhotoData() {
+            debugLog('Loading photo data');
+            
+            fetch('photo_heatmap_data.json')
+                .then(response => {
+                    debugLog(`Response status: ${response.status}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    debugLog(`Successfully loaded ${data.length} photos`);
+                    
+                    // Store data globally
+                    photoData = data;
+                    
+                    // Count photos with GPS coords
+                    const withGPS = data.filter(photo => 
+                        photo.latitude != null && photo.longitude != null);
+                    debugLog(`Photos with GPS: ${withGPS.length}/${data.length}`);
+                    
+                    // Update photo count display
+                    photoCountElement.textContent = `${withGPS.length} photos with location`;
+                    
+                    // Hide loading screen
+                    loadingElement.style.display = 'none';
+                    
+                    // Create initial visualization
+                    updateVisualization();
+                })
+                .catch(error => {
+                    debugLog(`Error loading photo data: ${error.message}`);
+                    loadingElement.innerHTML = `
+                        <h2>Error Loading Data</h2>
+                        <p>${error.message}</p>
+                        <button onclick="location.reload()">Retry</button>
+                    `;
+                });
+        }
+        
+        // Update map visualization
+        function updateVisualization() {
+            debugLog('Updating visualization');
+            
+            // Filter photos with GPS coordinates
+            const validPhotos = photoData.filter(photo => 
+                photo.latitude != null && photo.longitude != null);
+            
+            if (validPhotos.length === 0) {
+                debugLog('No photos with valid GPS coordinates');
+                return;
+            }
+            
+            // Create heatmap
+            updateHeatmap(validPhotos);
+            
+            // Create markers if enabled
+            if (showMarkersCheckbox.checked) {
+                updateMarkers(validPhotos);
+            } else if (markerGroup) {
+                map.removeLayer(markerGroup);
+            }
+            
+            // Fit map to bounds
+            const bounds = L.latLngBounds(validPhotos.map(photo => [photo.latitude, photo.longitude]));
+            map.fitBounds(bounds);
+        }
+        
+        // Update heatmap
+        function updateHeatmap(photos) {
+            debugLog('Updating heatmap');
+            
+            // Remove existing heatmap if present
+            if (heatLayer) {
+                map.removeLayer(heatLayer);
+            }
+            
+            // Create heatmap points
+            const points = photos.map(photo => [
+                photo.latitude, 
+                photo.longitude, 
+                1  // Weight
+            ]);
+            
+            // Create new heatmap layer
+            heatLayer = L.heatLayer(points, {
+                radius: parseInt(radiusSlider.value),
+                blur: 15,
+                maxZoom: 10,
+                gradient: {0.4: 'blue', 0.65: 'lime', 1: 'red'},
+                intensity: parseInt(intensitySlider.value) / 10
+            }).addTo(map);
+            
+            debugLog(`Heatmap created with ${points.length} points`);
+        }
+        
+        // Update markers
+        function updateMarkers(photos) {
+            debugLog('Updating markers');
+            
+            // Remove existing markers if present
+            if (markerGroup) {
+                map.removeLayer(markerGroup);
+            }
+            
+            // Use MarkerClusterGroup if available, otherwise use LayerGroup
+            if (typeof L.markerClusterGroup === 'function') {
+                debugLog('Using MarkerClusterGroup');
+                markerGroup = L.markerClusterGroup({
+                    maxClusterRadius: 50,
+                    spiderfyOnMaxZoom: false
+                });
+            } else {
+                debugLog('Using LayerGroup (MarkerClusterGroup not available)');
+                markerGroup = L.layerGroup();
+            }
+            
+            // Add markers for each photo
+            photos.forEach(photo => {
+                debugLog(`Processing photo: ${photo.filename} at [${photo.latitude}, ${photo.longitude}]`);
+                
+                const marker = L.marker([photo.latitude, photo.longitude]);
+                
+                // Create popup content
+                const popupContent = `
+                    <div>
+                        <strong>${photo.filename || 'Unknown'}</strong><br>
+                        ${photo.datetime ? new Date(photo.datetime).toLocaleString() : 'No date'}<br>
+                        <img src="photos/${encodeURIComponent(photo.filename)}" style="max-width: 150px; max-height: 150px;" onerror="this.onerror=null;this.src='https://placehold.co/150x150?text=No+Image'">
+                    </div>
+                `;
+                marker.bindPopup(popupContent);
+                
+                // Store photo data in marker for later use
+                marker.photoData = photo;
+                
+                // Add marker to group
+                markerGroup.addLayer(marker);
+                
+                debugLog(`Added marker for ${photo.filename}`);
+            });
+            
+            // Add marker group to map
+            map.addLayer(markerGroup);
+            
+            debugLog(`Successfully added ${photos.length} markers to map`);
+        }
+        
+        // Event listeners
+        updateMapButton.addEventListener('click', updateVisualization);
+        
+        showMarkersCheckbox.addEventListener('change', function() {
+            debugLog(`Show markers changed: ${this.checked}`);
+            updateVisualization();
+        });
+        
+        // Load data when page is loaded
+        window.addEventListener('load', function() {
+            debugLog('Page loaded, fetching photo data...');
+            loadPhotoData();
+        });
+    </script>
+</body>
+</html>

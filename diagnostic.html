@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Loader Diagnostic</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow: auto;
+            max-height: 400px;
+            border: 1px solid #ddd;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        .step { margin-bottom: 20px; }
+        .step-header {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        #controls {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px;
+            margin-right: 10px;
+        }
+        #log {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            height: 200px;
+            overflow: auto;
+            font-size: 14px;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .timestamp {
+            color: #666;
+            font-size: 12px;
+        }
+        #map {
+            width: 100%;
+            height: 400px;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+        }
+        .summary {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+</head>
+<body>
+    <h1>Photo Heatmap JSON Diagnostic Tool</h1>
+    
+    <div id="controls">
+        <button id="runTests">Run Diagnostics</button>
+        <button id="clearLog">Clear Log</button>
+        <input type="file" id="fileInput" accept=".json" style="display: none;">
+        <button id="loadCustomFile">Load Custom JSON</button>
+    </div>
+
+    <div class="summary" id="summary"></div>
+    
+    <div id="diagnostics"></div>
+    
+    <div id="map"></div>
+    
+    <h3>Log:</h3>
+    <div id="log"></div>
+    
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        let heatLayer = null;
+        const diagnosticDiv = document.getElementById('diagnostics');
+        const logDiv = document.getElementById('log');
+        const summaryDiv = document.getElementById('summary');
+        
+        // Logging function
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            
+            const timestamp = document.createElement('span');
+            timestamp.className = 'timestamp';
+            timestamp.textContent = new Date().toISOString().substr(11, 12) + ' ';
+            
+            entry.appendChild(timestamp);
+            entry.appendChild(document.createTextNode(message));
+            
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            console[type === 'error' ? 'error' : type === 'warning' ? 'warn' : 'log'](message);
+        }
+        
+        function addTestResult(title, result, details = '') {
+            const stepDiv = document.createElement('div');
+            stepDiv.className = 'step';
+            
+            const header = document.createElement('div');
+            header.className = 'step-header';
+            header.textContent = title;
+            
+            const status = document.createElement('span');
+            status.className = result.status;
+            status.textContent = ' [' + result.message + ']';
+            header.appendChild(status);
+            
+            stepDiv.appendChild(header);
+            
+            if (details) {
+                const pre = document.createElement('pre');
+                pre.textContent = details;
+                stepDiv.appendChild(pre);
+            }
+            
+            diagnosticDiv.appendChild(stepDiv);
+        }
+        
+        function clearTests() {
+            diagnosticDiv.innerHTML = '';
+            summaryDiv.textContent = '';
+        }
+        
+        // Fetch and test the JSON file
+        async function runDiagnostics(jsonFile = 'photo_heatmap_data.json') {
+            clearTests();
+            log(`Starting diagnostics for ${jsonFile}`);
+            
+            let successCount = 0;
+            let warningCount = 0;
+            let errorCount = 0;
+            let photoData = null;
+            
+            try {
+                // Test 1: File exists and can be fetched
+                log(`Fetching ${jsonFile}...`);
+                const response = await fetch(jsonFile);
+                
+                if (!response.ok) {
+                    addTestResult('1. Fetch JSON file', {
+                        status: 'error',
+                        message: `Failed (HTTP ${response.status})`
+                    });
+                    errorCount++;
+                    log(`HTTP error ${response.status}: ${response.statusText}`, 'error');
+                } else {
+                    addTestResult('1. Fetch JSON file', {
+                        status: 'success',
+                        message: 'Success'
+                    }, `URL: ${jsonFile}\nStatus: ${response.status}\nContent-Type: ${response.headers.get('content-type')}`);
+                    successCount++;
+                    log('JSON file fetched successfully');
+                    
+                    // Test 2: Parse JSON content
+                    try {
+                        const text = await response.text();
+                        
+                        // Check if empty
+                        if (!text.trim()) {
+                            addTestResult('2. Parse JSON content', {
+                                status: 'error',
+                                message: 'Failed (Empty file)'
+                            });
+                            errorCount++;
+                            log('JSON file is empty', 'error');
+                        } else {
+                            try {
+                                photoData = JSON.parse(text);
+                                addTestResult('2. Parse JSON content', {
+                                    status: 'success',
+                                    message: 'Success'
+                                }, `JSON parsed successfully\nFirst 100 characters: ${text.substring(0, 100)}...`);
+                                successCount++;
+                                log('JSON parsed successfully');
+                                
+                                // Test 3: Validate JSON structure
+                                if (!Array.isArray(photoData)) {
+                                    addTestResult('3. Validate JSON structure', {
+                                        status: 'error',
+                                        message: 'Failed (Not an array)'
+                                    }, `Expected array, got: ${typeof photoData}`);
+                                    errorCount++;
+                                    log('JSON is not an array', 'error');
+                                } else {
+                                    addTestResult('3. Validate JSON structure', {
+                                        status: 'success',
+                                        message: 'Success'
+                                    }, `Array with ${photoData.length} items`);
+                                    successCount++;
+                                    log(`JSON contains ${photoData.length} items`);
+                                    
+                                    // Test 4: Check for GPS data
+                                    const gpsItems = photoData.filter(item => 
+                                        item && typeof item === 'object' && 
+                                        'latitude' in item && 'longitude' in item &&
+                                        item.latitude !== null && item.longitude !== null
+                                    );
+                                    
+                                    if (gpsItems.length === 0) {
+                                        addTestResult('4. Check GPS data', {
+                                            status: 'error',
+                                            message: 'Failed (No GPS data)'
+                                        });
+                                        errorCount++;
+                                        log('No items with GPS coordinates found', 'error');
+                                    } else {
+                                        const percentage = (gpsItems.length / photoData.length * 100).toFixed(1);
+                                        addTestResult('4. Check GPS data', {
+                                            status: 'success',
+                                            message: 'Success'
+                                        }, `${gpsItems.length}/${photoData.length} items (${percentage}%) have GPS coordinates`);
+                                        successCount++;
+                                        log(`Found ${gpsItems.length} items with GPS coordinates`);
+                                        
+                                        // Test 5: Render heatmap with data
+                                        try {
+                                            log('Rendering heatmap...');
+                                            const heatData = gpsItems
+                                                .filter(item => !isNaN(parseFloat(item.latitude)) && !isNaN(parseFloat(item.longitude)))
+                                                .map(item => [parseFloat(item.latitude), parseFloat(item.longitude), 1]);
+                                                
+                                            if (heatData.length === 0) {
+                                                addTestResult('5. Render heatmap', {
+                                                    status: 'error',
+                                                    message: 'Failed (No valid coordinates)'
+                                                });
+                                                errorCount++;
+                                                log('No valid GPS coordinates for heatmap', 'error');
+                                            } else {
+                                                // Remove previous heatmap if it exists
+                                                if (heatLayer && map.hasLayer(heatLayer)) {
+                                                    map.removeLayer(heatLayer);
+                                                }
+                                                
+                                                // Create and add the heatmap layer
+                                                heatLayer = L.heatLayer(heatData, {
+                                                    radius: 25,
+                                                    blur: 15,
+                                                    maxZoom: 17
+                                                }).addTo(map);
+                                                
+                                                // Fit map to the data
+                                                if (heatData.length > 0) {
+                                                    const bounds = L.latLngBounds(heatData.map(point => [point[0], point[1]]));
+                                                    map.fitBounds(bounds);
+                                                }
+                                                
+                                                addTestResult('5. Render heatmap', {
+                                                    status: 'success',
+                                                    message: 'Success'
+                                                }, `Created heatmap with ${heatData.length} points`);
+                                                successCount++;
+                                                log(`Rendered heatmap with ${heatData.length} points`);
+                                            }
+                                        } catch (e) {
+                                            addTestResult('5. Render heatmap', {
+                                                status: 'error',
+                                                message: 'Failed (Error)'
+                                            }, `Error: ${e.message}`);
+                                            errorCount++;
+                                            log(`Error rendering heatmap: ${e.message}`, 'error');
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                addTestResult('2. Parse JSON content', {
+                                    status: 'error',
+                                    message: 'Failed (Parse error)'
+                                }, `Error: ${e.message}\nContent: ${text.substring(0, 100)}...`);
+                                errorCount++;
+                                log(`JSON parse error: ${e.message}`, 'error');
+                            }
+                        }
+                    } catch (e) {
+                        addTestResult('2. Parse JSON content', {
+                            status: 'error',
+                            message: 'Failed (Error)'
+                        }, `Error: ${e.message}`);
+                        errorCount++;
+                        log(`Error reading response text: ${e.message}`, 'error');
+                    }
+                }
+            } catch (e) {
+                addTestResult('1. Fetch JSON file', {
+                    status: 'error',
+                    message: 'Failed (Network error)'
+                }, `Error: ${e.message}`);
+                errorCount++;
+                log(`Network error: ${e.message}`, 'error');
+            }
+            
+            // Update summary
+            summaryDiv.textContent = `Diagnostics complete: ${successCount} passed, ${warningCount} warnings, ${errorCount} errors`;
+            summaryDiv.className = errorCount > 0 ? 'summary error' : warningCount > 0 ? 'summary warning' : 'summary success';
+        }
+
+        // Event listeners
+        document.getElementById('runTests').addEventListener('click', () => {
+            runDiagnostics();
+        });
+        
+        document.getElementById('clearLog').addEventListener('click', () => {
+            logDiv.innerHTML = '';
+            log('Log cleared');
+        });
+        
+        document.getElementById('loadCustomFile').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+        
+        document.getElementById('fileInput').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                log(`Selected file: ${file.name} (${file.size} bytes)`);
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const content = e.target.result;
+                    
+                    // Create a blob and object URL
+                    const blob = new Blob([content], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    // Run diagnostics on the loaded file
+                    runDiagnostics(url);
+                };
+                reader.onerror = (e) => {
+                    log(`Error reading file: ${e.target.error}`, 'error');
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Run diagnostics on load
+        document.addEventListener('DOMContentLoaded', () => {
+            log('Page loaded, ready to run diagnostics');
+        });
+    </script>
+</body>
+</html>

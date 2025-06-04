@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Heatmap Viewer - Simple Debug Version</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            width: 100%;
+            height: 80vh;
+        }
+        .controls {
+            padding: 10px;
+            background-color: #f5f5f5;
+        }
+        pre {
+            background-color: #eee;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h2>Photo Heatmap Viewer - Debug Version</h2>
+        <div>
+            <button id="loadBtn">Load JSON Data</button>
+            <button id="showDataBtn">Show Raw Data</button>
+        </div>
+        <div id="status">Status: Click "Load JSON Data" to begin</div>
+    </div>
+    <div id="map"></div>
+    <div class="controls">
+        <h3>Data Preview</h3>
+        <pre id="dataPreview">No data loaded yet</pre>
+    </div>
+
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([0, 0], 2);
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // DOM elements
+        const loadBtn = document.getElementById('loadBtn');
+        const showDataBtn = document.getElementById('showDataBtn');
+        const statusDiv = document.getElementById('status');
+        const dataPreview = document.getElementById('dataPreview');
+        
+        // Variables
+        let photoData = [];
+        let markers = [];
+        
+        // Load JSON data
+        loadBtn.addEventListener('click', function() {
+            statusDiv.textContent = "Status: Loading data...";
+            
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            
+            fetch('photo_heatmap_data.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    statusDiv.textContent = "Status: Parsing JSON...";
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data || data.length === 0) {
+                        statusDiv.textContent = "Status: No data found in JSON file";
+                        dataPreview.textContent = "Empty data";
+                        return;
+                    }
+                    
+                    photoData = data;
+                    statusDiv.textContent = `Status: Loaded ${data.length} photos`;
+                    dataPreview.textContent = JSON.stringify(data.slice(0, 3), null, 2) + 
+                        (data.length > 3 ? "\n... and " + (data.length - 3) + " more entries" : "");
+                    
+                    // Find photos with coordinates
+                    const geotaggedPhotos = data.filter(photo => 
+                        photo.latitude != null && photo.longitude != null);
+                    
+                    if (geotaggedPhotos.length === 0) {
+                        statusDiv.textContent = `Status: Found ${data.length} photos but none have GPS coordinates`;
+                        return;
+                    }
+                    
+                    statusDiv.textContent = `Status: Displaying ${geotaggedPhotos.length} geotagged photos`;
+                    
+                    // Add markers for geotagged photos
+                    geotaggedPhotos.forEach(photo => {
+                        const marker = L.marker([photo.latitude, photo.longitude])
+                            .addTo(map)
+                            .bindPopup(`<b>${photo.filename}</b><br>Date: ${photo.datetime || 'Unknown'}`);
+                        markers.push(marker);
+                    });
+                    
+                    // Fit map to markers
+                    const lats = geotaggedPhotos.map(p => p.latitude);
+                    const lngs = geotaggedPhotos.map(p => p.longitude);
+                    if (lats.length > 0) {
+                        const bounds = [
+                            [Math.min(...lats), Math.min(...lngs)],
+                            [Math.max(...lats), Math.max(...lngs)]
+                        ];
+                        map.fitBounds(bounds);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading data:', error);
+                    statusDiv.textContent = `Status: Error! ${error.message}`;
+                    dataPreview.textContent = `Error: ${error.message}\n\nPossible solutions:\n1. Run python create_debug_data.py\n2. Restart the server`;
+                });
+        });
+        
+        // Show all raw data
+        showDataBtn.addEventListener('click', function() {
+            if (photoData.length === 0) {
+                dataPreview.textContent = "No data loaded yet. Click 'Load JSON Data' first.";
+                return;
+            }
+            
+            dataPreview.textContent = JSON.stringify(photoData, null, 2);
+        });
+        
+        // Automatic load attempt
+        setTimeout(() => {
+            loadBtn.click();
+        }, 1000);
+    </script>
+</body>
+</html>
