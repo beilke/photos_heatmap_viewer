@@ -1,0 +1,52 @@
+/* Super obvious marker cluster styling */
+.leaflet-cluster-anim .leaflet-marker-icon, .leaflet-cluster-anim .leaflet-marker-shadow {
+    -webkit-transition: -webkit-transform 0.3s ease-out, opacity 0.3s ease-in;
+    -moz-transition: -moz-transform 0.3s ease-out, opacity 0.3s ease-in;
+    -o-transition: -o-transform 0.3s ease-out, opacity 0.3s ease-in;
+    transition: transform 0.3s ease-out, opacity 0.3s ease-in;
+}
+
+.marker-cluster-small {
+    background-color: #FF5252 !important;
+}
+.marker-cluster-small div {
+    background-color: #F44336 !important;
+}
+
+.marker-cluster-medium {
+    background-color: #FFEB3B !important;
+}
+.marker-cluster-medium div {
+    background-color: #FFC107 !important;
+}
+
+.marker-cluster-large {
+    background-color: #66BB6A !important;
+}
+.marker-cluster-large div {
+    background-color: #4CAF50 !important;
+}
+
+/* Make clusters REALLY obvious */
+.marker-cluster {
+    background-clip: padding-box;
+    border-radius: 20px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5) !important;
+    border: 3px solid white !important;
+}
+
+.marker-cluster div {
+    width: 30px;
+    height: 30px;
+    margin-left: 5px;
+    margin-top: 5px;
+    text-align: center;
+    border-radius: 15px;
+    font-size: 16px !important;
+    font-weight: bold !important;
+    color: white !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5) !important;
+}

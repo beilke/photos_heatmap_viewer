@@ -1,15 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initia          .photo-viewer-image img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            image-orientation: from-image; /* Use EXIF orientation */
+            transform-origin: center;
+            transition: transform 0.3s ease;=1.0">
     <title>Photo Heatmap Viewer - Simplified</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-    <!-- Add MarkerCluster if you want clustering -->    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <!-- Add MarkerCluster if you want clustering -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-    <link rel="stylesheet" href="style.css" />
     <style>
         body { 
             margin: 0; 
@@ -58,7 +65,8 @@
             justify-content: center;
             align-items: center;
             z-index: 2000;
-        }        .loading button {
+        }
+        .loading button {
             margin-top: 20px;
             padding: 10px 20px;
             background: #4CAF50;
@@ -68,50 +76,8 @@
             cursor: pointer;
         }
         
-        .progress-bar {
-            width: 300px;
-            height: 20px;
-            background-color: #f0f0f0;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 10px auto;
-        }
-        
-        .progress-bar div {
-            height: 100%;
-            background-color: #4CAF50;
-            transition: width 0.3s ease;
-        }
-        
-        .marker-popup {
-            min-width: 160px;
-        }
-        
-        .popup-image-container {
-            margin-top: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        
-        .loading-placeholder {
-            color: #666;
-            font-size: 12px;
-        }
-        
-        .marker-loading-status {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 8px 12px;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            font-size: 14px;
-        }
-        
-        /* Photo Viewer Styles */        .photo-viewer-overlay {
+        /* Photo Viewer Styles */
+        .photo-viewer-overlay {
             display: none;
             position: fixed;
             top: 0;
@@ -121,8 +87,7 @@
             background-color: rgba(0, 0, 0, 0.85);
             z-index: 2000;
             align-items: center;
-            justify-content: center;
-        }
+            justify-content: center;        }        
         
         .photo-viewer-container {
             position: relative;
@@ -284,15 +249,23 @@
                 border-left: none;
                 border-top: 1px solid #eee;
             }
-        }        /* Remove any custom cluster styling that could hide the count */
+        }
         
-        /* .marker-cluster, .marker-cluster div, .marker-cluster span { all: unset !important; } */
+        /* Photo cluster styling */
+        .marker-cluster {
+            background-color: rgba(76, 175, 80, 0.6);
+            border-radius: 50%;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
         
-        .leaflet-cluster-anim .leaflet-marker-icon, .leaflet-cluster-anim .leaflet-marker-shadow {
-            -webkit-transition: -webkit-transform 0.3s ease-out, opacity 0.3s ease-in;
-            -moz-transition: -moz-transform 0.3s ease-out, opacity 0.3s ease-in;
-            -o-transition: -o-transform 0.3s ease-out, opacity 0.3s ease-in;
-            transition: transform 0.3s ease-out, opacity 0.3s ease-in;
+        .marker-cluster div {
+            margin: 5px;
         }
         
         /* Zoom controls */
@@ -351,11 +324,9 @@
         <div>
             <input type="checkbox" id="showMarkers" checked>
             <label for="showMarkers">Show Photos</label>
-        </div>        <div>
+        </div>
+        <div>
             <button id="updateMap">Update Map</button>
-        </div>        <div>
-            <button id="testViewer" style="margin-top: 10px;">Test Photo Viewer</button>
-            <button id="testCluster" style="margin-top: 5px;">Test Cluster Click</button>
         </div>
         <div id="photoCount"></div>
     </div>
@@ -495,16 +466,6 @@
         function loadPhotoData() {
             debugLog('Loading photo data');
             
-            // Show loading indicator with progress bar
-            loadingElement.style.display = 'flex';
-            loadingElement.innerHTML = `
-                <h2>Loading Photo Data</h2>
-                <p>Please wait...</p>
-                <div class="progress-bar" id="loadingProgress">
-                    <div id="progressBar" style="width: 0%; height: 20px; background-color: #4CAF50; transition: width 0.3s;"></div>
-                </div>
-            `;
-            
             fetch('photo_heatmap_data.json')
                 .then(response => {
                     debugLog(`Response status: ${response.status}`);
@@ -527,54 +488,11 @@
                     // Update photo count display
                     photoCountElement.textContent = `${withGPS.length} photos with location`;
                     
-                    // Progressive loading sequence
-                    const steps = [
-                        {
-                            name: 'Creating Heatmap',
-                            action: () => {
-                                updateHeatmap(withGPS);
-                                const bounds = L.latLngBounds(withGPS.map(photo => [photo.latitude, photo.longitude]));
-                                map.fitBounds(bounds);
-                                document.getElementById('progressBar').style.width = '50%';
-                            }
-                        },
-                        {
-                            name: 'Preparing Markers',
-                            action: () => {
-                                if (showMarkersCheckbox.checked) {
-                                    updateMarkers(withGPS);
-                                }
-                                document.getElementById('progressBar').style.width = '100%';
-                            }
-                        }
-                    ];
+                    // Hide loading screen
+                    loadingElement.style.display = 'none';
                     
-                    // Execute steps in sequence
-                    let currentStep = 0;
-                    function executeNextStep() {
-                        if (currentStep < steps.length) {
-                            const step = steps[currentStep];
-                            loadingElement.innerHTML = `
-                                <h2>${step.name}</h2>
-                                <p>Processing...</p>
-                                <div class="progress-bar" style="width: 300px; height: 20px; background-color: #eee;">
-                                    <div id="progressBar" style="width: ${currentStep * 50}%; height: 20px; background-color: #4CAF50; transition: width 0.3s;"></div>
-                                </div>
-                            `;
-                            
-                            // Execute step with small delay to allow UI update
-                            setTimeout(() => {
-                                step.action();
-                                currentStep++;
-                                executeNextStep();
-                            }, 10);
-                        } else {
-                            // All steps complete
-                            loadingElement.style.display = 'none';
-                        }
-                    }
-                    
-                    executeNextStep();
+                    // Create initial visualization
+                    updateVisualization();
                 })
                 .catch(error => {
                     debugLog(`Error loading photo data: ${error.message}`);
@@ -586,23 +504,9 @@
                 });
         }
         
-        // Update map visualization with progressive loading
+        // Update map visualization
         function updateVisualization() {
             debugLog('Updating visualization');
-            
-            const loadingStatus = document.createElement('div');
-            loadingStatus.className = 'loading-status';
-            loadingStatus.style.cssText = `
-                position: absolute;
-                bottom: 10px;
-                right: 10px;
-                background-color: rgba(255,255,255,0.9);
-                padding: 10px;
-                border-radius: 4px;
-                z-index: 1000;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            `;
-            document.body.appendChild(loadingStatus);
             
             // Filter photos with GPS coordinates
             const validPhotos = photoData.filter(photo => 
@@ -610,55 +514,22 @@
             
             if (validPhotos.length === 0) {
                 debugLog('No photos with valid GPS coordinates');
-                document.body.removeChild(loadingStatus);
                 return;
             }
             
-            // Progressive loading sequence
-            const steps = [
-                {
-                    name: 'Updating heatmap',
-                    action: () => {
-                        updateHeatmap(validPhotos);
-                        // Fit map to bounds here for faster perceived performance
-                        const bounds = L.latLngBounds(validPhotos.map(photo => [photo.latitude, photo.longitude]));
-                        map.fitBounds(bounds);
-                    }
-                },
-                {
-                    name: 'Updating markers',
-                    action: () => {
-                        if (showMarkersCheckbox.checked) {
-                            updateMarkers(validPhotos);
-                        } else if (markerGroup) {
-                            map.removeLayer(markerGroup);
-                        }
-                    }
-                }
-            ];
+            // Create heatmap
+            updateHeatmap(validPhotos);
             
-            // Execute steps in sequence
-            let currentStep = 0;
-            function executeNextStep() {
-                if (currentStep < steps.length) {
-                    const step = steps[currentStep];
-                    loadingStatus.innerHTML = `<strong>${step.name}...</strong>`;
-                    
-                    // Execute step with small delay to allow UI update
-                    setTimeout(() => {
-                        step.action();
-                        currentStep++;
-                        executeNextStep();
-                    }, 10);
-                } else {
-                    // All steps complete
-                    if (loadingStatus.parentNode) {
-                        document.body.removeChild(loadingStatus);
-                    }
-                }
+            // Create markers if enabled
+            if (showMarkersCheckbox.checked) {
+                updateMarkers(validPhotos);
+            } else if (markerGroup) {
+                map.removeLayer(markerGroup);
             }
             
-            executeNextStep();
+            // Fit map to bounds
+            const bounds = L.latLngBounds(validPhotos.map(photo => [photo.latitude, photo.longitude]));
+            map.fitBounds(bounds);
         }
         
         // Update heatmap
@@ -687,147 +558,95 @@
             }).addTo(map);
             
             debugLog(`Heatmap created with ${points.length} points`);
-        }        // Update markers
-        function updateMarkers(filteredPhotos) {
+        }
+        
+        // Update markers
+        function updateMarkers(photos) {
             debugLog('Updating markers');
-            
-            // Show loading indicator for markers
-            const markerLoadingStatus = document.createElement('div');
-            markerLoadingStatus.className = 'marker-loading-status';
-            markerLoadingStatus.innerHTML = '<strong>Loading markers...</strong>';
-            markerLoadingStatus.style.position = 'absolute';
-            markerLoadingStatus.style.bottom = '10px';
-            markerLoadingStatus.style.right = '10px';
-            markerLoadingStatus.style.backgroundColor = 'rgba(255,255,255,0.8)';
-            markerLoadingStatus.style.padding = '5px 10px';
-            markerLoadingStatus.style.borderRadius = '4px';
-            markerLoadingStatus.style.zIndex = '1000';
-            document.body.appendChild(markerLoadingStatus);
             
             // Remove existing markers if present
             if (markerGroup) {
                 map.removeLayer(markerGroup);
             }
             
-            // Create a simple marker group - no custom options
+            // Use MarkerClusterGroup if available, otherwise use LayerGroup
             if (typeof L.markerClusterGroup === 'function') {
-                debugLog('Using MarkerClusterGroup - SIMPLE CONFIGURATION');
-                
-                try {
-                    // Create marker cluster group with default settings
-                    markerGroup = L.markerClusterGroup();
+                debugLog('Using MarkerClusterGroup');
+                markerGroup = L.markerClusterGroup({
+                    maxClusterRadius: 50,
+                    spiderfyOnMaxZoom: false,
                     
-                    // Add our cluster click listener
-                    markerGroup.on('clusterclick', function(e) {
-                        debugLog('CLUSTER CLICK DETECTED');
+                    // Add cluster click handler to show photo viewer
+                    iconCreateFunction: function(cluster) {
+                        return L.divIcon({
+                            html: '<div>' + cluster.getChildCount() + '</div>',
+                            className: 'marker-cluster marker-cluster-small',
+                            iconSize: L.point(40, 40)
+                        });
+                    },
+                    
+                    // Handle cluster click to show photos in the cluster
+                    clusterClick: function(cluster) {
+                        debugLog(`Cluster clicked with ${cluster.getChildCount()} markers`);
                         
-                        try {
-                            const markers = e.layer.getAllChildMarkers();
-                            debugLog('Markers in cluster: ' + markers.length);
+                        // Get all markers in this cluster
+                        const markers = cluster.getAllChildMarkers();
+                        
+                        // Extract photo data from markers
+                        const clusterPhotos = markers.map(marker => marker.photoData)
+                            .filter(photo => photo); // Filter out undefined values
                             
-                            const photos = markers
-                                .filter(marker => marker.photoData)
-                                .map(marker => marker.photoData);
-                                
-                            debugLog('Photos found in cluster: ' + photos.length);
+                        if (clusterPhotos.length > 0) {
+                            debugLog(`Opening photo viewer with ${clusterPhotos.length} photos`);
+                            // Open the photo viewer with these photos
+                            openPhotoViewer(clusterPhotos);
                             
-                            if (photos && photos.length > 0) {
-                                // Force open the photo viewer
-                                debugLog('Opening photo viewer modal');
-                                openPhotoViewer(photos, 0);
-                            }
-                        } catch (err) {
-                            debugLog('Error in cluster click handler: ' + err.message);
+                            // Prevent default zoom action
+                            return false;
                         }
-                    });
-                    
-                } catch (err) {
-                    debugLog('Error creating MarkerClusterGroup: ' + err.message);
-                    // Fallback to regular layer group
-                    markerGroup = L.layerGroup();
-                }
+                        
+                        return true;
+                    }
+                });
+                
+                // Attach the custom clusterClick handler
+                markerGroup.on('clusterclick', function(e) {
+                    if (typeof this.options.clusterClick === 'function') {
+                        if (this.options.clusterClick(e.layer) === false) {
+                            e.originalEvent.stopPropagation();
+                            e.originalEvent.preventDefault();
+                        }
+                    }
+                });
+                
             } else {
                 debugLog('Using LayerGroup (MarkerClusterGroup not available)');
                 markerGroup = L.layerGroup();
-            }            // Add markers for each photo - using chunking for large datasets
-            const processInChunks = filteredPhotos.length > 500; // Only use chunking for large datasets
-            
-            if (processInChunks) {
-                debugLog(`Using chunked processing for ${filteredPhotos.length} markers`);
-                // Process markers in chunks to avoid blocking the UI
-                const chunkSize = 100;
-                const totalChunks = Math.ceil(filteredPhotos.length / chunkSize);
-                let currentChunk = 0;
-                
-                function processChunk() {
-                    const start = currentChunk * chunkSize;
-                    const end = Math.min(start + chunkSize, filteredPhotos.length);
-                    
-                    for (let i = start; i < end; i++) {
-                        addMarker(filteredPhotos[i]);
-                    }
-                    
-                    markerLoadingStatus.innerHTML = `<strong>Loading markers: ${Math.min(100, Math.round((end / filteredPhotos.length) * 100))}%</strong>`;
-                    
-                    currentChunk++;
-                    if (currentChunk < totalChunks) {
-                        setTimeout(processChunk, 10);
-                    } else {
-                        finishMarkerLoading();
-                    }
-                }
-                
-                processChunk();
-            } else {
-                // For smaller datasets, process all at once
-                filteredPhotos.forEach(photo => addMarker(photo));
-                finishMarkerLoading();
             }
             
-            function addMarker(photo) {
+            // Add markers for each photo
+            photos.forEach(photo => {
+                debugLog(`Processing photo: ${photo.filename} at [${photo.latitude}, ${photo.longitude}]`);
+                
                 const marker = L.marker([photo.latitude, photo.longitude]);
                 
-                // Don't generate popup content yet - do it on demand
-                marker.photoData = photo;
-                  // Create popup content
-                const container = document.createElement('div');
-                container.className = 'marker-popup';
-                container.innerHTML = `
-                    <strong>${photo.filename || 'Unknown'}</strong><br>
-                    ${photo.datetime ? new Date(photo.datetime).toLocaleString() : 'No date'}<br>
-                    <div class="popup-image-container" style="width: 150px; height: 150px; background: #f0f0f0; display: flex; align-items: center; justify-content: center;">
-                        <span class="loading-placeholder">Loading...</span>
+                // Create popup content
+                const popupContent = `
+                    <div>
+                        <strong>${photo.filename || 'Unknown'}</strong><br>
+                        ${photo.datetime ? new Date(photo.datetime).toLocaleString() : 'No date'}<br>
+                        <img src="photos/${encodeURIComponent(photo.filename)}" style="max-width: 150px; max-height: 150px;" onerror="this.onerror=null;this.src='https://placehold.co/150x150?text=No+Image'">
                     </div>
                 `;
-
-                // Bind the popup with static content first
-                marker.bindPopup(container);
-
-                // Set up lazy loading when popup opens
-                marker.on('popupopen', function() {
-                    const imageContainer = container.querySelector('.popup-image-container');
-                    if (!imageContainer.querySelector('img')) {
-                        const img = new Image();
-                        img.style.maxWidth = '150px';
-                        img.style.maxHeight = '150px';
-                        
-                        img.onload = function() {
-                            imageContainer.innerHTML = '';
-                            imageContainer.appendChild(img);
-                        };
-                        
-                        img.onerror = function() {
-                            imageContainer.innerHTML = 'Image not available';
-                        };
-                        
-                        img.src = `thumbnails/${encodeURIComponent(photo.filename)}`;
-                    }
-                });                // Store photo data in marker for later use
+                marker.bindPopup(popupContent);
+                
+                // Store photo data in marker for later use
                 marker.photoData = photo;
-                  // Add click handler for individual markers
+                
+                // Add click handler for individual markers
                 marker.on('click', function(e) {
                     // Find all photos at this location
-                    const photosAtSameLocation = filteredPhotos.filter(p => 
+                    const photosAtSameLocation = photos.filter(p => 
                         p.latitude === photo.latitude && 
                         p.longitude === photo.longitude
                     );
@@ -844,22 +663,17 @@
                     e.originalEvent.stopPropagation();
                     L.DomEvent.stopPropagation(e);
                 });
-                  // Add marker to group
+                
+                // Add marker to group
                 markerGroup.addLayer(marker);
                 
                 debugLog(`Added marker for ${photo.filename}`);
-            }
-              // Function to complete marker loading and cleanup
-            function finishMarkerLoading() {
-                // Add marker group to map
-                map.addLayer(markerGroup);
-                
-                // Remove loading status
-                if (markerLoadingStatus.parentNode) {
-                    markerLoadingStatus.parentNode.removeChild(markerLoadingStatus);
-                }
-                debugLog(`Successfully added markers to map`);
-            }
+            });
+            
+            // Add marker group to map
+            map.addLayer(markerGroup);
+            
+            debugLog(`Successfully added ${photos.length} markers to map`);
         }
         
         // Photo viewer functions
@@ -871,91 +685,25 @@
             
             debugLog(`Opening photo viewer with ${photos.length} photos, starting at index ${startIndex}`);
             
-            // Handle large clusters more efficiently
-            if (photos.length > 100) {
-                debugLog(`Large cluster detected (${photos.length} photos). Using optimized handling.`);
-                
-                // Only store the first 100 photos for immediate viewing
-                // Additional photos will be loaded on demand if user navigates that far
-                currentClusterPhotos = [...photos.slice(0, 100)];
-                
-                // Store reference to full dataset for paged loading
-                currentClusterPhotos.fullDataset = photos;
-                currentClusterPhotos.loadedCount = 100;
-            } else {
-                // For smaller clusters, load all at once
-                currentClusterPhotos = [...photos];
-            }
-            
-            currentPhotoIdx = Math.min(startIndex, currentClusterPhotos.length - 1);
-            totalPhotos.textContent = photos.length; // Show total including not-yet-loaded
+            currentClusterPhotos = [...photos];
+            currentPhotoIdx = Math.min(startIndex, photos.length - 1);
+            totalPhotos.textContent = photos.length;
             
             updatePhotoViewerContent();
             photoViewerOverlay.style.display = 'flex';
         }
-          function closePhotoViewer() {
+        
+        function closePhotoViewer() {
             debugLog('Closing photo viewer');
             photoViewerOverlay.style.display = 'none';
         }
         
-        // Constants for virtual scrolling
-            const PRELOAD_BATCH_SIZE = 50;
-            const MAX_LOADED_PHOTOS = 200;
-            
-            function updatePhotoViewerContent() {
-                const photo = currentClusterPhotos[currentPhotoIdx];
-                if (!photo) {
-                    debugLog('Cannot update photo viewer: No photo at current index');
-                    return;
-                }
-                
-                // Virtual scrolling: Manage loaded photos based on current index
-                if (currentClusterPhotos.fullDataset) {
-                    const totalPhotos = currentClusterPhotos.fullDataset.length;
-                    const currentLoadedCount = currentClusterPhotos.length;
-                    
-                    // Calculate the window of photos we want to keep loaded
-                    const windowStart = Math.max(0, currentPhotoIdx - Math.floor(MAX_LOADED_PHOTOS / 2));
-                    const windowEnd = Math.min(totalPhotos, windowStart + MAX_LOADED_PHOTOS);
-                    
-                    // Load more photos if we're approaching the end of our loaded set
-                    if (currentPhotoIdx > currentLoadedCount - PRELOAD_BATCH_SIZE &&
-                        currentLoadedCount < totalPhotos) {
-                        
-                        const nextBatchSize = Math.min(PRELOAD_BATCH_SIZE, 
-                            totalPhotos - currentLoadedCount);
-                        
-                        debugLog(`Loading next batch of ${nextBatchSize} photos (${currentLoadedCount + 1}-${currentLoadedCount + nextBatchSize} of ${totalPhotos})`);
-                        
-                        const nextBatch = currentClusterPhotos.fullDataset.slice(
-                            currentLoadedCount,
-                            currentLoadedCount + nextBatchSize
-                        );
-                        
-                        currentClusterPhotos.push(...nextBatch);
-                        currentClusterPhotos.loadedCount = currentClusterPhotos.length;
-                    }
-                    
-                    // Remove photos that are far from current index to manage memory
-                    if (currentClusterPhotos.length > MAX_LOADED_PHOTOS) {
-                        const photosToRemove = [];
-                        
-                        // Remove photos before the window
-                        if (windowStart > 0) {
-                            photosToRemove.push(...currentClusterPhotos.slice(0, windowStart));
-                        }
-                        
-                        // Remove photos after the window
-                        if (windowEnd < currentClusterPhotos.length) {
-                            photosToRemove.push(...currentClusterPhotos.slice(windowEnd));
-                        }
-                        
-                        if (photosToRemove.length > 0) {
-                            debugLog(`Removing ${photosToRemove.length} photos outside viewing window`);
-                            currentClusterPhotos = currentClusterPhotos.filter(p => !photosToRemove.includes(p));
-                        }
-                    }
-                }
+        function updatePhotoViewerContent() {
+            const photo = currentClusterPhotos[currentPhotoIdx];
+            if (!photo) {
+                debugLog('Cannot update photo viewer: No photo at current index');
+                return;
+            }
             
             debugLog(`Updating photo viewer content to photo ${currentPhotoIdx + 1}/${currentClusterPhotos.length}`);
             
@@ -975,24 +723,12 @@
             
             // Clear previous image first to prevent flashing
             photoViewerImg.src = '';
-              // Set new image with error handling - using progressive loading
-            // First show a thumbnail immediately for better perceived performance
-            const thumbnailUrl = `thumbnails/${encodeURIComponent(photo.filename)}`;
-            photoViewerImg.src = thumbnailUrl;
             
-            // Then load the full resolution image
-            setTimeout(() => {
-                const fullImageUrl = `photos/${encodeURIComponent(photo.filename)}`;
-                debugLog(`Loading full image URL: ${fullImageUrl}`);
-                
-                // Create new image to preload
-                const fullImg = new Image();
-                fullImg.onload = function() {
-                    photoViewerImg.src = fullImageUrl;
-                    debugLog(`Full image loaded: ${photo.filename}`);
-                };
-                fullImg.src = fullImageUrl;
-            }, 100);
+            // Set new image with error handling
+            const fullImageUrl = `photos/${encodeURIComponent(photo.filename)}`;
+            debugLog(`Image URL: ${fullImageUrl}`);
+            
+            photoViewerImg.src = fullImageUrl;
             
             photoViewerImg.onerror = () => {
                 debugLog(`Failed to load image for ${photo.filename}, using placeholder`);
@@ -1037,29 +773,8 @@
                 `${photo.latitude.toFixed(6)}, ${photo.longitude.toFixed(6)}` : 'Not available';
             photoInfoPath.textContent = photo.path || 'Unknown';
         }
-          function showNextPhoto() {
-            // Check if we need to load more photos
-            if (currentPhotoIdx === currentClusterPhotos.length - 1 && 
-                currentClusterPhotos.fullDataset && 
-                currentClusterPhotos.loadedCount < currentClusterPhotos.fullDataset.length) {
-                
-                // Load next batch of photos
-                const nextBatchSize = Math.min(50, currentClusterPhotos.fullDataset.length - currentClusterPhotos.loadedCount);
-                debugLog(`Loading next batch of ${nextBatchSize} photos`);
-                
-                // Get the next batch
-                const nextBatch = currentClusterPhotos.fullDataset.slice(
-                    currentClusterPhotos.loadedCount, 
-                    currentClusterPhotos.loadedCount + nextBatchSize
-                );
-                
-                // Add to the current set
-                currentClusterPhotos.push(...nextBatch);
-                currentClusterPhotos.loadedCount += nextBatchSize;
-                
-                debugLog(`Now loaded ${currentClusterPhotos.loadedCount} of ${currentClusterPhotos.fullDataset.length} photos`);
-            }
-            
+        
+        function showNextPhoto() {
             if (currentPhotoIdx < currentClusterPhotos.length - 1) {
                 currentPhotoIdx++;
                 debugLog(`Moving to next photo: ${currentPhotoIdx + 1}/${currentClusterPhotos.length}`);
@@ -1073,54 +788,10 @@
                 debugLog(`Moving to previous photo: ${currentPhotoIdx + 1}/${currentClusterPhotos.length}`);
                 updatePhotoViewerContent();
             }
-        }        // Event listeners
+        }
+
+        // Event listeners
         updateMapButton.addEventListener('click', updateVisualization);
-          // Test viewer button
-        document.getElementById('testViewer').addEventListener('click', function() {
-            debugLog('Test viewer button clicked');
-            if (photoData && photoData.length > 0) {
-                const validPhotos = photoData.filter(p => p.latitude && p.longitude);
-                if (validPhotos.length > 0) {
-                    debugLog('Opening test photo viewer with ' + validPhotos.length + ' photos');
-                    photoViewerOverlay.style.display = 'flex';
-                    currentClusterPhotos = validPhotos.slice(0, 10); // Just use first 10 for testing
-                    currentPhotoIdx = 0;
-                    totalPhotos.textContent = currentClusterPhotos.length;
-                    updatePhotoViewerContent();
-                } else {
-                    alert('No photos with coordinates found');
-                }
-            } else {
-                alert('No photo data loaded yet');
-            }
-        });
-        
-        // Test cluster click simulation
-        document.getElementById('testCluster').addEventListener('click', function() {
-            debugLog('Test cluster click button pressed');
-            if (!photoData || photoData.length === 0) {
-                alert('No photo data loaded yet');
-                return;
-            }
-            
-            // Get some photos with coordinates
-            const validPhotos = photoData.filter(p => p.latitude && p.longitude);
-            if (validPhotos.length === 0) {
-                alert('No photos with coordinates found');
-                return;
-            }
-            
-            // Log what we're doing
-            debugLog('Simulating cluster click with ' + validPhotos.length + ' photos');
-            
-            try {
-                // Direct call to openPhotoViewer
-                openPhotoViewer(validPhotos, 0);
-            } catch (err) {
-                debugLog('ERROR: ' + err.message);
-                alert('Error opening photo viewer: ' + err.message);
-            }
-        });
         
         showMarkersCheckbox.addEventListener('change', function() {
             debugLog(`Show markers changed: ${this.checked}`);
@@ -1160,38 +831,11 @@
                 }
             }
         });
-          // Load data when page is loaded
+        
+        // Load data when page is loaded
         window.addEventListener('load', function() {
             debugLog('Page loaded, fetching photo data...');
             loadPhotoData();
-            
-            // Set up debug cluster handlers after a short delay
-            setTimeout(function() {
-                debugClusterFunction();
-                debugLog('Debug cluster setup complete');
-            }, 2000);
-            
-            // Add a document-level click handler for clusters as a fallback
-            document.addEventListener('click', function(e) {
-                // Check if the click event target is a cluster
-                let target = e.target;
-                while (target && !target.classList.contains('marker-cluster') && target !== document.body) {
-                    target = target.parentNode;
-                }
-                
-                // If we found a cluster element
-                if (target && target.classList.contains('marker-cluster')) {
-                    debugLog('DOCUMENT LEVEL CLUSTER CLICK DETECTED');
-                    
-                    // This is a fallback - try to force the modal to open with all photos
-                    if (photoData && photoData.length > 0) {
-                        const validPhotos = photoData.filter(p => p.latitude && p.longitude).slice(0, 50);
-                        if (validPhotos.length > 0) {
-                            openPhotoViewer(validPhotos, 0);
-                        }
-                    }
-                }
-            });
         });
           // Zoom control functions
         function setZoomLevel(level) {
@@ -1252,56 +896,6 @@
     
     debugLog(`Applied transform: ${transform}`);
 }
-        
-        // For debugging cluster clicks - override cluster click handling
-        function debugClusterFunction() {
-            debugLog('Setting up debug cluster click handling');
-            if (markerGroup && typeof markerGroup.on === 'function') {
-                debugLog('Adding direct cluster click handler');
-                
-                // Remove any existing handlers
-                markerGroup.off('clusterclick');
-                
-                // Add our direct handler
-                markerGroup.on('clusterclick', function(e) {
-                    alert('CLUSTER CLICKED!');
-                    debugLog('DIRECT CLUSTER CLICK DETECTED!');
-                    
-                    try {
-                        const cluster = e.layer;
-                        const count = cluster.getChildCount();
-                        const markers = cluster.getAllChildMarkers();
-                        
-                        debugLog(`Cluster has ${count} markers`);
-                        
-                        // Get photos from markers
-                        const photos = [];
-                        for (let i = 0; i < markers.length; i++) {
-                            if (markers[i].photoData) {
-                                photos.push(markers[i].photoData);
-                            }
-                        }
-                        
-                        if (photos.length > 0) {
-                            debugLog(`Opening viewer with ${photos.length} photos`);
-                            
-                            // Force display
-                            photoViewerOverlay.style.display = 'flex';
-                            currentClusterPhotos = photos;
-                            currentPhotoIdx = 0;
-                            totalPhotos.textContent = photos.length;
-                            updatePhotoViewerContent();
-                        }
-                    } catch (error) {
-                        debugLog('ERROR: ' + error.message);
-                    }
-                });
-                
-                debugLog('Direct cluster click handler added');
-            } else {
-                debugLog('ERROR: MarkerGroup not available');
-            }
-        }
     </script>
 </body>
 </html>
