@@ -243,15 +243,15 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 img.save(buffer, format=img_format)
                 buffer.seek(0)
                 
-                # Send headers
+                # Send headers                
                 self.send_response(200)
                 self.send_header('Content-type', f'image/{img_format.lower()}')
                 self.send_header('Content-Length', str(buffer.getbuffer().nbytes))
                 self.end_headers()
                 
-                # Send thumbnail data
+                # Send thumbnail data                
                 self.wfile.write(buffer.getvalue())
-                logger.debug(f"Successfully served thumbnail for: {filename}")                
+                logger.debug(f"Successfully served thumbnail for: {filename}")
         except Exception as e:
             logger.exception(f"Error serving thumbnail: {e}")
             self.send_error(500, f"Internal server error: {str(e)}")
@@ -272,7 +272,23 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             conn.row_factory = sqlite3.Row  # This enables column access by name
             cursor = conn.cursor()
             
-            # Get photos with location data - include path
+            # First get the libraries information
+            cursor.execute("SELECT id, name, description, source_dirs FROM libraries")
+            library_rows = cursor.fetchall()
+            libraries = []
+            
+            for row in library_rows:
+                lib = dict(row)
+                # Parse source_dirs from JSON string
+                try:
+                    lib['source_dirs'] = json.loads(lib['source_dirs']) if lib['source_dirs'] else []
+                except Exception:
+                    lib['source_dirs'] = []
+                libraries.append(lib)
+                
+            logger.info(f"Found {len(libraries)} libraries")
+            
+            # Then get photos with location data - include path
             cursor.execute('''
             SELECT p.filename, p.path, p.latitude, p.longitude, p.datetime, 
                    p.marker_data, p.library_id, l.name as library_name
@@ -302,11 +318,14 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             
-            # Create final data structure with photos
-            result = json.dumps({"photos": photos})
+            # Create final data structure with photos AND libraries
+            result = json.dumps({
+                "photos": photos,
+                "libraries": libraries
+            })
             self.wfile.write(result.encode('utf-8'))
             
-            logger.info(f"Successfully served {len(photos)} photo markers")
+            logger.info(f"Successfully served {len(photos)} photo markers from {len(libraries)} libraries")
             conn.close()
             
         except Exception as e:

@@ -1784,3 +1784,59 @@
 2025-06-05 15:49:27,484 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5970.jpg
 2025-06-05 15:49:27,485 - INFO - 127.0.0.1 - "GET /photos/IMG_5970.jpg HTTP/1.1" 200 -
 2025-06-05 15:49:27,511 - DEBUG - Successfully served original photo: IMG_5970.jpg
+2025-06-05 15:54:09,765 - INFO - Gracefully shutting down server...
+2025-06-05 15:54:37,032 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-05 15:54:37,034 - INFO - Found photo_heatmap_data.json with size: 399139 bytes
+2025-06-05 15:54:37,038 - INFO - JSON file starts with: {"photos": [{"id": 1, "filename": "IMG_6113.JPG", "latitude": null, "longitude": null, "datetime": "...
+2025-06-05 15:54:37,046 - INFO - Found photo_heatmap_data.json with 0 entries
+2025-06-05 15:54:37,048 - INFO - Serving at http://localhost:8000
+2025-06-05 15:54:37,049 - INFO - Press Ctrl+C to stop the server
+2025-06-05 15:54:40,108 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-05 15:54:40,387 - INFO - API request received: /api/markers
+2025-06-05 15:54:40,393 - INFO - Serving photo markers from database
+2025-06-05 15:54:40,424 - INFO - 127.0.0.1 - "GET /api/markers HTTP/1.1" 200 -
+2025-06-05 15:54:40,436 - INFO - Successfully served 1010 photo markers
+2025-06-05 15:54:48,943 - INFO - Full photo request received: /photos/IMG_5994.jpg
+2025-06-05 15:54:48,944 - INFO - Serving original photo: IMG_5994.jpg
+2025-06-05 15:54:48,960 - INFO - 127.0.0.1 - "GET /photos/IMG_5994.jpg HTTP/1.1" 200 -
+2025-06-05 15:54:51,500 - INFO - Full photo request received: /photos/IMG_5989.jpg
+2025-06-05 15:54:51,502 - INFO - Serving original photo: IMG_5989.jpg
+2025-06-05 15:54:51,512 - INFO - 127.0.0.1 - "GET /photos/IMG_5989.jpg HTTP/1.1" 200 -
+2025-06-05 15:54:51,760 - INFO - Full photo request received: /photos/IMG_5995.jpg
+2025-06-05 15:54:51,761 - INFO - Serving original photo: IMG_5995.jpg
+2025-06-05 15:54:51,770 - INFO - 127.0.0.1 - "GET /photos/IMG_5995.jpg HTTP/1.1" 200 -
+2025-06-05 15:59:32,189 - INFO - Gracefully shutting down server...
+2025-06-05 15:59:44,128 - INFO - Debug logging enabled
+2025-06-05 15:59:44,129 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-05 15:59:44,135 - INFO - Found photo_heatmap_data.json with size: 399139 bytes
+2025-06-05 15:59:44,176 - INFO - JSON file starts with: {"photos": [{"id": 1, "filename": "IMG_6113.JPG", "latitude": null, "longitude": null, "datetime": "...
+2025-06-05 15:59:44,185 - INFO - Found photo_heatmap_data.json with 0 entries
+2025-06-05 15:59:44,187 - INFO - Serving at http://localhost:8000
+2025-06-05 15:59:44,188 - INFO - Press Ctrl+C to stop the server
+2025-06-05 15:59:44,270 - DEBUG - Regular file request: /
+2025-06-05 15:59:44,521 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 15:59:44,788 - INFO - API request received: /api/markers
+2025-06-05 15:59:44,790 - INFO - Serving photo markers from database
+2025-06-05 15:59:44,868 - INFO - 127.0.0.1 - "GET /api/markers HTTP/1.1" 200 -
+2025-06-05 15:59:44,881 - INFO - Successfully served 1073 photo markers
+2025-06-05 15:59:44,899 - DEBUG - Regular file request: /favicon.ico
+2025-06-05 15:59:44,900 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 15:59:44,902 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-05 16:00:02,811 - INFO - Gracefully shutting down server...
+2025-06-05 16:22:53,366 - INFO - Debug logging enabled
+2025-06-05 16:22:53,368 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-05 16:22:53,373 - INFO - Found photo_heatmap_data.json with size: 399139 bytes
+2025-06-05 16:22:53,421 - INFO - JSON file starts with: {"photos": [{"id": 1, "filename": "IMG_6113.JPG", "latitude": null, "longitude": null, "datetime": "...
+2025-06-05 16:22:53,433 - INFO - Found photo_heatmap_data.json with 0 entries
+2025-06-05 16:22:53,436 - INFO - Serving at http://localhost:8000
+2025-06-05 16:22:53,437 - INFO - Press Ctrl+C to stop the server
+2025-06-05 16:22:55,803 - DEBUG - Regular file request: /
+2025-06-05 16:22:56,016 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-05 16:22:56,055 - DEBUG - Regular file request: /style.css
+2025-06-05 16:22:56,066 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 304 -
+2025-06-05 16:22:56,274 - INFO - API request received: /api/markers
+2025-06-05 16:22:56,277 - INFO - Serving photo markers from database
+2025-06-05 16:22:56,299 - INFO - Found 2 libraries
+2025-06-05 16:22:56,360 - INFO - 127.0.0.1 - "GET /api/markers HTTP/1.1" 200 -
+2025-06-05 16:22:56,368 - INFO - Successfully served 1073 photo markers from 2 libraries
+2025-06-05 16:23:55,921 - INFO - Gracefully shutting down server...
