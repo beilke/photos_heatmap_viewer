@@ -93,11 +93,93 @@ def process_image(image_path):
         print(f"Error processing {image_path}: {e}")
         return None
 
-def process_directory(root_dir, db_path='photo_library.db', max_workers=4, include_all=False, skip_existing=True):
+def get_or_create_library(cursor, library_name, source_dirs=None, description=None):
+    """Get an existing library or create a new one"""
+    # Check if library exists
+    cursor.execute("SELECT id FROM libraries WHERE name = ?", (library_name,))
+    result = cursor.fetchone()
+    
+    if result:
+        library_id = result[0]
+        # Update source_dirs if provided
+        if source_dirs:
+            source_dirs_json = json.dumps(source_dirs)
+            cursor.execute("UPDATE libraries SET source_dirs = ? WHERE id = ?", 
+                          (source_dirs_json, library_id))
+        return library_id
+    else:
+        # Create new library
+        source_dirs_json = json.dumps(source_dirs or [])
+        cursor.execute(
+            "INSERT INTO libraries (name, description, source_dirs) VALUES (?, ?, ?)",
+            (library_name, description or "", source_dirs_json)
+        )
+        return cursor.lastrowid
+
+def create_marker_data(photo):
+    """Create marker-specific data for a photo"""
+    # Extract year and month for clustering
+    date_obj = None
+    if photo.get('datetime'):
+        try:
+            date_obj = datetime.fromisoformat(photo['datetime'])
+        except (ValueError, TypeError):
+            pass
+    
+    marker_data = {
+        "popup_text": photo.get('filename', 'Unknown'),
+        "cluster_group": f"{date_obj.year}-{date_obj.month:02d}" if date_obj else "unknown",
+        "has_thumbnail": False  # Will be set to True when thumbnails are generated
+    }
+    
+    return json.dumps(marker_data)
+
+def process_directory(root_dir, db_path='photo_library.db', max_workers=4, include_all=False, 
+                     skip_existing=True, library_name="Default"):
     """Process all images in a directory and its subdirectories"""
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-      # Get list of all image files
+    
+    # Make sure the libraries table exists
+    try:
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='libraries'")
+        if not cursor.fetchone():
+            print("Libraries table not found. Creating...")
+            cursor.execute('''
+            CREATE TABLE libraries (
+              id INTEGER PRIMARY KEY,
+              name TEXT NOT NULL UNIQUE,
+              description TEXT,
+              source_dirs TEXT,
+              created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+            ''')
+    except sqlite3.Error as e:
+        print(f"Error checking libraries table: {e}")
+    
+    # Make sure the marker_data column exists in photos table
+    try:
+        cursor.execute("PRAGMA table_info(photos)")
+        columns = [column[1] for column in cursor.fetchall()]
+        
+        if "marker_data" not in columns:
+            print("Adding marker_data column to photos table...")
+            cursor.execute("ALTER TABLE photos ADD COLUMN marker_data TEXT")
+        
+        if "library_id" not in columns:
+            print("Adding library_id column to photos table...")
+            cursor.execute("ALTER TABLE photos ADD COLUMN library_id INTEGER REFERENCES libraries(id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_library_id ON photos(library_id)")
+    except sqlite3.Error as e:
+        print(f"Error updating photos table: {e}")
+    
+    # Get or create the library
+    library_id = get_or_create_library(cursor, library_name, [root_dir])
+    conn.commit()
+    
+    print(f"Using library: {library_name} (ID: {library_id})")
+      
+    # Get list of all image files
     image_files = []
     image_extensions = ('.jpg', '.jpeg', '.png', '.heic', '.tiff', '.bmp', '.nef', '.cr2', '.arw', '.dng')
     
@@ -157,10 +239,13 @@ def process_directory(root_dir, db_path='photo_library.db', max_workers=4, inclu
                         # If include_all is True, insert all photos regardless of GPS data
                         # Otherwise, only insert photos with GPS coordinates
                         if include_all or (result['latitude'] and result['longitude']):
+                            # Create marker data
+                            marker_data = create_marker_data(result)
+                            
                             cursor.execute(
-                                "INSERT INTO photos (filename, path, latitude, longitude, datetime, hash) VALUES (?, ?, ?, ?, ?, ?)",
+                                "INSERT INTO photos (filename, path, latitude, longitude, datetime, hash, library_id, marker_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                                 (result['filename'], result['path'], result['latitude'], result['longitude'], 
-                                result['datetime'], result['hash'])
+                                result['datetime'], result['hash'], library_id, marker_data)
                             )
                             # Commit every 100 inserts to avoid large transactions
                             if processed_count % 100 == 0:
@@ -187,30 +272,72 @@ def export_to_json(db_path='photo_library.db', output_path='photo_heatmap_data.j
         print("Warning: No photos found in the database. The JSON file will be empty.")
         # Still create an empty JSON file
         with open(output_path, 'w') as f:
-            f.write('[]')
+            f.write('{"photos": [], "libraries": []}')
         conn.close()
         return
     
+    # Get libraries information
+    try:
+        cursor.execute("SELECT id, name, description, source_dirs FROM libraries")
+        library_rows = cursor.fetchall()
+        libraries = []
+        
+        for row in library_rows:
+            lib = dict(row)
+            # Parse source_dirs from JSON string
+            try:
+                lib['source_dirs'] = json.loads(lib['source_dirs']) if lib['source_dirs'] else []
+            except Exception:
+                lib['source_dirs'] = []
+            libraries.append(lib)
+    except sqlite3.Error as e:
+        print(f"Warning: Could not fetch libraries: {e}")
+        libraries = []
+    
+    # Get photos with library information
     if include_non_geotagged:
         # Export all photos, even those without GPS data
         cursor.execute('''
-        SELECT id, filename, latitude, longitude, datetime, path 
-        FROM photos 
+        SELECT p.id, p.filename, p.latitude, p.longitude, p.datetime, p.path, 
+               p.marker_data, p.library_id, l.name as library_name
+        FROM photos p
+        LEFT JOIN libraries l ON p.library_id = l.id
         ''')
     else:
         # Export only photos with GPS data
         cursor.execute('''
-        SELECT id, filename, latitude, longitude, datetime, path 
-        FROM photos 
-        WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+        SELECT p.id, p.filename, p.latitude, p.longitude, p.datetime, p.path, 
+               p.marker_data, p.library_id, l.name as library_name
+        FROM photos p
+        LEFT JOIN libraries l ON p.library_id = l.id
+        WHERE p.latitude IS NOT NULL AND p.longitude IS NOT NULL
         ''')
     
     rows = cursor.fetchall()
-    data = [dict(row) for row in rows]
+    photos = []
+    
+    for row in rows:
+        photo = dict(row)
+        # Parse marker_data from JSON string if available
+        if photo['marker_data']:
+            try:
+                photo['marker_data'] = json.loads(photo['marker_data'])
+            except Exception:
+                photo['marker_data'] = {}
+        else:
+            photo['marker_data'] = {}
+        
+        photos.append(photo)
+    
+    # Create final data structure with libraries and photos
+    result = {
+        "photos": photos,
+        "libraries": libraries
+    }
     
     # Get record counts for logging
-    total_count = len(data)
-    geotagged_count = len([photo for photo in data if photo['latitude'] and photo['longitude']])
+    total_count = len(photos)
+    geotagged_count = len([photo for photo in photos if photo['latitude'] and photo['longitude']])
     
     # Ensure the directory exists
     output_dir = os.path.dirname(output_path)
@@ -224,7 +351,7 @@ def export_to_json(db_path='photo_library.db', output_path='photo_heatmap_data.j
     try:
         with open(temp_output_path, 'w') as f:
             # Use a higher indent value for better readability if needed
-            json.dump(data, f, indent=None)
+            json.dump(result, f, indent=None)
         
         # Check if the JSON file was written successfully
         if os.path.exists(temp_output_path):
@@ -237,6 +364,7 @@ def export_to_json(db_path='photo_library.db', output_path='photo_heatmap_data.j
                     os.remove(output_path)
                 os.rename(temp_output_path, output_path)
                 print(f"Exported {total_count} records to {output_path} ({geotagged_count} with GPS data, {total_count - geotagged_count} without)")
+                print(f"Included {len(libraries)} libraries")
                 print(f"JSON file size: {file_size / 1024:.2f} KB")
             else:
                 print(f"Error: Generated JSON file is empty. Please check database contents.")
@@ -314,6 +442,8 @@ if __name__ == "__main__":
     parser.add_argument('--export-all', action='store_true', help='Export all photos to JSON, not just those with GPS data')
     parser.add_argument('--clean', action='store_true', help='Clean database before processing')
     parser.add_argument('--force', action='store_true', help='Force import even if photo already exists in database')
+    parser.add_argument('--library', default='Default', help='Specify the library name for imported photos')
+    parser.add_argument('--description', help='Description for the library (when creating a new library)')
     
     args = parser.parse_args()
     
@@ -330,7 +460,8 @@ if __name__ == "__main__":
             db_path=args.db,
             max_workers=args.workers,
             include_all=args.include_all,
-            skip_existing=not args.force
+            skip_existing=not args.force,
+            library_name=args.library
         )
     
     if args.export:

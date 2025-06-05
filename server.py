@@ -60,13 +60,30 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 with open(path, 'r', encoding='utf-8') as f:
                     json_data = json.load(f)
-                    photo_count = len(json_data) if isinstance(json_data, list) else 0
-                    logger.info(f"Serving JSON file: {path} with {photo_count} entries")
                     
-                    # Log some data statistics for debugging
-                    if photo_count > 0:
-                        has_gps = sum(1 for item in json_data if 'latitude' in item and 'longitude' in item)
-                        logger.info(f"JSON data stats: {has_gps}/{photo_count} items have GPS coordinates")
+                    # Check if the file uses the new format with photos and libraries
+                    if isinstance(json_data, dict) and 'photos' in json_data:
+                        photos = json_data.get('photos', [])
+                        libraries = json_data.get('libraries', [])
+                        logger.info(f"Serving JSON file: {path} with {len(photos)} photos in {len(libraries)} libraries")
+                        
+                        # Log some data statistics for debugging
+                        if photos:
+                            has_gps = sum(1 for item in photos if item.get('latitude') and item.get('longitude'))
+                            logger.info(f"JSON data stats: {has_gps}/{len(photos)} items have GPS coordinates")
+                            
+                        # Log libraries
+                        if libraries:
+                            logger.info(f"Libraries: {', '.join(lib.get('name', 'Unnamed') for lib in libraries)}")
+                    else:
+                        # Handle old format (just a list of photos)
+                        photo_count = len(json_data) if isinstance(json_data, list) else 0
+                        logger.info(f"Serving JSON file: {path} with {photo_count} entries (old format)")
+                        
+                        # Log some data statistics for debugging
+                        if photo_count > 0:
+                            has_gps = sum(1 for item in json_data if 'latitude' in item and 'longitude' in item)
+                            logger.info(f"JSON data stats: {has_gps}/{photo_count} items have GPS coordinates")
 
                 # Send the file
                 self.send_response(200)
@@ -97,6 +114,10 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         elif path.startswith('/photos/'):
             logger.info(f"Full photo request received: {path}")
             self.serve_original_photo(path[8:])  # Remove '/photos/' prefix
+        # Add API endpoint for photo markers
+        elif path.startswith('/api/markers'):
+            logger.info(f"API request received: {path}")
+            self.serve_photo_markers()
         # Add special handling for JSON data requests
         elif path.endswith('.json'):
             logger.info(f"JSON request received: {path}")
@@ -234,6 +255,86 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 
         except Exception as e:
             logger.exception(f"Error serving thumbnail: {e}")
+            self.send_error(500, f"Internal server error: {str(e)}")
+
+    def serve_photo_markers(self):
+        """Serve photo markers data directly from the database"""
+        logger.info("Serving photo markers from database")
+        
+        try:
+            # Parse query parameters
+            params = {}
+            query_string = self.path.split('?')[1] if '?' in self.path else ''
+            if query_string:
+                for param in query_string.split('&'):
+                    if '=' in param:
+                        key, value = param.split('=', 1)
+                        params[key] = urllib.parse.unquote(value)
+            
+            # Get optional library_id filter
+            library_filter = params.get('library_id')
+            
+            # Connect to database
+            db_path = os.path.join(os.getcwd(), 'photo_library.db')
+            if not os.path.exists(db_path):
+                logger.error(f"Database not found: {db_path}")
+                self.send_error(404, "Database not found")
+                return
+                
+            conn = sqlite3.connect(db_path)
+            conn.row_factory = sqlite3.Row  # Enable column access by name
+            cursor = conn.cursor()
+            
+            # Fetch libraries
+            cursor.execute("SELECT id, name, description FROM libraries")
+            libraries = [dict(row) for row in cursor.fetchall()]
+            
+            # Construct SQL query based on filters
+            sql = '''
+                SELECT 
+                    id, filename, latitude, longitude, datetime, library_id, marker_data 
+                FROM photos 
+                WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+            '''
+            params = []
+            
+            if library_filter:
+                sql += " AND library_id = ?"
+                params.append(int(library_filter))
+                
+            # Execute query with params
+            cursor.execute(sql, params)
+            
+            # Convert to list of dicts
+            photos = []
+            for row in cursor.fetchall():
+                photo_dict = dict(row)
+                
+                # Parse marker_data if available
+                if photo_dict.get('marker_data'):
+                    try:
+                        photo_dict['marker_data'] = json.loads(photo_dict['marker_data'])
+                    except:
+                        photo_dict['marker_data'] = {}
+                        
+                photos.append(photo_dict)
+            
+            # Create response
+            result = {
+                "photos": photos,
+                "libraries": libraries
+            }
+            
+            # Send response
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            
+            self.wfile.write(json.dumps(result).encode())
+            logger.info(f"Successfully served {len(photos)} photo markers")
+            
+        except Exception as e:
+            logger.exception(f"Error serving photo markers: {e}")
             self.send_error(500, f"Internal server error: {str(e)}")
 
 def signal_handler(sig, frame):

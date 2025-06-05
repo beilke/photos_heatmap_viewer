@@ -1,0 +1,16 @@
+## Project Structure
+
+- `init_db.py` - Initialize the SQLite database
+- `process_photos.py` - Process photos and extract metadata
+- `server.py` - Web server for the heatmap viewer
+- `index.html` - Web interface for the heatmap
+- `manage_libraries.ps1` - Library management script
+- `quickstart.ps1` - Quick setup for single-library usage
+- `demo_multi_library.ps1` - Demo script showing multiple library setup
+
+## Implementation Details
+
+- Photos are stored with library references in the SQLite database
+- Each photo has associated marker data for efficient display
+- Photos are automatically clustered for better performance with large datasets
+- The web interface efficiently loads only necessary data when zooming/panning

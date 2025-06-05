@@ -11,7 +11,18 @@ def create_database(db_path='photo_library.db'):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
-    # Create photos table
+    # Create libraries table
+    cursor.execute('''
+    CREATE TABLE libraries (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT,
+      source_dirs TEXT,  -- JSON array of source directories
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+    
+    # Create photos table with library reference
     cursor.execute('''
     CREATE TABLE photos (
       id INTEGER PRIMARY KEY,
@@ -21,15 +32,20 @@ def create_database(db_path='photo_library.db'):
       longitude REAL,
       datetime TEXT,
       tags TEXT,
-      hash TEXT
+      hash TEXT,
+      library_id INTEGER,
+      marker_data TEXT,  -- JSON with marker-specific data
+      FOREIGN KEY (library_id) REFERENCES libraries(id)
     )
     ''')
-      # Create indexes for better query performance
+    
+    # Create indexes for better query performance
     cursor.execute('CREATE INDEX idx_coords ON photos(latitude, longitude)')
     cursor.execute('CREATE INDEX idx_datetime ON photos(datetime)')
     cursor.execute('CREATE INDEX idx_filename ON photos(filename)')
     cursor.execute('CREATE INDEX idx_hash ON photos(hash)')
     cursor.execute('CREATE INDEX idx_path ON photos(path)')
+    cursor.execute('CREATE INDEX idx_library_id ON photos(library_id)')
     
     conn.commit()
     conn.close()

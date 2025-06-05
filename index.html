@@ -284,7 +284,37 @@
                 border-left: none;
                 border-top: 1px solid #eee;
             }
-        }        /* Remove any custom cluster styling that could hide the count */
+        }        /* Library filters */
+        .library-filters {
+            margin-top: 15px;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+        
+        .library-filters h4 {
+            margin: 0 0 10px 0;
+        }
+        
+        .library-checkbox {
+            margin: 5px 0;
+        }
+        
+        #libraryFilterContainer {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding-right: 5px;
+            border: 1px solid #eee;
+            padding: 5px;
+        }
+        
+        .library-count {
+            font-size: 0.8em;
+            color: #666;
+            margin-left: 5px;
+        }
+        
+        /* Remove any custom cluster styling that could hide the count */
         
         /* .marker-cluster, .marker-cluster div, .marker-cluster span { all: unset !important; } */
         
@@ -351,7 +381,19 @@
         <div>
             <input type="checkbox" id="showMarkers" checked>
             <label for="showMarkers">Show Photos</label>
-        </div>        <div>
+        </div>        
+        <div class="library-filters">
+            <h4>Libraries</h4>
+            <div>
+                <input type="checkbox" id="selectAllLibraries" checked>
+                <label for="selectAllLibraries"><strong>All Libraries</strong></label>
+            </div>
+            <div id="libraryFilterContainer">
+                <!-- Library filters will be added here dynamically -->
+            </div>
+        </div>
+        
+        <div>
             <button id="updateMap">Update Map</button>
         </div>        <div>
             <button id="testViewer" style="margin-top: 10px;">Test Photo Viewer</button>
@@ -505,24 +547,49 @@
                 </div>
             `;
             
-            fetch('photo_heatmap_data.json')
+            // Use the new API endpoint for markers
+            fetch('/api/markers')
                 .then(response => {
                     debugLog(`Response status: ${response.status}`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
                     return response.json();
-                })
-                .then(data => {
-                    debugLog(`Successfully loaded ${data.length} photos`);
+                })                .then(data => {
+                    // Handle both new and legacy JSON formats
+                    let photos = [];
+                    let libraries = [];
+                    
+                    if (Array.isArray(data)) {
+                        // Legacy format (just an array of photos)
+                        photos = data;
+                        debugLog(`Loaded ${photos.length} photos (legacy format)`);
+                    } else {
+                        // New format with photos and libraries
+                        photos = data.photos || [];
+                        libraries = data.libraries || [];
+                        debugLog(`Loaded ${photos.length} photos from ${libraries.length} libraries`);
+                        
+                        // Log libraries if available
+                        if (libraries.length > 0) {
+                            debugLog(`Available libraries: ${libraries.map(lib => lib.name).join(', ')}`);
+                        }
+                    }
                     
                     // Store data globally
-                    photoData = data;
+                    photoData = {
+                        photos: photos,
+                        libraries: libraries,
+                        activeLibraries: libraries.map(lib => lib.id) // Start with all libraries active
+                    };
+                    
+                    // Create library filter controls
+                    createLibraryFilters(libraries);
                     
                     // Count photos with GPS coords
-                    const withGPS = data.filter(photo => 
+                    const withGPS = photos.filter(photo => 
                         photo.latitude != null && photo.longitude != null);
-                    debugLog(`Photos with GPS: ${withGPS.length}/${data.length}`);
+                    debugLog(`Photos with GPS: ${withGPS.length}/${photos.length}`);
                     
                     // Update photo count display
                     photoCountElement.textContent = `${withGPS.length} photos with location`;
@@ -533,8 +600,10 @@
                             name: 'Creating Heatmap',
                             action: () => {
                                 updateHeatmap(withGPS);
-                                const bounds = L.latLngBounds(withGPS.map(photo => [photo.latitude, photo.longitude]));
-                                map.fitBounds(bounds);
+                                if (withGPS.length > 0) {
+                                    const bounds = L.latLngBounds(withGPS.map(photo => [photo.latitude, photo.longitude]));
+                                    map.fitBounds(bounds);
+                                }
                                 document.getElementById('progressBar').style.width = '50%';
                             }
                         },
@@ -586,7 +655,7 @@
                 });
         }
         
-        // Update map visualization with progressive loading
+        // Update map visualization with progressive loading        
         function updateVisualization() {
             debugLog('Updating visualization');
             
@@ -604,61 +673,18 @@
             `;
             document.body.appendChild(loadingStatus);
             
-            // Filter photos with GPS coordinates
-            const validPhotos = photoData.filter(photo => 
-                photo.latitude != null && photo.longitude != null);
-            
-            if (validPhotos.length === 0) {
-                debugLog('No photos with valid GPS coordinates');
-                document.body.removeChild(loadingStatus);
-                return;
-            }
-            
-            // Progressive loading sequence
-            const steps = [
-                {
-                    name: 'Updating heatmap',
-                    action: () => {
-                        updateHeatmap(validPhotos);
-                        // Fit map to bounds here for faster perceived performance
-                        const bounds = L.latLngBounds(validPhotos.map(photo => [photo.latitude, photo.longitude]));
-                        map.fitBounds(bounds);
-                    }
-                },
-                {
-                    name: 'Updating markers',
-                    action: () => {
-                        if (showMarkersCheckbox.checked) {
-                            updateMarkers(validPhotos);
-                        } else if (markerGroup) {
-                            map.removeLayer(markerGroup);
-                        }
-                    }
-                }
-            ];
-            
-            // Execute steps in sequence
-            let currentStep = 0;
-            function executeNextStep() {
-                if (currentStep < steps.length) {
-                    const step = steps[currentStep];
-                    loadingStatus.innerHTML = `<strong>${step.name}...</strong>`;
-                    
-                    // Execute step with small delay to allow UI update
+            try {
+                // Use the filterAndUpdateMap function which handles active libraries
+                filterAndUpdateMap();
+            } catch (err) {
+                debugLog('Error updating visualization: ' + err.message);            } finally {
+                // Remove loading status
+                if (loadingStatus.parentNode) {
                     setTimeout(() => {
-                        step.action();
-                        currentStep++;
-                        executeNextStep();
-                    }, 10);
-                } else {
-                    // All steps complete
-                    if (loadingStatus.parentNode) {
                         document.body.removeChild(loadingStatus);
-                    }
-                }
+                    }, 500); // Give some time to see the status
+                }            
             }
-            
-            executeNextStep();
         }
         
         // Update heatmap
@@ -906,71 +932,73 @@
             const MAX_LOADED_PHOTOS = 200;
             
             function updatePhotoViewerContent() {
-                const photo = currentClusterPhotos[currentPhotoIdx];
-                if (!photo) {
-                    debugLog('Cannot update photo viewer: No photo at current index');
-                    return;
-                }
-                
-                // Virtual scrolling: Manage loaded photos based on current index
-                if (currentClusterPhotos.fullDataset) {
-                    const totalPhotos = currentClusterPhotos.fullDataset.length;
-                    const currentLoadedCount = currentClusterPhotos.length;
-                    
-                    // Calculate the window of photos we want to keep loaded
-                    const windowStart = Math.max(0, currentPhotoIdx - Math.floor(MAX_LOADED_PHOTOS / 2));
-                    const windowEnd = Math.min(totalPhotos, windowStart + MAX_LOADED_PHOTOS);
-                    
-                    // Load more photos if we're approaching the end of our loaded set
-                    if (currentPhotoIdx > currentLoadedCount - PRELOAD_BATCH_SIZE &&
-                        currentLoadedCount < totalPhotos) {
-                        
-                        const nextBatchSize = Math.min(PRELOAD_BATCH_SIZE, 
-                            totalPhotos - currentLoadedCount);
-                        
-                        debugLog(`Loading next batch of ${nextBatchSize} photos (${currentLoadedCount + 1}-${currentLoadedCount + nextBatchSize} of ${totalPhotos})`);
-                        
-                        const nextBatch = currentClusterPhotos.fullDataset.slice(
-                            currentLoadedCount,
-                            currentLoadedCount + nextBatchSize
-                        );
-                        
-                        currentClusterPhotos.push(...nextBatch);
-                        currentClusterPhotos.loadedCount = currentClusterPhotos.length;
-                    }
-                    
-                    // Remove photos that are far from current index to manage memory
-                    if (currentClusterPhotos.length > MAX_LOADED_PHOTOS) {
-                        const photosToRemove = [];
-                        
-                        // Remove photos before the window
-                        if (windowStart > 0) {
-                            photosToRemove.push(...currentClusterPhotos.slice(0, windowStart));
-                        }
-                        
-                        // Remove photos after the window
-                        if (windowEnd < currentClusterPhotos.length) {
-                            photosToRemove.push(...currentClusterPhotos.slice(windowEnd));
-                        }
-                        
-                        if (photosToRemove.length > 0) {
-                            debugLog(`Removing ${photosToRemove.length} photos outside viewing window`);
-                            currentClusterPhotos = currentClusterPhotos.filter(p => !photosToRemove.includes(p));
-                        }
-                    }
-                }
+    const photo = currentClusterPhotos[currentPhotoIdx];
+    if (!photo) {
+        debugLog('Cannot update photo viewer: No photo at current index');
+        return;
+    }
+    
+    // Virtual scrolling: Manage loaded photos based on current index
+    if (currentClusterPhotos.fullDataset) {
+        const totalPhotos = currentClusterPhotos.fullDataset.length;
+        const currentLoadedCount = currentClusterPhotos.length;
+        
+        // Calculate the window of photos we want to keep loaded
+        const windowStart = Math.max(0, currentPhotoIdx - Math.floor(MAX_LOADED_PHOTOS / 2));
+        const windowEnd = Math.min(totalPhotos, windowStart + MAX_LOADED_PHOTOS);
+        
+        // Load more photos if we're approaching the end of our loaded set
+        if (currentPhotoIdx > currentLoadedCount - PRELOAD_BATCH_SIZE &&
+            currentLoadedCount < totalPhotos) {
             
-            debugLog(`Updating photo viewer content to photo ${currentPhotoIdx + 1}/${currentClusterPhotos.length}`);
+            const nextBatchSize = Math.min(PRELOAD_BATCH_SIZE, 
+                totalPhotos - currentLoadedCount);
             
-            // Update navigation buttons state
-            prevPhotoBtn.disabled = currentPhotoIdx <= 0;
-            nextPhotoBtn.disabled = currentPhotoIdx >= currentClusterPhotos.length - 1;
-              // Update counter
-            currentPhotoIndex.textContent = currentPhotoIdx + 1;
-              // Reset view when showing a new photo
-            currentZoom = 1;
-            currentRotation = 0;
-            updateImageTransform();            // Update image and info
+            debugLog(`Loading next batch of ${nextBatchSize} photos (${currentLoadedCount + 1}-${currentLoadedCount + nextBatchSize} of ${totalPhotos})`);
+            
+            const nextBatch = currentClusterPhotos.fullDataset.slice(
+                currentLoadedCount,
+                currentLoadedCount + nextBatchSize
+            );
+            
+            currentClusterPhotos.push(...nextBatch);
+            currentClusterPhotos.loadedCount = currentClusterPhotos.length;
+        }
+        
+        // Remove photos that are far from current index to manage memory
+        if (currentClusterPhotos.length > MAX_LOADED_PHOTOS) {
+            const photosToRemove = [];
+            
+            // Remove photos before the window
+            if (windowStart > 0) {
+                photosToRemove.push(...currentClusterPhotos.slice(0, windowStart));
+            }
+            
+            // Remove photos after the window
+            if (windowEnd < currentClusterPhotos.length) {
+                photosToRemove.push(...currentClusterPhotos.slice(windowEnd));
+            }
+            
+            if (photosToRemove.length > 0) {
+                debugLog(`Removing ${photosToRemove.length} photos outside viewing window`);
+                currentClusterPhotos = currentClusterPhotos.filter(p => !photosToRemove.includes(p));
+            }
+        }
+    }
+    
+    debugLog(`Updating photo viewer content to photo ${currentPhotoIdx + 1}/${currentClusterPhotos.length}`);
+    
+    // Update navigation buttons state
+    prevPhotoBtn.disabled = currentPhotoIdx <= 0;
+    nextPhotoBtn.disabled = currentPhotoIdx >= currentClusterPhotos.length - 1;
+    
+    // Update counter
+    currentPhotoIndex.textContent = currentPhotoIdx + 1;
+    
+    // Reset view when showing a new photo
+    currentZoom = 1;
+    currentRotation = 0;
+    updateImageTransform();
             debugLog(`Loading image for ${photo.filename}`);
             
             // Show loading indicator
@@ -1048,6 +1076,7 @@
     // Apply any existing transformations
     updateImageTransform();
 };
+
             
             photoInfoFilename.textContent = photo.filename || 'Unknown';
             photoInfoDate.textContent = photo.datetime ? new Date(photo.datetime).toLocaleString() : 'Unknown';
@@ -1318,6 +1347,106 @@
                 debugLog('Direct cluster click handler added');
             } else {
                 debugLog('ERROR: MarkerGroup not available');
+            }
+        }
+        
+        function createLibraryFilters(libraries) {
+            const container = document.getElementById('libraryFilterContainer');
+            const selectAllCheckbox = document.getElementById('selectAllLibraries');
+            
+            // Clear any existing filters
+            container.innerHTML = '';
+            
+            if (!libraries || libraries.length === 0) {
+                container.innerHTML = '<p>No libraries available</p>';
+                return;
+            }
+            
+            // Add individual library checkboxes
+            libraries.forEach(library => {
+                const libraryPhotos = photoData.photos.filter(photo => photo.library_id === library.id);
+                const geotaggedCount = libraryPhotos.filter(photo => 
+                    photo.latitude != null && photo.longitude != null).length;
+                
+                const div = document.createElement('div');
+                div.className = 'library-checkbox';
+                div.innerHTML = `
+                    <input type="checkbox" id="library-${library.id}" checked 
+                           data-library-id="${library.id}" class="library-filter">
+                    <label for="library-${library.id}">
+                        ${library.name} 
+                        <span class="library-count">(${geotaggedCount} photos)</span>
+                    </label>
+                `;
+                container.appendChild(div);
+                
+                // Add event listener
+                const checkbox = div.querySelector(`#library-${library.id}`);
+                checkbox.addEventListener('change', function() {
+                    updateLibrarySelection();
+                });
+            });
+            
+            // Add "Select All" functionality
+            selectAllCheckbox.addEventListener('change', function() {
+                const isChecked = selectAllCheckbox.checked;
+                document.querySelectorAll('.library-filter').forEach(cb => {
+                    cb.checked = isChecked;
+                });
+                updateLibrarySelection();
+            });
+            
+            // Initial update
+            updateLibrarySelection();
+        }
+        
+        function updateLibrarySelection() {
+            // Update which libraries are selected
+            const selectedLibraries = [];
+            document.querySelectorAll('.library-filter:checked').forEach(checkbox => {
+                selectedLibraries.push(parseInt(checkbox.dataset.libraryId));
+            });
+            
+            photoData.activeLibraries = selectedLibraries;
+            
+            // Update the "Select All" checkbox state
+            const allLibrariesCheckbox = document.getElementById('selectAllLibraries');
+            const allLibraries = document.querySelectorAll('.library-filter');
+            const selectedCount = document.querySelectorAll('.library-filter:checked').length;
+            
+            if (selectedCount === 0) {
+                allLibrariesCheckbox.checked = false;
+                allLibrariesCheckbox.indeterminate = false;
+            } else if (selectedCount === allLibraries.length) {
+                allLibrariesCheckbox.checked = true;
+                allLibrariesCheckbox.indeterminate = false;
+            } else {
+                allLibrariesCheckbox.indeterminate = true;
+            }
+            
+            // Filter photos based on selected libraries
+            filterAndUpdateMap();
+        }
+        
+        function filterAndUpdateMap() {
+            if (!photoData || !photoData.photos) return;
+            
+            // Get all photos from active libraries
+            let filteredPhotos = photoData.photos.filter(photo => 
+                photoData.activeLibraries.includes(photo.library_id) && 
+                photo.latitude != null && photo.longitude != null
+            );
+            
+            debugLog(`Filtered to ${filteredPhotos.length} photos from ${photoData.activeLibraries.length} libraries`);
+            
+            // Update photo count display
+            photoCountElement.textContent = `${filteredPhotos.length} photos with location`;
+            
+            // Update map visualization
+            updateHeatmap(filteredPhotos);
+            
+            if (showMarkersCheckbox.checked) {
+                updateMarkers(filteredPhotos);
             }
         }
     </script>

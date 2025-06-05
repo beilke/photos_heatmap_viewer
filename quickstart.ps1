@@ -52,9 +52,20 @@ if (-not (Test-Path -Path "photo_library.db")) {
     python init_db.py
 }
 
+# Get the library name from the directory name if not provided
+$libraryName = [System.IO.Path]::GetFileName($photosDir)
+if ([string]::IsNullOrWhiteSpace($libraryName)) {
+    # If the path ends with a slash, get the parent directory
+    $libraryName = [System.IO.Path]::GetFileName([System.IO.Path]::GetDirectoryName($photosDir))
+}
+if ([string]::IsNullOrWhiteSpace($libraryName)) {
+    $libraryName = "Default Library"
+}
+
 # Process photos directory
 Write-Host ""
 Write-Host "Processing photos from: $photosDir" -ForegroundColor Green
+Write-Host "Using library name: $libraryName" -ForegroundColor Cyan
 Write-Host "This may take a while for large photo collections..." -ForegroundColor Yellow
 
 # Check if the directory exists and handle potential driver letter differences

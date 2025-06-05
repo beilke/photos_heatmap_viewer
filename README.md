@@ -1,10 +1,12 @@
 # Photo Heatmap Viewer
 
-A tool to visualize a large photo library (65,000+ photos) on a heatmap based on geolocation data extracted from EXIF metadata.
+A tool to visualize a large photo library (1000+ photos) on a heatmap based on geolocation data extracted from EXIF metadata, with support for multiple photo libraries.
 
 ## Features
 
-- **SQLite Database**: Efficiently stores metadata for tens of thousands of photos
+- **Multiple Libraries**: Organize photos into named libraries with separate source directories
+- **Library Filtering**: Filter the map to show specific libraries
+- **SQLite Database**: Efficiently stores metadata for tens of thousands of photos  
 - **Parallel Processing**: Multi-threaded photo scanning for faster imports
 - **Heatmap Visualization**: Web-based interactive map showing photo density
 - **Date Filtering**: Filter photos by date range
@@ -37,17 +39,51 @@ pip install pillow
 python process_photos.py --init
 ```
 
-3. Process your photos directory:
+3. Create a new library and import photos:
 
 ```
-python process_photos.py --process "path/to/your/photos"
+# Using the library management script
+.\manage_libraries.ps1 create "Vacation 2023" "D:\Photos\Vacation"
 ```
 
-   Or use the quickstart script (recommended):
+   Or use the quickstart script (for a single library):
 
 ```
 # Process only photos with GPS coordinates
 .\quickstart.ps1 "path/to/your/photos"
+```
+
+4. Run the web server:
+
+```
+python server.py
+```
+
+5. Open your browser at `http://localhost:8000`
+
+## Library Management
+
+The `manage_libraries.ps1` script provides tools for managing multiple photo libraries:
+
+```
+# List all libraries
+.\manage_libraries.ps1 list
+
+# Create a new library
+.\manage_libraries.ps1 create "Family Photos" "D:\Photos\Family" -description "Family events"
+
+# Import more photos into an existing library
+.\manage_libraries.ps1 import "Family Photos" "E:\More Photos\Family2023"
+
+# Rename a library 
+.\manage_libraries.ps1 rename "Family Photos" "Family Collection"
+
+# Delete a library and its photos
+.\manage_libraries.ps1 delete "Unwanted Library"
+
+# Export all data to JSON
+.\manage_libraries.ps1 export
+```
 
 # Process all photos, including those without GPS coordinates
 .\quickstart.ps1 "path/to/your/photos" all
@@ -209,3 +245,19 @@ http://localhost:8000/index.html.debug
 1. Make sure the database file exists and has records
 2. Check file paths in the database match your actual file system
 3. If using Windows, drive letter normalization should handle path differences
+## Project Structure
+
+- `init_db.py` - Initialize the SQLite database
+- `process_photos.py` - Process photos and extract metadata
+- `server.py` - Web server for the heatmap viewer
+- `index.html` - Web interface for the heatmap
+- `manage_libraries.ps1` - Library management script
+- `quickstart.ps1` - Quick setup for single-library usage
+- `demo_multi_library.ps1` - Demo script showing multiple library setup
+
+## Implementation Details
+
+- Photos are stored with library references in the SQLite database
+- Each photo has associated marker data for efficient display
+- Photos are automatically clustered for better performance with large datasets
+- The web interface efficiently loads only necessary data when zooming/panning

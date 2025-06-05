@@ -1327,3 +1327,160 @@
 2025-06-05 13:20:10,006 - INFO - 127.0.0.1 - "GET /photos/20240817_181616.jpg HTTP/1.1" 200 -
 2025-06-05 13:20:10,102 - DEBUG - Successfully served original photo: 20240817_181616.jpg
 2025-06-05 13:20:25,407 - INFO - Gracefully shutting down server...
+2025-06-05 14:14:40,012 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-05 14:14:40,013 - INFO - Found photo_heatmap_data.json with size: 399139 bytes
+2025-06-05 14:14:40,035 - INFO - JSON file starts with: {"photos": [{"id": 1, "filename": "IMG_6116.JPG", "latitude": null, "longitude": null, "datetime": "...
+2025-06-05 14:14:40,044 - INFO - Found photo_heatmap_data.json with 0 entries
+2025-06-05 14:14:40,047 - INFO - Serving at http://localhost:8000
+2025-06-05 14:14:40,049 - INFO - Press Ctrl+C to stop the server
+2025-06-05 14:14:43,991 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 14:14:44,043 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 304 -
+2025-06-05 14:14:49,408 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-05 14:14:49,411 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:14:49,412 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-05 14:15:11,421 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 14:15:11,496 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 200 -
+2025-06-05 14:15:11,631 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-05 14:15:11,633 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:15:11,633 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-05 14:15:12,077 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:15:12,081 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-05 14:21:27,712 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 14:21:27,769 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 200 -
+2025-06-05 14:21:27,920 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-05 14:21:27,926 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:21:27,928 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-05 14:21:28,440 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:21:28,442 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-05 14:22:25,812 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 14:22:26,111 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 200 -
+2025-06-05 14:22:26,172 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-05 14:22:26,175 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:22:26,177 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-05 14:22:26,988 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:22:26,989 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-05 14:29:32,053 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 14:29:32,106 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 200 -
+2025-06-05 14:29:32,309 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-05 14:29:32,313 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:29:32,315 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-05 14:29:36,344 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:29:36,359 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-05 14:33:08,546 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 14:33:08,607 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 200 -
+2025-06-05 14:33:08,786 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-05 14:33:08,790 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:33:08,792 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-05 14:33:09,249 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:33:09,264 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-05 14:35:02,707 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 14:35:02,769 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 200 -
+2025-06-05 14:35:02,895 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-05 14:35:02,897 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:35:02,899 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-05 14:35:03,419 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:35:03,420 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-05 14:37:24,017 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 14:37:24,075 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 200 -
+2025-06-05 14:37:24,273 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-05 14:37:24,275 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:37:24,277 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-05 14:37:24,688 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:37:24,689 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-05 14:37:37,987 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 14:37:38,323 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 200 -
+2025-06-05 14:37:38,751 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:37:38,753 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-05 14:37:41,058 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-05 14:37:41,081 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:37:41,091 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-05 14:37:59,454 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 14:37:59,511 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 200 -
+2025-06-05 14:37:59,663 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-05 14:37:59,665 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:37:59,666 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-05 14:38:00,175 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:38:00,176 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-05 14:38:28,039 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 14:38:28,348 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 200 -
+2025-06-05 14:38:28,402 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-05 14:38:28,404 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:38:28,405 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-05 14:38:28,964 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:38:28,965 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-05 14:41:13,869 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 14:41:13,922 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 200 -
+2025-06-05 14:41:14,129 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-05 14:41:14,136 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:41:14,138 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-05 14:41:14,670 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:41:14,672 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-05 14:45:08,413 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 14:45:08,470 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 200 -
+2025-06-05 14:45:08,671 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-05 14:45:08,676 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:45:08,677 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-05 14:45:09,093 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:45:09,096 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-05 14:45:45,763 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 14:45:46,070 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 200 -
+2025-06-05 14:45:46,124 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-05 14:45:46,126 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:45:46,129 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-05 14:45:46,793 - INFO - JSON request received: /photo_heatmap_data.json
+2025-06-05 14:45:46,852 - INFO - Serving JSON file: photo_heatmap_data.json with 1099 photos in 1 libraries
+2025-06-05 14:45:46,856 - INFO - JSON data stats: 1010/1099 items have GPS coordinates
+2025-06-05 14:45:46,858 - INFO - Libraries: Default
+2025-06-05 14:45:46,859 - INFO - 127.0.0.1 - "GET /photo_heatmap_data.json HTTP/1.1" 200 -
+2025-06-05 14:45:46,892 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 14:45:46,896 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-05 14:47:41,437 - INFO - Full photo request received: /photos/IMG_0483.jpg
+2025-06-05 14:47:41,438 - INFO - Serving original photo: IMG_0483.jpg
+2025-06-05 14:47:41,494 - INFO - 127.0.0.1 - "GET /photos/IMG_0483.jpg HTTP/1.1" 200 -
+2025-06-05 15:00:16,509 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 15:00:16,634 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 200 -
+2025-06-05 15:00:16,756 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-05 15:00:16,758 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 15:00:16,779 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-05 15:00:17,529 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 15:00:17,530 - INFO - 127.0.0.1 - "GET /api/markers HTTP/1.1" 404 -
+2025-06-05 15:00:17,622 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 15:00:17,623 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-05 15:01:22,969 - INFO - Debug logging enabled
+2025-06-05 15:01:22,970 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-05 15:01:22,975 - INFO - Found photo_heatmap_data.json with size: 399139 bytes
+2025-06-05 15:01:22,977 - INFO - JSON file starts with: {"photos": [{"id": 1, "filename": "IMG_6116.JPG", "latitude": null, "longitude": null, "datetime": "...
+2025-06-05 15:01:22,999 - INFO - Found photo_heatmap_data.json with 0 entries
+2025-06-05 15:01:23,001 - INFO - Serving at http://localhost:8000
+2025-06-05 15:01:23,002 - INFO - Press Ctrl+C to stop the server
+2025-06-05 15:01:26,582 - DEBUG - Regular file request: /
+2025-06-05 15:01:26,802 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-05 15:01:27,057 - INFO - API request received: /api/markers
+2025-06-05 15:01:27,059 - INFO - Serving photo markers from database
+2025-06-05 15:01:27,120 - INFO - 127.0.0.1 - "GET /api/markers HTTP/1.1" 200 -
+2025-06-05 15:01:27,129 - INFO - Successfully served 1010 photo markers
+2025-06-05 15:01:46,972 - INFO - JSON request received: /.well-known/appspecific/com.chrome.devtools.json
+2025-06-05 15:01:46,975 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 15:01:46,976 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+2025-06-05 15:03:10,557 - INFO - Full photo request received: /photos/IMG_5961.jpg
+2025-06-05 15:03:10,559 - INFO - Serving original photo: IMG_5961.jpg
+2025-06-05 15:03:10,670 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5961.jpg
+2025-06-05 15:03:10,672 - INFO - 127.0.0.1 - "GET /photos/IMG_5961.jpg HTTP/1.1" 200 -
+2025-06-05 15:03:11,610 - DEBUG - Successfully served original photo: IMG_5961.jpg
+2025-06-05 15:03:15,131 - INFO - Full photo request received: /photos/IMG_5960.jpg
+2025-06-05 15:03:15,133 - INFO - Serving original photo: IMG_5960.jpg
+2025-06-05 15:03:15,144 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5960.jpg
+2025-06-05 15:03:15,145 - INFO - 127.0.0.1 - "GET /photos/IMG_5960.jpg HTTP/1.1" 200 -
+2025-06-05 15:03:15,194 - DEBUG - Successfully served original photo: IMG_5960.jpg
+2025-06-05 15:03:28,368 - INFO - Gracefully shutting down server...
+2025-06-05 15:03:46,988 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-05 15:03:46,989 - INFO - Found photo_heatmap_data.json with size: 399139 bytes
+2025-06-05 15:03:47,011 - INFO - JSON file starts with: {"photos": [{"id": 1, "filename": "IMG_6114.JPG", "latitude": null, "longitude": null, "datetime": "...
+2025-06-05 15:03:47,019 - INFO - Found photo_heatmap_data.json with 0 entries
+2025-06-05 15:03:47,022 - INFO - Serving at http://localhost:8000
+2025-06-05 15:03:47,024 - INFO - Press Ctrl+C to stop the server
+2025-06-05 15:03:50,909 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-05 15:03:51,229 - INFO - API request received: /api/markers
+2025-06-05 15:03:51,233 - INFO - Serving photo markers from database
+2025-06-05 15:03:51,264 - INFO - 127.0.0.1 - "GET /api/markers HTTP/1.1" 200 -
+2025-06-05 15:03:51,275 - INFO - Successfully served 1010 photo markers
