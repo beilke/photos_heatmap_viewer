@@ -1680,3 +1680,107 @@
 2025-06-05 15:41:48,488 - INFO - 127.0.0.1 - code 404, message File not found
 2025-06-05 15:41:48,489 - INFO - 127.0.0.1 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
 2025-06-05 15:41:59,043 - INFO - Gracefully shutting down server...
+2025-06-05 15:42:53,906 - INFO - Debug logging enabled
+2025-06-05 15:42:53,908 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-05 15:42:53,914 - INFO - Found photo_heatmap_data.json with size: 399139 bytes
+2025-06-05 15:42:53,935 - INFO - JSON file starts with: {"photos": [{"id": 1, "filename": "IMG_6116.JPG", "latitude": null, "longitude": null, "datetime": "...
+2025-06-05 15:42:53,945 - INFO - Found photo_heatmap_data.json with 0 entries
+2025-06-05 15:42:53,947 - INFO - Serving at http://localhost:8000
+2025-06-05 15:42:53,948 - INFO - Press Ctrl+C to stop the server
+2025-06-05 15:42:59,043 - DEBUG - Regular file request: /
+2025-06-05 15:42:59,260 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-05 15:42:59,565 - INFO - API request received: /api/markers
+2025-06-05 15:42:59,567 - INFO - Serving photo markers from database
+2025-06-05 15:42:59,670 - INFO - 127.0.0.1 - "GET /api/markers HTTP/1.1" 200 -
+2025-06-05 15:42:59,679 - INFO - Successfully served 1010 photo markers
+2025-06-05 15:43:01,523 - INFO - Full photo request received: /photos/IMG_5994.jpg
+2025-06-05 15:43:01,524 - INFO - Serving original photo: IMG_5994.jpg
+2025-06-05 15:43:01,537 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5994.jpg
+2025-06-05 15:43:01,539 - INFO - 127.0.0.1 - "GET /photos/IMG_5994.jpg HTTP/1.1" 200 -
+2025-06-05 15:43:01,550 - DEBUG - Successfully served original photo: IMG_5994.jpg
+2025-06-05 15:43:03,158 - INFO - Full photo request received: /photos/IMG_5989.jpg
+2025-06-05 15:43:03,159 - INFO - Serving original photo: IMG_5989.jpg
+2025-06-05 15:43:03,167 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5989.jpg
+2025-06-05 15:43:03,168 - INFO - 127.0.0.1 - "GET /photos/IMG_5989.jpg HTTP/1.1" 200 -
+2025-06-05 15:43:03,194 - DEBUG - Successfully served original photo: IMG_5989.jpg
+2025-06-05 15:43:04,157 - INFO - Full photo request received: /photos/IMG_5995.jpg
+2025-06-05 15:43:04,158 - INFO - Serving original photo: IMG_5995.jpg
+2025-06-05 15:43:04,167 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5995.jpg
+2025-06-05 15:43:04,169 - INFO - 127.0.0.1 - "GET /photos/IMG_5995.jpg HTTP/1.1" 200 -
+2025-06-05 15:43:04,188 - DEBUG - Successfully served original photo: IMG_5995.jpg
+2025-06-05 15:43:05,121 - INFO - Full photo request received: /photos/IMG_5987.jpg
+2025-06-05 15:43:05,122 - INFO - Serving original photo: IMG_5987.jpg
+2025-06-05 15:43:05,135 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5987.jpg
+2025-06-05 15:43:05,137 - INFO - 127.0.0.1 - "GET /photos/IMG_5987.jpg HTTP/1.1" 200 -
+2025-06-05 15:43:05,168 - DEBUG - Successfully served original photo: IMG_5987.jpg
+2025-06-05 15:44:32,366 - INFO - Full photo request received: /photos/IMG_5973.jpg
+2025-06-05 15:44:32,367 - INFO - Serving original photo: IMG_5973.jpg
+2025-06-05 15:44:32,385 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5973.jpg
+2025-06-05 15:44:32,386 - INFO - 127.0.0.1 - "GET /photos/IMG_5973.jpg HTTP/1.1" 200 -
+2025-06-05 15:44:32,393 - DEBUG - Successfully served original photo: IMG_5973.jpg
+2025-06-05 15:44:33,728 - INFO - Full photo request received: /photos/IMG_5987.jpg
+2025-06-05 15:44:33,730 - INFO - Serving original photo: IMG_5987.jpg
+2025-06-05 15:44:33,742 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5987.jpg
+2025-06-05 15:44:33,743 - INFO - 127.0.0.1 - "GET /photos/IMG_5987.jpg HTTP/1.1" 200 -
+2025-06-05 15:44:33,781 - DEBUG - Successfully served original photo: IMG_5987.jpg
+2025-06-05 15:49:12,622 - DEBUG - Regular file request: /
+2025-06-05 15:49:12,630 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2025-06-05 15:49:12,681 - DEBUG - Regular file request: /style.css
+2025-06-05 15:49:12,694 - INFO - 127.0.0.1 - "GET /style.css HTTP/1.1" 200 -
+2025-06-05 15:49:12,989 - INFO - API request received: /api/markers
+2025-06-05 15:49:12,991 - INFO - Serving photo markers from database
+2025-06-05 15:49:13,065 - INFO - 127.0.0.1 - "GET /api/markers HTTP/1.1" 200 -
+2025-06-05 15:49:13,073 - INFO - Successfully served 1010 photo markers
+2025-06-05 15:49:13,309 - DEBUG - Regular file request: /favicon.ico
+2025-06-05 15:49:13,318 - INFO - 127.0.0.1 - code 404, message File not found
+2025-06-05 15:49:13,320 - INFO - 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 404 -
+2025-06-05 15:49:17,308 - INFO - Full photo request received: /photos/IMG_5994.jpg
+2025-06-05 15:49:17,310 - INFO - Serving original photo: IMG_5994.jpg
+2025-06-05 15:49:17,322 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5994.jpg
+2025-06-05 15:49:17,324 - INFO - 127.0.0.1 - "GET /photos/IMG_5994.jpg HTTP/1.1" 200 -
+2025-06-05 15:49:17,342 - DEBUG - Successfully served original photo: IMG_5994.jpg
+2025-06-05 15:49:20,523 - INFO - Full photo request received: /photos/IMG_5989.jpg
+2025-06-05 15:49:20,524 - INFO - Serving original photo: IMG_5989.jpg
+2025-06-05 15:49:20,538 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5989.jpg
+2025-06-05 15:49:20,540 - INFO - 127.0.0.1 - "GET /photos/IMG_5989.jpg HTTP/1.1" 200 -
+2025-06-05 15:49:20,565 - DEBUG - Successfully served original photo: IMG_5989.jpg
+2025-06-05 15:49:21,836 - INFO - Full photo request received: /photos/IMG_5995.jpg
+2025-06-05 15:49:21,838 - INFO - Serving original photo: IMG_5995.jpg
+2025-06-05 15:49:21,852 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5995.jpg
+2025-06-05 15:49:21,854 - INFO - 127.0.0.1 - "GET /photos/IMG_5995.jpg HTTP/1.1" 200 -
+2025-06-05 15:49:21,859 - DEBUG - Successfully served original photo: IMG_5995.jpg
+2025-06-05 15:49:22,510 - INFO - Full photo request received: /photos/IMG_5987.jpg
+2025-06-05 15:49:22,511 - INFO - Serving original photo: IMG_5987.jpg
+2025-06-05 15:49:22,521 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5987.jpg
+2025-06-05 15:49:22,523 - INFO - 127.0.0.1 - "GET /photos/IMG_5987.jpg HTTP/1.1" 200 -
+2025-06-05 15:49:22,543 - DEBUG - Successfully served original photo: IMG_5987.jpg
+2025-06-05 15:49:23,662 - INFO - Full photo request received: /photos/IMG_5973.jpg
+2025-06-05 15:49:23,663 - INFO - Serving original photo: IMG_5973.jpg
+2025-06-05 15:49:23,673 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5973.jpg
+2025-06-05 15:49:23,674 - INFO - 127.0.0.1 - "GET /photos/IMG_5973.jpg HTTP/1.1" 200 -
+2025-06-05 15:49:23,681 - DEBUG - Successfully served original photo: IMG_5973.jpg
+2025-06-05 15:49:24,275 - INFO - Full photo request received: /photos/IMG_5977.jpg
+2025-06-05 15:49:24,276 - INFO - Serving original photo: IMG_5977.jpg
+2025-06-05 15:49:24,291 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5977.jpg
+2025-06-05 15:49:24,293 - INFO - 127.0.0.1 - "GET /photos/IMG_5977.jpg HTTP/1.1" 200 -
+2025-06-05 15:49:24,308 - DEBUG - Successfully served original photo: IMG_5977.jpg
+2025-06-05 15:49:25,316 - INFO - Full photo request received: /photos/IMG_5986.jpg
+2025-06-05 15:49:25,317 - INFO - Serving original photo: IMG_5986.jpg
+2025-06-05 15:49:25,330 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5986.jpg
+2025-06-05 15:49:25,331 - INFO - 127.0.0.1 - "GET /photos/IMG_5986.jpg HTTP/1.1" 200 -
+2025-06-05 15:49:25,335 - DEBUG - Successfully served original photo: IMG_5986.jpg
+2025-06-05 15:49:25,840 - INFO - Full photo request received: /photos/IMG_5972.jpg
+2025-06-05 15:49:25,841 - INFO - Serving original photo: IMG_5972.jpg
+2025-06-05 15:49:25,851 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5972.jpg
+2025-06-05 15:49:25,852 - INFO - 127.0.0.1 - "GET /photos/IMG_5972.jpg HTTP/1.1" 200 -
+2025-06-05 15:49:25,889 - DEBUG - Successfully served original photo: IMG_5972.jpg
+2025-06-05 15:49:26,911 - INFO - Full photo request received: /photos/IMG_5971.jpg
+2025-06-05 15:49:26,913 - INFO - Serving original photo: IMG_5971.jpg
+2025-06-05 15:49:26,924 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5971.jpg
+2025-06-05 15:49:26,925 - INFO - 127.0.0.1 - "GET /photos/IMG_5971.jpg HTTP/1.1" 200 -
+2025-06-05 15:49:26,933 - DEBUG - Successfully served original photo: IMG_5971.jpg
+2025-06-05 15:49:27,461 - INFO - Full photo request received: /photos/IMG_5970.jpg
+2025-06-05 15:49:27,462 - INFO - Serving original photo: IMG_5970.jpg
+2025-06-05 15:49:27,484 - DEBUG - Found photo path in DB: D:\Photos\Ferias Família Yokota Beilke 2024\IMG_5970.jpg
+2025-06-05 15:49:27,485 - INFO - 127.0.0.1 - "GET /photos/IMG_5970.jpg HTTP/1.1" 200 -
+2025-06-05 15:49:27,511 - DEBUG - Successfully served original photo: IMG_5970.jpg

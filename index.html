@@ -997,19 +997,17 @@
     currentRotation = 0;
     updateImageTransform();
             debugLog(`Loading image for ${photo.filename}`);
-            
-            // Show loading indicator
-            photoViewerImg.style.opacity = '0.3';
-              // Clear previous image first to prevent flashing
-            photoViewerImg.src = '';
               // Set new image with error handling - using direct loading from photos endpoint
             // Use full images directly for better quality and reliability
-            const fullImageUrl = `photos/${encodeURIComponent(photo.filename)}`;            debugLog(`Loading full image URL: ${fullImageUrl}`);
+            const fullImageUrl = `photos/${encodeURIComponent(photo.filename)}`;            
+            debugLog(`Loading full image URL: ${fullImageUrl}`);
             
-            // Create new image to preload
+            // Create new image to preload            // Create new image to preload without affecting current display
             const fullImg = new Image();
             fullImg.onload = function() {
+                // Only change the src once the new image is fully loaded
                 photoViewerImg.src = fullImageUrl;
+                photoViewerImg.style.opacity = '1';
                 debugLog(`Full image loaded: ${photo.filename}`);
             };
             
@@ -1099,18 +1097,22 @@
                 
                 debugLog(`Now loaded ${currentClusterPhotos.loadedCount} of ${currentClusterPhotos.fullDataset.length} photos`);
             }
-            
-            if (currentPhotoIdx < currentClusterPhotos.length - 1) {
+              if (currentPhotoIdx < currentClusterPhotos.length - 1) {
                 currentPhotoIdx++;
                 debugLog(`Moving to next photo: ${currentPhotoIdx + 1}/${currentClusterPhotos.length}`);
+                
+                // Preserve the current image opacity while we load the next one
+                photoViewerImg.style.opacity = '0.8';
                 updatePhotoViewerContent();
             }
         }
-        
-        function showPreviousPhoto() {
+          function showPreviousPhoto() {
             if (currentPhotoIdx > 0) {
                 currentPhotoIdx--;
                 debugLog(`Moving to previous photo: ${currentPhotoIdx + 1}/${currentClusterPhotos.length}`);
+                
+                // Preserve the current image opacity while we load the previous one
+                photoViewerImg.style.opacity = '0.8';
                 updatePhotoViewerContent();
             }
         }        // Event listeners
