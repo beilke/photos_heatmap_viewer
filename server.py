@@ -258,22 +258,10 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(500, f"Internal server error: {str(e)}")
 
     def serve_photo_markers(self):
-        """Serve photo markers data directly from the database"""
+        """Serve photo markers from the database"""
         logger.info("Serving photo markers from database")
         
         try:
-            # Parse query parameters
-            params = {}
-            query_string = self.path.split('?')[1] if '?' in self.path else ''
-            if query_string:
-                for param in query_string.split('&'):
-                    if '=' in param:
-                        key, value = param.split('=', 1)
-                        params[key] = urllib.parse.unquote(value)
-            
-            # Get optional library_id filter
-            library_filter = params.get('library_id')
-            
             # Connect to database
             db_path = os.path.join(os.getcwd(), 'photo_library.db')
             if not os.path.exists(db_path):
@@ -282,56 +270,45 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 return
                 
             conn = sqlite3.connect(db_path)
-            conn.row_factory = sqlite3.Row  # Enable column access by name
+            conn.row_factory = sqlite3.Row  # This enables column access by name
             cursor = conn.cursor()
             
-            # Fetch libraries
-            cursor.execute("SELECT id, name, description FROM libraries")
-            libraries = [dict(row) for row in cursor.fetchall()]
+            # Get photos with location data
+            cursor.execute('''
+            SELECT p.filename, p.latitude, p.longitude, p.datetime, 
+                   p.marker_data, p.library_id, l.name as library_name
+            FROM photos p
+            LEFT JOIN libraries l ON p.library_id = l.id
+            WHERE p.latitude IS NOT NULL AND p.longitude IS NOT NULL
+            ''')
             
-            # Construct SQL query based on filters
-            sql = '''
-                SELECT 
-                    id, filename, latitude, longitude, datetime, library_id, marker_data 
-                FROM photos 
-                WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-            '''
-            params = []
-            
-            if library_filter:
-                sql += " AND library_id = ?"
-                params.append(int(library_filter))
-                
-            # Execute query with params
-            cursor.execute(sql, params)
-            
-            # Convert to list of dicts
+            rows = cursor.fetchall()
             photos = []
-            for row in cursor.fetchall():
-                photo_dict = dict(row)
-                
-                # Parse marker_data if available
-                if photo_dict.get('marker_data'):
-                    try:
-                        photo_dict['marker_data'] = json.loads(photo_dict['marker_data'])
-                    except:
-                        photo_dict['marker_data'] = {}
-                        
-                photos.append(photo_dict)
             
-            # Create response
-            result = {
-                "photos": photos,
-                "libraries": libraries
-            }
+            for row in rows:
+                photo = dict(row)
+                # Parse marker_data from JSON string if available
+                if photo['marker_data']:
+                    try:
+                        photo['marker_data'] = json.loads(photo['marker_data'])
+                    except Exception:
+                        photo['marker_data'] = {}
+                else:
+                    photo['marker_data'] = {}
+                
+                photos.append(photo)
             
             # Send response
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             
-            self.wfile.write(json.dumps(result).encode())
+            # Create final data structure with photos
+            result = json.dumps({"photos": photos})
+            self.wfile.write(result.encode('utf-8'))
+            
             logger.info(f"Successfully served {len(photos)} photo markers")
+            conn.close()
             
         except Exception as e:
             logger.exception(f"Error serving photo markers: {e}")

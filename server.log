@@ -1484,3 +1484,18 @@
 2025-06-05 15:03:51,233 - INFO - Serving photo markers from database
 2025-06-05 15:03:51,264 - INFO - 127.0.0.1 - "GET /api/markers HTTP/1.1" 200 -
 2025-06-05 15:03:51,275 - INFO - Successfully served 1010 photo markers
+2025-06-05 15:09:49,011 - INFO - Gracefully shutting down server...
+2025-06-05 15:09:58,884 - INFO - Debug logging enabled
+2025-06-05 15:09:58,886 - INFO - Starting server in directory: U:\docker\projects\photos_heatmap_viewer
+2025-06-05 15:09:58,891 - INFO - Found photo_heatmap_data.json with size: 399139 bytes
+2025-06-05 15:09:58,918 - INFO - JSON file starts with: {"photos": [{"id": 1, "filename": "IMG_6114.JPG", "latitude": null, "longitude": null, "datetime": "...
+2025-06-05 15:09:58,927 - INFO - Found photo_heatmap_data.json with 0 entries
+2025-06-05 15:09:58,930 - INFO - Serving at http://localhost:8000
+2025-06-05 15:09:58,931 - INFO - Press Ctrl+C to stop the server
+2025-06-05 15:10:01,983 - DEBUG - Regular file request: /
+2025-06-05 15:10:02,198 - INFO - 127.0.0.1 - "GET / HTTP/1.1" 304 -
+2025-06-05 15:10:02,539 - INFO - API request received: /api/markers
+2025-06-05 15:10:02,541 - INFO - Serving photo markers from database
+2025-06-05 15:10:02,608 - INFO - 127.0.0.1 - "GET /api/markers HTTP/1.1" 200 -
+2025-06-05 15:10:02,618 - INFO - Successfully served 1010 photo markers
+2025-06-05 15:27:17,530 - INFO - Gracefully shutting down server...
