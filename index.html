@@ -713,10 +713,10 @@
             }).addTo(map);
             
             debugLog(`Heatmap created with ${points.length} points`);        }
-        
-        // Update markers
+          // Update markers
         function updateMarkers(filteredPhotos) {
             debugLog('Updating markers');
+            debugLog(`Loading markers for ${filteredPhotos.length} photos...`);
             
             // Show loading indicator for markers
             const markerLoadingStatus = document.createElement('div');
@@ -873,11 +873,8 @@
                     // Since we're opening our custom viewer, prevent the popup
                     e.originalEvent.stopPropagation();
                     L.DomEvent.stopPropagation(e);
-                });
-                  // Add marker to group
+                });                // Add marker to group
                 markerGroup.addLayer(marker);
-                
-                debugLog(`Added marker for ${photo.filename}`);
             }
               // Function to complete marker loading and cleanup
             function finishMarkerLoading() {
@@ -1007,11 +1004,7 @@
             photoViewerImg.src = '';
               // Set new image with error handling - using direct loading from photos endpoint
             // Use full images directly for better quality and reliability
-            const fullImageUrl = `photos/${encodeURIComponent(photo.filename)}`;
-            debugLog(`Loading full image URL: ${fullImageUrl}`);
-            
-            // Show a loading placeholder while the image loads
-            photoViewerImg.src = 'https://placehold.co/800x600?text=Loading...';
+            const fullImageUrl = `photos/${encodeURIComponent(photo.filename)}`;            debugLog(`Loading full image URL: ${fullImageUrl}`);
             
             // Create new image to preload
             const fullImg = new Image();
@@ -1308,10 +1301,8 @@
                 
                 // Remove any existing handlers
                 markerGroup.off('clusterclick');
-                
-                // Add our direct handler
+                  // Add our direct handler
                 markerGroup.on('clusterclick', function(e) {
-                    alert('CLUSTER CLICKED!');
                     debugLog('DIRECT CLUSTER CLICK DETECTED!');
                     
                     try {

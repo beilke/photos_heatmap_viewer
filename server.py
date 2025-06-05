@@ -251,12 +251,11 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 
                 # Send thumbnail data
                 self.wfile.write(buffer.getvalue())
-                logger.debug(f"Successfully served thumbnail for: {filename}")
-                
+                logger.debug(f"Successfully served thumbnail for: {filename}")                
         except Exception as e:
             logger.exception(f"Error serving thumbnail: {e}")
             self.send_error(500, f"Internal server error: {str(e)}")
-
+            
     def serve_photo_markers(self):
         """Serve photo markers from the database"""
         logger.info("Serving photo markers from database")
@@ -273,9 +272,9 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             conn.row_factory = sqlite3.Row  # This enables column access by name
             cursor = conn.cursor()
             
-            # Get photos with location data
+            # Get photos with location data - include path
             cursor.execute('''
-            SELECT p.filename, p.latitude, p.longitude, p.datetime, 
+            SELECT p.filename, p.path, p.latitude, p.longitude, p.datetime, 
                    p.marker_data, p.library_id, l.name as library_name
             FROM photos p
             LEFT JOIN libraries l ON p.library_id = l.id
