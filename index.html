@@ -686,8 +686,9 @@
                 intensity: parseInt(intensitySlider.value) / 10
             }).addTo(map);
             
-            debugLog(`Heatmap created with ${points.length} points`);
-        }        // Update markers
+            debugLog(`Heatmap created with ${points.length} points`);        }
+        
+        // Update markers
         function updateMarkers(filteredPhotos) {
             debugLog('Updating markers');
             
@@ -806,8 +807,7 @@
                 // Set up lazy loading when popup opens
                 marker.on('popupopen', function() {
                     const imageContainer = container.querySelector('.popup-image-container');
-                    if (!imageContainer.querySelector('img')) {
-                        const img = new Image();
+                    if (!imageContainer.querySelector('img')) {                        const img = new Image();
                         img.style.maxWidth = '150px';
                         img.style.maxHeight = '150px';
                         
@@ -815,12 +815,16 @@
                             imageContainer.innerHTML = '';
                             imageContainer.appendChild(img);
                         };
-                        
-                        img.onerror = function() {
-                            imageContainer.innerHTML = 'Image not available';
+                          img.onerror = function() {
+                            // Set an error handler for the image path
+                            img.onerror = function() {
+                                imageContainer.innerHTML = 'Image not available';
+                                debugLog(`Failed to load popup image for ${photo.filename}`);
+                            };
                         };
                         
-                        img.src = `thumbnails/${encodeURIComponent(photo.filename)}`;
+                        // Load the full image directly
+                        img.src = `photos/${encodeURIComponent(photo.filename)}`;
                     }
                 });                // Store photo data in marker for later use
                 marker.photoData = photo;
@@ -857,8 +861,7 @@
                 // Remove loading status
                 if (markerLoadingStatus.parentNode) {
                     markerLoadingStatus.parentNode.removeChild(markerLoadingStatus);
-                }
-                debugLog(`Successfully added markers to map`);
+                }                debugLog(`Successfully added markers to map`);
             }
         }
         
@@ -972,28 +975,43 @@
             
             // Show loading indicator
             photoViewerImg.style.opacity = '0.3';
-            
-            // Clear previous image first to prevent flashing
+              // Clear previous image first to prevent flashing
             photoViewerImg.src = '';
-              // Set new image with error handling - using progressive loading
-            // First show a thumbnail immediately for better perceived performance
-            const thumbnailUrl = `thumbnails/${encodeURIComponent(photo.filename)}`;
-            photoViewerImg.src = thumbnailUrl;
+              // Set new image with error handling - using direct loading from photos endpoint
+            // Use full images directly for better quality and reliability
+            const fullImageUrl = `photos/${encodeURIComponent(photo.filename)}`;
+            debugLog(`Loading full image URL: ${fullImageUrl}`);
             
-            // Then load the full resolution image
-            setTimeout(() => {
-                const fullImageUrl = `photos/${encodeURIComponent(photo.filename)}`;
-                debugLog(`Loading full image URL: ${fullImageUrl}`);
-                
-                // Create new image to preload
-                const fullImg = new Image();
-                fullImg.onload = function() {
-                    photoViewerImg.src = fullImageUrl;
-                    debugLog(`Full image loaded: ${photo.filename}`);
-                };
-                fullImg.src = fullImageUrl;
-            }, 100);
+            // Show a loading placeholder while the image loads
+            photoViewerImg.src = 'https://placehold.co/800x600?text=Loading...';
             
+            // Create new image to preload
+            const fullImg = new Image();
+            fullImg.onload = function() {
+                photoViewerImg.src = fullImageUrl;
+                debugLog(`Full image loaded: ${photo.filename}`);
+            };
+            
+            // Handle image loading errors with better fallback
+            fullImg.onerror = function() {
+                debugLog(`Failed to load image for ${photo.filename}, trying alternative fallback`);
+                // Try an alternative path if available in photo object
+                if (photo.path) {
+                    const alternativePath = `photos/${encodeURIComponent(photo.path)}`;
+                    debugLog(`Trying alternative path: ${alternativePath}`);
+                    photoViewerImg.src = alternativePath;
+                } else {
+                    // If all fails, show placeholder after a brief delay
+                    setTimeout(() => {
+                        photoViewerImg.src = 'https://placehold.co/800x600?text=Photo+Unavailable';
+                        photoViewerImg.style.opacity = '1';
+                    }, 500);
+                }
+            };
+            
+            fullImg.src = fullImageUrl;
+            
+            // Add error handler for the main viewer image as fallback
             photoViewerImg.onerror = () => {
                 debugLog(`Failed to load image for ${photo.filename}, using placeholder`);
                 photoViewerImg.src = 'https://placehold.co/800x600?text=Photo+Unavailable';
