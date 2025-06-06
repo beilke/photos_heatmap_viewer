@@ -352,8 +352,8 @@
         .photo-zoom-controls button:hover {
             background-color: rgba(0, 0, 0, 0.8);
         }
-		
-		.photo-viewer-image {
+        
+        .photo-viewer-image {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -482,21 +482,16 @@
         window.addEventListener('error', function(e) {
             debugLog('ERROR: ' + e.message);
             return false;
-        });        // Initialize map
-        debugLog('Initializing map');
-        const map = L.map('map', {
-            center: [0, 0],
-            zoom: 2,
-            minZoom: 2,  // Prevent zooming out too far
-            maxBounds: [[-90, -180], [90, 180]],  // Restrict panning to these bounds
-            maxBoundsViscosity: 1.0  // Make the bounds completely solid
         });
+
+        // Initialize map
+        debugLog('Initializing map');
+        const map = L.map('map').setView([0, 0], 2);
         
         // Add tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19,
-            noWrap: true  // Prevents the tiles from wrapping around horizontally
+            maxZoom: 19
         }).addTo(map);
         
         // Global variables
@@ -551,16 +546,23 @@
                     <div id="progressBar" style="width: 0%; height: 20px; background-color: #4CAF50; transition: width 0.3s;"></div>
                 </div>
             `;
-            
-            // Use the new API endpoint for markers
+              // Use the new API endpoint for markers
             fetch('/api/markers')
                 .then(response => {
                     debugLog(`Response status: ${response.status}`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
-                    return response.json();
-                })                .then(data => {
+                    return response.text().then(text => {
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            debugLog(`JSON parse error: ${e.message}`);
+                            debugLog(`JSON content (first 200 chars): ${text.substring(0, 200)}`);
+                            throw new Error(`JSON parse error: ${e.message}`);
+                        }
+                    });
+                }).then(data => {
                     // Handle both new and legacy JSON formats
                     let photos = [];
                     let libraries = [];
@@ -1000,98 +1002,79 @@
     // Reset view when showing a new photo
     currentZoom = 1;
     currentRotation = 0;
-    updateImageTransform();            debugLog(`Loading image for ${photo.filename}`);
+    updateImageTransform();
+            debugLog(`Loading image for ${photo.filename}`);
+              // Set new image with error handling - using direct loading from photos endpoint
+            // Use full images directly for better quality and reliability
+            const fullImageUrl = `photos/${encodeURIComponent(photo.filename)}`;            
+            debugLog(`Loading full image URL: ${fullImageUrl}`);
             
-            // Get file extension and check if it's a format browsers can't display
-            const fileExtension = photo.filename.split('.').pop().toLowerCase();
-            const unsupportedFormats = ['dng', 'raw', 'cr2', 'nef', 'arw', 'rw2', 'orf', 'srw'];
-            const isUnsupportedFormat = unsupportedFormats.includes(fileExtension);
-            
-            // Clean up any format-specific notices from previous photos
-            const formatNotices = document.querySelectorAll('.format-notice');
-            formatNotices.forEach(notice => notice.remove());
-            
-            if (isUnsupportedFormat) {
-                // For unsupported formats like RAW files, show a placeholder immediately
-                debugLog(`${fileExtension.toUpperCase()} format detected - browsers cannot display this format directly`);
-                
-                // Show format-specific placeholder
-                photoViewerImg.src = `https://placehold.co/800x600?text=${fileExtension.toUpperCase()}+Format+(RAW)`;
+            // Create new image to preload            // Create new image to preload without affecting current display
+            const fullImg = new Image();
+            fullImg.onload = function() {
+                // Only change the src once the new image is fully loaded
+                photoViewerImg.src = fullImageUrl;
                 photoViewerImg.style.opacity = '1';
-                
-                // Add an explanatory message to the info panel
-                const formatInfoDiv = document.createElement('div');
-                formatInfoDiv.className = 'photo-info-item format-notice';
-                formatInfoDiv.innerHTML = `
-                    <div class="photo-info-label" style="color: #ff6600; font-weight: bold;">RAW Format Notice:</div>
-                    <div style="color: #ff6600;">This is a camera RAW file (${fileExtension.toUpperCase()} format).<br>
-                    Browser preview is not available for this format.</div>
-                `;
-                
-                // Add the notice at the top of the info panel
-                const infoPanel = document.querySelector('.photo-viewer-info');
-                const firstItem = infoPanel.querySelector('.photo-info-item');
-                if (firstItem) {
-                    infoPanel.insertBefore(formatInfoDiv, firstItem);
+                debugLog(`Full image loaded: ${photo.filename}`);
+            };
+            
+            // Handle image loading errors with better fallback
+            fullImg.onerror = function() {
+                debugLog(`Failed to load image for ${photo.filename}, trying alternative fallback`);
+                // Try an alternative path if available in photo object
+                if (photo.path) {
+                    const alternativePath = `photos/${encodeURIComponent(photo.path)}`;
+                    debugLog(`Trying alternative path: ${alternativePath}`);
+                    photoViewerImg.src = alternativePath;
                 } else {
-                    infoPanel.appendChild(formatInfoDiv);
+                    // If all fails, show placeholder after a brief delay
+                    setTimeout(() => {
+                        photoViewerImg.src = 'https://placehold.co/800x600?text=Photo+Unavailable';
+                        photoViewerImg.style.opacity = '1';
+                    }, 500);
                 }
-                
-                // Simple onload handler for the placeholder
-                photoViewerImg.onload = function() {
-                    debugLog(`Placeholder loaded for ${fileExtension.toUpperCase()} file`);
-                    this.style.opacity = '1';
-                    // Set reasonable dimensions for the placeholder
-                    this.style.maxWidth = '85vw';
-                    this.style.maxHeight = '85vh';
-                };
-            } else {
-                // Standard supported image formats (JPG, HEIC, etc.)
-                const imageUrl = `photos/${encodeURIComponent(photo.filename)}`;
-                debugLog(`Loading image URL: ${imageUrl}`);
-                
-                // Set main image with proper handlers
-                photoViewerImg.onload = function() {
-                    debugLog(`Successfully loaded image for ${photo.filename}`);
-                    
-                    // Make image visible with proper dimensions
-                    this.style.opacity = '1';
-                    
-                    // Reset previous sizing
-                    this.style.maxWidth = '';
-                    this.style.maxHeight = '';
-                    this.style.width = '';
-                    this.style.height = '';
-                    
-                    // Calculate aspect ratio and set appropriate dimensions
-                    const aspectRatio = this.naturalWidth / this.naturalHeight;
-                    const isPortrait = aspectRatio < 1;
-                    
-                    if (isPortrait) {
-                        this.style.maxHeight = '85vh';
-                        this.style.width = 'auto';
-                    } else {
-                        this.style.maxWidth = '85vw';
-                        this.style.height = 'auto';
-                    }
-                    
-                    debugLog(`Image orientation: ${isPortrait ? 'portrait' : 'landscape'}, aspect ratio: ${aspectRatio.toFixed(2)}`);
-                    
-                    // Apply any existing transformations
-                    updateImageTransform();
-                };
-                
-                // Error handler for image loading failures
-                photoViewerImg.onerror = function() {
-                    debugLog(`Failed to load image for ${photo.filename}, using placeholder`);
-                    this.src = 'https://placehold.co/800x600?text=Image+Not+Available';
-                    this.style.opacity = '1';
-                    this.style.maxWidth = '85vw';
-                    this.style.maxHeight = '85vh';
-                };
-                  // Set the source to trigger loading
-                photoViewerImg.src = imageUrl;
-            }
+            };
+            
+            fullImg.src = fullImageUrl;
+            
+            // Add error handler for the main viewer image as fallback
+            photoViewerImg.onerror = () => {
+                debugLog(`Failed to load image for ${photo.filename}, using placeholder`);
+                photoViewerImg.src = 'https://placehold.co/800x600?text=Photo+Unavailable';
+                photoViewerImg.style.opacity = '1';
+            };
+              // Handle successful load
+            photoViewerImg.onload = function() {
+    debugLog(`Successfully loaded image for ${photo.filename}, dimensions: ${this.naturalWidth}x${this.naturalHeight}`);
+    
+    // Make sure the image is visible
+    this.style.opacity = '1';
+    
+    // Reset any previous sizing
+    this.style.maxWidth = '';
+    this.style.maxHeight = '';
+    this.style.width = '';
+    this.style.height = '';
+    
+    // Calculate aspect ratio
+    const aspectRatio = this.naturalWidth / this.naturalHeight;
+    const isPortrait = aspectRatio < 1;
+    
+    // Set appropriate dimensions based on orientation
+    if (isPortrait) {
+        this.style.maxHeight = '85vh';
+        this.style.width = 'auto';
+    } else {
+        this.style.maxWidth = '85vw';
+        this.style.height = 'auto';
+    }
+    
+    debugLog(`Image orientation: ${isPortrait ? 'portrait' : 'landscape'}, aspect ratio: ${aspectRatio.toFixed(2)}`);
+    
+    // Apply any existing transformations
+    updateImageTransform();
+};
+
             
             photoInfoFilename.textContent = photo.filename || 'Unknown';
             photoInfoDate.textContent = photo.datetime ? new Date(photo.datetime).toLocaleString() : 'Unknown';
