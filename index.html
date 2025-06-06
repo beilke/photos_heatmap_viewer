@@ -354,16 +354,47 @@
         }
         
         .photo-viewer-image {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
 
-.photo-viewer-image img {
-    transition: transform 0.3s ease;
-    object-fit: contain;
-}
+        .photo-viewer-image img {
+            transition: transform 0.3s ease;
+            object-fit: contain;
+        }
+
+        #fullscreenBtn {
+            padding: 5px 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #fullscreenBtn:hover {
+            background-color: #3e8e41;
+        }
+
+        .controls {
+            /* Keep your existing styles */
+            max-height: 90vh;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+        }
+
+        /* Add a subtle scrollbar */
+        .controls::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .controls::-webkit-scrollbar-thumb {
+            background: #4CAF50;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
@@ -380,7 +411,7 @@
         </div>
         <div>
             <input type="checkbox" id="showMarkers" checked>
-            <label for="showMarkers">Show Photos</label>
+            <label for="showMarkers">Show Photos Count</label>
         </div>        
         <div class="library-filters">
             <h4>Libraries</h4>
@@ -395,10 +426,9 @@
         
         <div>
             <button id="updateMap">Update Map</button>
-        </div>        <div>
-            <button id="testViewer" style="margin-top: 10px;">Test Photo Viewer</button>
-            <button id="testCluster" style="margin-top: 5px;">Test Cluster Click</button>
-        </div>
+            <button id="fullscreenBtn" style="margin-left: 10px;">Fullscreen</button>
+        </div>   
+        
         <div id="photoCount"></div>
     </div>
     <div class="debug-panel" id="debugPanel"></div>
@@ -486,11 +516,21 @@
 
         // Initialize map
         debugLog('Initializing map');
-        const map = L.map('map').setView([0, 0], 2);
-        
-        // Add tile layer
+        const map = L.map('map', {
+            minZoom: 2,
+            maxZoom: 19,
+            maxBounds: [
+                [-90, -180],  // Southwest corner
+                [90, 180]     // Northeast corner
+            ],
+            maxBoundsViscosity: 1.0  // Strict bounds enforcement
+        }).setView([50, 0], 5); // Initial center and zoom
+
+
+        // Update your tile layer to prevent wrapping:
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            noWrap: true,  // Prevent map from wrapping
             maxZoom: 19
         }).addTo(map);
         
@@ -1123,53 +1163,7 @@
                 updatePhotoViewerContent();
             }
         }        // Event listeners
-        updateMapButton.addEventListener('click', updateVisualization);
-          // Test viewer button
-        document.getElementById('testViewer').addEventListener('click', function() {
-            debugLog('Test viewer button clicked');
-            if (photoData && photoData.length > 0) {
-                const validPhotos = photoData.filter(p => p.latitude && p.longitude);
-                if (validPhotos.length > 0) {
-                    debugLog('Opening test photo viewer with ' + validPhotos.length + ' photos');
-                    photoViewerOverlay.style.display = 'flex';
-                    currentClusterPhotos = validPhotos.slice(0, 10); // Just use first 10 for testing
-                    currentPhotoIdx = 0;
-                    totalPhotos.textContent = currentClusterPhotos.length;
-                    updatePhotoViewerContent();
-                } else {
-                    alert('No photos with coordinates found');
-                }
-            } else {
-                alert('No photo data loaded yet');
-            }
-        });
-        
-        // Test cluster click simulation
-        document.getElementById('testCluster').addEventListener('click', function() {
-            debugLog('Test cluster click button pressed');
-            if (!photoData || photoData.length === 0) {
-                alert('No photo data loaded yet');
-                return;
-            }
-            
-            // Get some photos with coordinates
-            const validPhotos = photoData.filter(p => p.latitude && p.longitude);
-            if (validPhotos.length === 0) {
-                alert('No photos with coordinates found');
-                return;
-            }
-            
-            // Log what we're doing
-            debugLog('Simulating cluster click with ' + validPhotos.length + ' photos');
-            
-            try {
-                // Direct call to openPhotoViewer
-                openPhotoViewer(validPhotos, 0);
-            } catch (err) {
-                debugLog('ERROR: ' + err.message);
-                alert('Error opening photo viewer: ' + err.message);
-            }
-        });
+        updateMapButton.addEventListener('click', updateVisualization);                
         
         showMarkersCheckbox.addEventListener('change', function() {
             debugLog(`Show markers changed: ${this.checked}`);
@@ -1447,6 +1441,47 @@
             
             if (showMarkersCheckbox.checked) {
                 updateMarkers(filteredPhotos);
+            }
+        }
+
+        // Add this after your other DOM element declarations
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+        // Fullscreen functionality
+        fullscreenBtn.addEventListener('click', function() {
+            const mapContainer = document.getElementById('map');
+            
+            if (!document.fullscreenElement) {
+                if (mapContainer.requestFullscreen) {
+                    mapContainer.requestFullscreen();
+                } else if (mapContainer.webkitRequestFullscreen) { /* Safari */
+                    mapContainer.webkitRequestFullscreen();
+                } else if (mapContainer.msRequestFullscreen) { /* IE11 */
+                    mapContainer.msRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) { /* Safari */
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { /* IE11 */
+                    document.msExitFullscreen();
+                }
+            }
+        });
+
+        // Handle fullscreen change events to update button text
+        document.addEventListener('fullscreenchange', updateFullscreenButton);
+        document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+        document.addEventListener('msfullscreenchange', updateFullscreenButton);
+
+        function updateFullscreenButton() {
+            if (document.fullscreenElement || 
+                document.webkitFullscreenElement || 
+                document.msFullscreenElement) {
+                fullscreenBtn.textContent = 'Exit Fullscreen';
+            } else {
+                fullscreenBtn.textContent = 'Fullscreen';
             }
         }
     </script>
