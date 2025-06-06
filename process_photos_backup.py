@@ -1,3 +1,4 @@
+import sqlite3
 import os
 import json
 import argparse
@@ -8,8 +9,6 @@ import hashlib
 import concurrent.futures
 import sys
 import logging
-import time
-import sqlite3
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -103,79 +102,50 @@ def extract_datetime(image_path):
 
 def get_decimal_from_dms(dms, ref, image_path=None):
     """Convert GPS DMS (Degrees, Minutes, Seconds) to decimal format"""
-    filename = os.path.basename(image_path) if image_path else "unknown"
-    
     try:
         if ref is None:
-            logger.error(f"Missing GPS reference (N/S/E/W) in file: {filename}")
+            logger.error(f"Missing GPS reference (N/S/E/W) in file: {image_path or 'unknown'}")
             return None
             
         # Handle different formats of DMS data
         if isinstance(dms, tuple) or isinstance(dms, list):
-            # Log the DMS data format for debugging
-            logger.debug(f"DMS format in {filename}: Type={type(dms)}, Length={len(dms)}, Content={dms}")
-            
             # Check if we have a tuple of tuples (rational numbers)
             if len(dms) >= 3 and all(isinstance(x, tuple) for x in dms[:3]):
                 # Handle rational numbers: (numerator, denominator)
-                logger.debug(f"Processing rational DMS format in {filename}: {dms}")
-                
-                try:
-                    degrees = float(dms[0][0]) / float(dms[0][1]) if dms[0][1] != 0 else 0
-                    minutes = float(dms[1][0]) / float(dms[1][1]) / 60.0 if dms[1][1] != 0 else 0
-                    seconds = float(dms[2][0]) / float(dms[2][1]) / 3600.0 if dms[2][1] != 0 else 0
-                    decimal = degrees + minutes + seconds
-                    logger.debug(f"Converted rational DMS in {filename}: {degrees}° {minutes*60}' {seconds*3600}\" = {decimal}")
-                except (ZeroDivisionError, IndexError, TypeError) as e:
-                    logger.error(f"Error processing rational DMS in {filename}: {e}, data: {dms}")
-                    return None
-                    
+                degrees = float(dms[0][0]) / float(dms[0][1]) if dms[0][1] != 0 else 0
+                minutes = float(dms[1][0]) / float(dms[1][1]) / 60.0 if dms[1][1] != 0 else 0
+                seconds = float(dms[2][0]) / float(dms[2][1]) / 3600.0 if dms[2][1] != 0 else 0
+                decimal = degrees + minutes + seconds
             # Standard format: [degrees, minutes, seconds]
             elif len(dms) >= 3:
-                logger.debug(f"Processing standard DMS format in {filename}: {dms}")
                 degrees = float(dms[0])
                 minutes = float(dms[1]) / 60.0
                 seconds = float(dms[2]) / 3600.0
                 decimal = degrees + minutes + seconds
-                logger.debug(f"Converted standard DMS in {filename}: {degrees}° {minutes*60}' {seconds*3600}\" = {decimal}")
-                
             elif len(dms) == 2:
                 # Some formats only provide degrees and minutes
-                logger.debug(f"Processing DM format in {filename}: {dms}")
                 degrees = float(dms[0])
                 minutes = float(dms[1]) / 60.0
                 decimal = degrees + minutes
-                logger.debug(f"Converted DM in {filename}: {degrees}° {minutes*60}' = {decimal}")
-                
             else:
                 # If we only have degrees
-                logger.debug(f"Processing D format in {filename}: {dms}")
                 decimal = float(dms[0])
-                logger.debug(f"Converted D in {filename}: {decimal}°")
-                
         elif isinstance(dms, (int, float)):
             # Some formats might already provide decimal degrees
-            logger.debug(f"Processing decimal format in {filename}: {dms}")
             decimal = float(dms)
         else:
             # Unsupported format
-            logger.error(f"Unsupported GPS data format in {filename}: {type(dms)} - {dms}")
+            logger.error(f"Unsupported GPS data format: {type(dms)} - {dms} in file: {image_path or 'unknown'}")
             return None
         
         # Apply the reference direction (N/S/E/W)
-        ref_str = ref.decode() if isinstance(ref, bytes) else ref
-        if ref and (ref_str in ['S', 'W']):
+        if ref and (ref == 'S' or ref == 'W' or ref == b'S' or ref == b'W'):
             decimal = -decimal
-            logger.debug(f"Applied {ref_str} reference in {filename}, final value: {decimal}")
-        else:
-            logger.debug(f"Applied {ref_str} reference in {filename}, final value: {decimal}")
         
         return decimal
     except Exception as e:
-        logger.error(f"Error converting GPS coordinates in '{filename}': {e}")
-        logger.error(f"GPS data: {dms}, reference: {ref}")
-        import traceback
-        logger.debug(f"Traceback for {filename}: {traceback.format_exc()}")
+        filename = os.path.basename(image_path) if image_path else "unknown"
+        logger.error(f"Error converting GPS coordinates in '{filename}': {e}, data: {dms}, ref: {ref}")
         return None
 
 def extract_gps(image_path):
@@ -184,8 +154,6 @@ def extract_gps(image_path):
     if image_path.lower().endswith('.heic') and not HEIC_SUPPORT:
         logger.warning(f"Skipping GPS extraction for {image_path}: HEIC support not enabled")
         return None, None
-    
-    filename = os.path.basename(image_path)
         
     try:
         with Image.open(image_path) as img:
@@ -193,7 +161,7 @@ def extract_gps(image_path):
             exif_data = get_exif_data(img)
             
             if not exif_data:
-                logger.debug(f"No EXIF data found in {filename}")
+                logger.debug(f"No EXIF data found in {image_path}")
                 return None, None
                 
             gps_info = {}
@@ -204,20 +172,20 @@ def extract_gps(image_path):
             for tag_id, value in exif_data.items():
                 tag = TAGS.get(tag_id, tag_id)
                 if tag == 'GPSInfo':
-                    logger.debug(f"Found GPSInfo tag: {tag_id} in {filename}")
+                    logger.debug(f"Found GPSInfo tag: {tag_id}")
                     logger.debug(f"GPS value type: {type(value)}")
                     
                     # Handle different GPS data formats
                     try:
                         if isinstance(value, dict):
                             # Some implementations might return a dictionary directly
-                            logger.debug(f"Dictionary format in {filename}")
+                            logger.debug("Dictionary format")
                             gps_info = value
                         elif isinstance(value, int):
                             # Sometimes GPSInfo is stored as an integer reference
                             # This is a known issue with some Samsung phones like Galaxy S24+
-                            logger.debug(f"Integer format: {value} in {filename} - using direct GPS extraction method")
-                            # We need to try a different approach for these files
+                            logger.debug(f"Integer format: {value} - using direct GPS extraction method")
+                            # We need to try a different approach for these files                            # Try to get GPS data directly from EXIF
                             if HAS_PIEXIF:
                                 try:
                                     with open(image_path, 'rb') as f:
@@ -226,44 +194,43 @@ def extract_gps(image_path):
                                             # Map the GPS data
                                             for gps_tag, val in exif_dict['GPS'].items():
                                                 gps_info[GPSTAGS.get(gps_tag, gps_tag)] = val
-                                            logger.debug(f"Direct GPS extraction found: {len(gps_info)} items in {filename}")
+                                            logger.debug(f"Direct GPS extraction found: {len(gps_info)} items")
                                 except Exception as e:
-                                    logger.debug(f"Direct GPS extraction failed for {filename}: {e}")
+                                    logger.debug(f"Direct GPS extraction failed: {e}")
                         else:
                             # Standard format where value is a dictionary-like object
-                            logger.debug(f"Standard format in {filename}")
+                            logger.debug("Standard format")
                             for gps_tag in value:
-                                gps_info[GPSTAGS.get(gps_tag, gps_tag)] = value[gps_tag]
-                    except TypeError as e:
+                                gps_info[GPSTAGS.get(gps_tag, gps_tag)] = value[gps_tag]                    except TypeError as e:
                         # If we get a TypeError (like 'int' object is not iterable)
-                        logger.debug(f"Error inspecting GPS data in {filename}: {e}")
+                        logger.debug(f"Error inspecting GPS data: {e}")
                         if is_heic:
                             # For HEIC files, try alternative extraction method
-                            logger.debug(f"Using alternative method for HEIC GPS extraction in {filename}")
+                            logger.debug("Using alternative method for HEIC GPS extraction")
             
-            logger.debug(f"Extracted GPS info for {filename}: {gps_info}")
+            logger.debug(f"Extracted GPS info: {gps_info}")
             
             if 'GPSLatitude' in gps_info and 'GPSLongitude' in gps_info:
-                # Check if we have all necessary data for GPS coordinates
-                if 'GPSLatitudeRef' not in gps_info:
-                    logger.error(f"Missing GPSLatitudeRef in {filename}, available keys: {list(gps_info.keys())}")
-                    return None, None
-                if 'GPSLongitudeRef' not in gps_info:
-                    logger.error(f"Missing GPSLongitudeRef in {filename}, available keys: {list(gps_info.keys())}")
-                    return None, None
-                
                 try:
+                    # Check if we have all necessary data for GPS coordinates
+                    if 'GPSLatitudeRef' not in gps_info:
+                        logger.error(f"Missing GPSLatitudeRef in {os.path.basename(image_path)}, available keys: {list(gps_info.keys())}")
+                        return None, None
+                    if 'GPSLongitudeRef' not in gps_info:
+                        logger.error(f"Missing GPSLongitudeRef in {os.path.basename(image_path)}, available keys: {list(gps_info.keys())}")
+                        return None, None
+                        
                     lat = get_decimal_from_dms(gps_info['GPSLatitude'], gps_info['GPSLatitudeRef'], image_path)
                     lon = get_decimal_from_dms(gps_info['GPSLongitude'], gps_info['GPSLongitudeRef'], image_path)
                     
                     if lat is not None and lon is not None:
-                        logger.debug(f"Converted GPS coordinates for {filename}: {lat}, {lon}")
+                        logger.debug(f"Converted GPS coordinates for {os.path.basename(image_path)}: {lat}, {lon}")
                         return lat, lon
                     else:
-                        logger.warning(f"Failed to convert GPS coordinates for {filename}")
+                        logger.warning(f"Failed to convert GPS coordinates for {os.path.basename(image_path)}")
                         return None, None
                 except Exception as e:
-                    logger.error(f"Error converting GPS coordinates for {filename}: {e}")
+                    logger.error(f"Error converting GPS coordinates for {os.path.basename(image_path)}: {e}")
                     return None, None
             else:
                 # Try one more fallback method for Samsung phones specifically
@@ -292,13 +259,13 @@ def extract_gps(image_path):
                                 if lon_ref == 'W':
                                     lon_val = -lon_val
                                     
-                                logger.debug(f"Extracted GPS via exifread for {filename}: {lat_val}, {lon_val}")
+                                logger.debug(f"Extracted GPS via exifread: {lat_val}, {lon_val}")
                                 return lat_val, lon_val
                     except Exception as e:
-                        logger.debug(f"Fallback GPS extraction failed for {filename}: {e}")
-                logger.warning(f"No GPS data found in {filename}")
+                        logger.debug(f"Fallback GPS extraction failed: {e}")
+                    pass
     except Exception as e:
-        logger.error(f"Error extracting GPS data from {filename}: {e}")
+        logger.error(f"Error extracting GPS data from {image_path}: {e}")
     
     return None, None
 
@@ -306,10 +273,9 @@ def process_image(image_path):
     """Process a single image and return its metadata"""
     try:
         filename = os.path.basename(image_path)
-        
         # Skip unsupported files if HEIC support is not available
         if filename.lower().endswith('.heic') and not HEIC_SUPPORT:
-            logger.debug(f"Skipping HEIC file {filename} - install pillow-heif for HEIC support")
+            logger.info(f"Skipping HEIC file {filename} - install pillow-heif for HEIC support")
             # Return basic information without GPS or datetime
             return {
                 'filename': filename,
@@ -320,16 +286,14 @@ def process_image(image_path):
                 'hash': None
             }
         
-        # Optimize processing based on file type
-        ext = os.path.splitext(filename.lower())[1]
-        
         # Handle DNG files which Pillow may not be able to open directly
-        if ext == '.dng':
-            # Get creation time without opening the file
+        if filename.lower().endswith('.dng'):
+            # Try to get basic info without opening with Pillow
+            hash_value = get_image_hash(image_path)
             try:
                 file_time = os.path.getctime(image_path)
                 dt = datetime.fromtimestamp(file_time).isoformat()
-            except Exception:
+            except:
                 dt = None
             
             # For DNG files, try using exifread for GPS data
@@ -337,7 +301,7 @@ def process_image(image_path):
             if HAS_EXIFREAD:
                 try:
                     with open(image_path, 'rb') as f:
-                        tags = exifread.process_file(f, details=False)  # Faster with details=False
+                        tags = exifread.process_file(f)
                         if 'GPS GPSLatitude' in tags and 'GPS GPSLongitude' in tags:
                             lat_ref = str(tags.get('GPS GPSLatitudeRef', 'N'))
                             lon_ref = str(tags.get('GPS GPSLongitudeRef', 'E'))
@@ -359,9 +323,10 @@ def process_image(image_path):
                             if lon_ref == 'W':
                                 lon_val = -lon_val
                                 
+                            logger.debug(f"Extracted DNG GPS via exifread: {lat_val}, {lon_val}")
                             lat, lon = lat_val, lon_val
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"DNG GPS extraction failed: {e}")
             
             return {
                 'filename': filename,
@@ -369,70 +334,13 @@ def process_image(image_path):
                 'latitude': lat,
                 'longitude': lon,
                 'datetime': dt,
-                'hash': None
+                'hash': hash_value
             }
-        
-        # Use optimized EXIF extraction depending on file type
-        if ext in ('.jpg', '.jpeg'):
-            # For JPEGs, use direct EXIF extraction which is faster
-            try:
-                with Image.open(image_path) as img:
-                    # Extract EXIF once and reuse for both GPS and datetime
-                    exif_data = get_exif_data(img)
-                    
-                    # Extract datetime
-                    dt = None
-                    if exif_data:
-                        for tag_id, value in exif_data.items():
-                            tag = TAGS.get(tag_id, tag_id)
-                            if tag == 'DateTimeOriginal':
-                                try:
-                                    dt = datetime.strptime(value, '%Y:%m:%d %H:%M:%S').isoformat()
-                                    break
-                                except Exception:
-                                    pass
-                    
-                    # Fall back to file creation time if no EXIF datetime
-                    if not dt:
-                        file_time = os.path.getctime(image_path)
-                        dt = datetime.fromtimestamp(file_time).isoformat()
-                    
-                    # Extract GPS data
-                    lat, lon = None, None
-                    if exif_data:
-                        for tag_id, value in exif_data.items():
-                            tag = TAGS.get(tag_id, tag_id)
-                            if tag == 'GPSInfo':
-                                try:
-                                    gps_info = {}
-                                    if isinstance(value, dict):
-                                        gps_info = value
-                                    elif not isinstance(value, int):
-                                        for gps_tag in value:
-                                            gps_info[GPSTAGS.get(gps_tag, gps_tag)] = value[gps_tag]
-                                    
-                                    # Check if we have all GPS data needed
-                                    if all(k in gps_info for k in ('GPSLatitude', 'GPSLongitude', 'GPSLatitudeRef', 'GPSLongitudeRef')):
-                                        lat = get_decimal_from_dms(gps_info['GPSLatitude'], gps_info['GPSLatitudeRef'], image_path)
-                                        lon = get_decimal_from_dms(gps_info['GPSLongitude'], gps_info['GPSLongitudeRef'], image_path)
-                                except Exception:
-                                    pass
-                    
-                    return {
-                        'filename': filename,
-                        'path': image_path,
-                        'latitude': lat,
-                        'longitude': lon,
-                        'datetime': dt,
-                        'hash': None
-                    }
-            except Exception:
-                # Fall back to standard processing if optimized method fails
-                pass
-                
-        # Standard processing for other file types
+            
+        # Continue processing for supported files
         lat, lon = extract_gps(image_path)
         dt = extract_datetime(image_path)
+        img_hash = get_image_hash(image_path)
         
         return {
             'filename': filename,
@@ -440,10 +348,10 @@ def process_image(image_path):
             'latitude': lat,
             'longitude': lon,
             'datetime': dt,
-            'hash': None
+            'hash': img_hash
         }
     except Exception as e:
-        logger.error(f"Error processing {os.path.basename(image_path)}: {str(e)}")
+        logger.error(f"Error processing {image_path}: {e}")
         return None
 
 def get_or_create_library(cursor, library_name, source_dirs=None, description=None):
@@ -578,10 +486,14 @@ def process_directory(root_dir, db_path='photo_library.db', max_workers=4, inclu
                 if processed_count % 100 == 0:
                     print(f"Processed {processed_count}/{total_files} images...")
                 
-                if result:                    # Check if photo already exists in the database (if skip_existing is True)
+                if result:
+                    # Check if photo already exists in the database (if skip_existing is True)
                     exists = False
                     if skip_existing:
-                        exists = photo_exists_in_db(cursor, path=result['path'])
+                        exists = photo_exists_in_db(cursor, 
+                                                   filename=result['filename'], 
+                                                   img_hash=result['hash'], 
+                                                   path=result['path'])
                     
                     # If the photo doesn't exist or we're not skipping existing photos
                     if not exists:
@@ -591,11 +503,10 @@ def process_directory(root_dir, db_path='photo_library.db', max_workers=4, inclu
                             # Create marker data
                             marker_data = create_marker_data(result)
                             
-                            # Note: We still create a NULL entry for hash but don't calculate it
                             cursor.execute(
-                                "INSERT INTO photos (filename, path, latitude, longitude, datetime, hash, library_id, marker_data) VALUES (?, ?, ?, ?, ?, NULL, ?, ?)",
+                                "INSERT INTO photos (filename, path, latitude, longitude, datetime, hash, library_id, marker_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                                 (result['filename'], result['path'], result['latitude'], result['longitude'], 
-                                result['datetime'], library_id, marker_data)
+                                result['datetime'], result['hash'], library_id, marker_data)
                             )
                             # Commit every 100 inserts to avoid large transactions
                             if processed_count % 100 == 0:
@@ -727,10 +638,19 @@ def export_to_json(db_path='photo_library.db', output_path='photo_heatmap_data.j
     
     conn.close()
 def photo_exists_in_db(cursor, filename=None, img_hash=None, path=None):
-    """Check if a photo already exists in the database based on path only (faster)"""
-    # Only check the path as requested for faster processing
+    """Check if a photo already exists in the database based on hash, filename, or path"""
+    if img_hash:
+        cursor.execute("SELECT COUNT(*) FROM photos WHERE hash = ?", (img_hash,))
+        if cursor.fetchone()[0] > 0:
+            return True
+    
     if path:
         cursor.execute("SELECT COUNT(*) FROM photos WHERE path = ?", (path,))
+        if cursor.fetchone()[0] > 0:
+            return True
+    
+    if filename:
+        cursor.execute("SELECT COUNT(*) FROM photos WHERE filename = ?", (filename,))
         if cursor.fetchone()[0] > 0:
             return True
     
@@ -770,209 +690,10 @@ def clean_database(db_path='photo_library.db'):
     conn.close()
     print(f"Removed {count} photos from database")
 
-def build_file_index(root_dir, image_extensions):
-    """Build a dictionary of image files with their modification times"""
-    start_time = time.time()
-    file_index = {}
-    count = 0
-    
-    for dirpath, _, filenames in os.walk(root_dir):
-        for filename in filenames:
-            if filename.lower().endswith(image_extensions):
-                count += 1
-                full_path = os.path.join(dirpath, filename)
-                try:
-                    file_index[full_path] = os.path.getmtime(full_path)
-                except Exception as e:
-                    logger.warning(f"Could not get modification time for {full_path}: {e}")
-    
-    duration = time.time() - start_time
-    logger.info(f"Built file index with {count} files in {duration:.2f} seconds")
-    return file_index
-
-def get_existing_photos(cursor, library_id=None):
-    """Get all photos in the database with their paths and modification times"""
-    if library_id is not None:
-        cursor.execute(
-            "SELECT path, datetime FROM photos WHERE library_id = ?", 
-            (library_id,)
-        )
-    else:
-        cursor.execute("SELECT path, datetime FROM photos")
-        
-    return {row[0]: row[1] for row in cursor.fetchall()}
-
-def batch_insert_photos(cursor, photos_data, batch_size=1000):
-    """Insert multiple photos at once in batches"""
-    if not photos_data:
-        return 0
-    
-    total_inserted = 0
-    for i in range(0, len(photos_data), batch_size):
-        batch = photos_data[i:i+batch_size]
-        cursor.executemany(
-            "INSERT INTO photos (filename, path, latitude, longitude, datetime, hash, library_id, marker_data) "
-            "VALUES (?, ?, ?, ?, ?, NULL, ?, ?)",
-            batch
-        )
-        total_inserted += len(batch)
-        
-    return total_inserted
-
-def process_directory_incremental(root_dir, db_path='photo_library.db', max_workers=4, include_all=False, 
-                          library_name="Default", log_level=logging.INFO):
-    """Process only new or modified images in a directory (much faster than full reprocessing)"""
-    # Adjust logging level for this run
-    original_level = logger.level
-    logger.setLevel(log_level)
-    
-    start_time = time.time()
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    
-    print(f"Running incremental processing on {root_dir}")
-    
-    # Make sure tables exist (reusing the checks from process_directory)
-    try:
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='libraries'")
-        if not cursor.fetchone():
-            print("Libraries table not found. Creating...")
-            cursor.execute('''
-            CREATE TABLE libraries (
-              id INTEGER PRIMARY KEY,
-              name TEXT NOT NULL UNIQUE,
-              description TEXT,
-              source_dirs TEXT,
-              created_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )
-            ''')
-    except sqlite3.Error as e:
-        print(f"Error checking libraries table: {e}")
-    
-    # Make sure the marker_data column exists in photos table
-    try:
-        cursor.execute("PRAGMA table_info(photos)")
-        columns = [column[1] for column in cursor.fetchall()]
-        
-        if "marker_data" not in columns:
-            print("Adding marker_data column to photos table...")
-            cursor.execute("ALTER TABLE photos ADD COLUMN marker_data TEXT")
-        
-        if "library_id" not in columns:
-            print("Adding library_id column to photos table...")
-            cursor.execute("ALTER TABLE photos ADD COLUMN library_id INTEGER REFERENCES libraries(id)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_library_id ON photos(library_id)")
-    except sqlite3.Error as e:
-        print(f"Error updating photos table: {e}")
-    
-    # Get or create the library
-    library_id = get_or_create_library(cursor, library_name, [root_dir])
-    conn.commit()
-    
-    print(f"Using library: {library_name} (ID: {library_id})")
-    
-    # Define image extensions
-    image_extensions = ('.jpg', '.jpeg', '.png', '.heic', '.tiff', '.bmp', '.nef', '.cr2', '.arw', '.dng')
-    
-    # STAGE 1: Fast file system scan (no opening files yet)
-    print("Stage 1: Building file index...")
-    indexed_files = build_file_index(root_dir, image_extensions)
-    
-    # STAGE 2: Compare with database to find new files
-    print("Stage 2: Finding new or modified files...")
-    existing_files = get_existing_photos(cursor, library_id)
-    
-    # Identify files to process
-    files_to_process = []
-    for file_path, mod_time in indexed_files.items():
-        if file_path not in existing_files:
-            # File doesn't exist in DB yet
-            files_to_process.append(file_path)
-    
-    scan_duration = time.time() - start_time
-    print(f"Found {len(indexed_files)} total files, {len(files_to_process)} to process")
-    print(f"File scanning completed in {scan_duration:.2f} seconds")
-    
-    if not files_to_process:
-        print("No new files to process. Database is up to date!")
-        conn.close()
-        logger.setLevel(original_level)  # Restore original logging level
-        return
-    
-    # STAGE 3: Process only the new files
-    print(f"Stage 3: Processing {len(files_to_process)} new files...")
-    process_start = time.time()
-    
-    # Create batches for insertion
-    photo_batches = []
-    current_batch = []
-    batch_size = 100  # Smaller batches to commit more frequently
-    
-    # Process images in parallel
-    processed_count = 0
-    insert_count = 0
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_path = {executor.submit(process_image, path): path for path in files_to_process}
-        
-        for future in concurrent.futures.as_completed(future_to_path):
-            path = future_to_path[future]
-            try:
-                result = future.result()
-                processed_count += 1
-                
-                # Log progress every 100 files
-                if processed_count % 100 == 0:
-                    elapsed = time.time() - process_start
-                    rate = processed_count / elapsed if elapsed > 0 else 0
-                    print(f"Processed {processed_count}/{len(files_to_process)} images... ({rate:.2f} files/sec)")
-                
-                if result:
-                    # If include_all is True, insert all photos regardless of GPS data
-                    # Otherwise, only insert photos with GPS coordinates
-                    if include_all or (result['latitude'] and result['longitude']):
-                        # Create marker data
-                        marker_data = create_marker_data(result)
-                        
-                        # Add to batch for insertion
-                        current_batch.append((result['filename'], result['path'], result['latitude'], 
-                                            result['longitude'], result['datetime'], library_id, marker_data))
-                        
-                        # If batch is full, add to batches list
-                        if len(current_batch) >= batch_size:
-                            photo_batches.append(current_batch)
-                            current_batch = []
-                            
-                            # Insert immediately to avoid large memory usage
-                            if photo_batches:
-                                insert_count += batch_insert_photos(cursor, photo_batches[0])
-                                conn.commit()
-                                photo_batches.pop(0)
-            except Exception as e:
-                print(f"Error processing {path}: {e}")
-    
-    # Add any remaining photos in the current batch
-    if current_batch:
-        photo_batches.append(current_batch)
-    
-    # Insert any remaining batches
-    for batch in photo_batches:
-        insert_count += batch_insert_photos(cursor, batch)
-        conn.commit()
-    
-    # Final commit
-    conn.commit()
-    
-    total_duration = time.time() - start_time
-    print(f"Processing complete. {processed_count} images processed, {insert_count} inserted in {total_duration:.2f} seconds.")
-    
-    conn.close()
-    logger.setLevel(original_level)  # Restore original logging level
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process images and create a photo heatmap database')
     parser.add_argument('--init', action='store_true', help='Initialize the database')
-    parser.add_argument('--process', help='Process images from the specified directory (full scan)')
-    parser.add_argument('--incremental', help='Process only new or modified images (faster)')
+    parser.add_argument('--process', help='Process images from the specified directory')
     parser.add_argument('--export', action='store_true', help='Export database to JSON')
     parser.add_argument('--db', default='photo_library.db', help='Database file path')
     parser.add_argument('--output', default='photo_heatmap_data.json', help='Output JSON file path')
@@ -983,15 +704,8 @@ if __name__ == "__main__":
     parser.add_argument('--force', action='store_true', help='Force import even if photo already exists in database')
     parser.add_argument('--library', default='Default', help='Specify the library name for imported photos')
     parser.add_argument('--description', help='Description for the library (when creating a new library)')
-    parser.add_argument('--verbose', action='store_true', help='Enable verbose logging')
     
     args = parser.parse_args()
-    
-    # Set logging level based on verbosity
-    if args.verbose:
-        logger.setLevel(logging.DEBUG)
-    else:
-        logger.setLevel(logging.INFO)
     
     if args.init:
         from init_db import create_database
@@ -1001,7 +715,6 @@ if __name__ == "__main__":
         clean_database(args.db)
     
     if args.process:
-        print(f"Running full processing on {args.process}")
         process_directory(
             root_dir=args.process,
             db_path=args.db,
@@ -1009,19 +722,6 @@ if __name__ == "__main__":
             include_all=args.include_all,
             skip_existing=not args.force,
             library_name=args.library
-        )
-    
-    if args.incremental:
-        # Use the new incremental processing which is much faster
-        print(f"Running incremental processing on {args.incremental}")
-        log_level = logging.DEBUG if args.verbose else logging.INFO
-        process_directory_incremental(
-            root_dir=args.incremental,
-            db_path=args.db,
-            max_workers=args.workers,
-            include_all=args.include_all,
-            library_name=args.library,
-            log_level=log_level
         )
     
     if args.export:
