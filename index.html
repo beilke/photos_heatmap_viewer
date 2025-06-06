@@ -352,8 +352,8 @@
         .photo-zoom-controls button:hover {
             background-color: rgba(0, 0, 0, 0.8);
         }
-		
-		.photo-viewer-image {
+        
+        .photo-viewer-image {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -546,16 +546,23 @@
                     <div id="progressBar" style="width: 0%; height: 20px; background-color: #4CAF50; transition: width 0.3s;"></div>
                 </div>
             `;
-            
-            // Use the new API endpoint for markers
+              // Use the new API endpoint for markers
             fetch('/api/markers')
                 .then(response => {
                     debugLog(`Response status: ${response.status}`);
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
-                    return response.json();
-                })                .then(data => {
+                    return response.text().then(text => {
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            debugLog(`JSON parse error: ${e.message}`);
+                            debugLog(`JSON content (first 200 chars): ${text.substring(0, 200)}`);
+                            throw new Error(`JSON parse error: ${e.message}`);
+                        }
+                    });
+                }).then(data => {
                     // Handle both new and legacy JSON formats
                     let photos = [];
                     let libraries = [];

@@ -1,0 +1,61 @@
+# Database files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+
+# Environment files
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Project specific files
+photo_heatmap_data.json
+*.log
+/logs/
+
+# Temporary files
+/tmp/
+/temp/
+
+# Large media files (if needed, you can version these separately)
+# Uncomment if you want to ignore image files
+# *.jpg
+# *.jpeg
+# *.png
+# *.gif
+# *.heic
+# *.dng
+# *.raw
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/

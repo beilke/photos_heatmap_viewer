@@ -7,20 +7,80 @@ from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 import hashlib
 import concurrent.futures
+import sys
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Additional GPS data extraction libraries
+# Install with: pip install piexif exifread
+try:
+    import piexif
+    HAS_PIEXIF = True
+except ImportError:
+    logger.debug("piexif not installed, advanced GPS extraction will be limited")
+    HAS_PIEXIF = False
+    
+try:
+    import exifread
+    HAS_EXIFREAD = True
+except ImportError:
+    logger.debug("exifread not installed, fallback GPS extraction will be limited")
+    HAS_EXIFREAD = False
+
+# Try to import the HEIC support library
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+    logger.info("HEIF/HEIC support enabled")
+    HEIC_SUPPORT = True
+except ImportError:
+    logger.warning("pillow-heif not installed. HEIC files will not be processed.")
+    logger.warning("To enable HEIC support, install with: pip install pillow-heif")
+    HEIC_SUPPORT = False
 
 def get_image_hash(image_path):
     """Create a simple hash of the image file to identify duplicates"""
     with open(image_path, 'rb') as f:
         return hashlib.md5(f.read()).hexdigest()
 
+def get_exif_data(img):
+    """Get EXIF data from an image, handling different image types"""
+    if hasattr(img, 'getexif'):  # Newer versions of PIL or regular image formats
+        return img.getexif()
+    elif hasattr(img, '_getexif'):  # Older versions of PIL
+        return img._getexif()
+    else:
+        # HEIC and other formats might not have these methods
+        return None
+
 def extract_datetime(image_path):
     """Extract the datetime from image EXIF data"""
+    # Check if the file is a HEIC file and we don't have HEIC support
+    if image_path.lower().endswith('.heic') and not HEIC_SUPPORT:
+        logger.warning(f"Skipping datetime extraction for {image_path}: HEIC support not enabled")
+        # Fall back to file creation time for HEIC files
+        file_time = os.path.getctime(image_path)
+        return datetime.fromtimestamp(file_time).isoformat()
+        
     try:
         with Image.open(image_path) as img:
-            exif_data = img._getexif()
+            # Get EXIF data using our helper function
+            exif_data = get_exif_data(img)
+            
             if not exif_data:
-                return None
+                # For HEIC files, try to get creation date from file metadata
+                if image_path.lower().endswith('.heic'):
+                    logger.debug(f"No EXIF data found for HEIC file {image_path}, checking file metadata")
                 
+                # No EXIF data found, fall back to file creation time
+                file_time = os.path.getctime(image_path)
+                logger.debug(f"Using file creation time for {image_path}")
+                return datetime.fromtimestamp(file_time).isoformat()
+            
+            # Search for date info in EXIF    
             for tag_id, value in exif_data.items():
                 tag = TAGS.get(tag_id, tag_id)
                 if tag == 'DateTimeOriginal':
@@ -32,44 +92,162 @@ def extract_datetime(image_path):
             file_time = os.path.getctime(image_path)
             return datetime.fromtimestamp(file_time).isoformat()
     except Exception as e:
-        print(f"Error extracting datetime from {image_path}: {e}")
-        return None
+        logger.error(f"Error extracting datetime from {image_path}: {e}")
+        # Fall back to file creation time as a last resort
+        try:
+            file_time = os.path.getctime(image_path)
+            return datetime.fromtimestamp(file_time).isoformat()
+        except:
+            return None
 
 def get_decimal_from_dms(dms, ref):
     """Convert GPS DMS (Degrees, Minutes, Seconds) to decimal format"""
-    degrees = dms[0]
-    minutes = dms[1] / 60.0
-    seconds = dms[2] / 3600.0
-    
-    decimal = degrees + minutes + seconds
-    
-    if ref in ['S', 'W']:
-        decimal = -decimal
-    
-    return decimal
+    try:
+        # Handle different formats of DMS data
+        if isinstance(dms, tuple) or isinstance(dms, list):
+            # Check if we have a tuple of tuples (rational numbers)
+            if len(dms) >= 3 and all(isinstance(x, tuple) for x in dms[:3]):
+                # Handle rational numbers: (numerator, denominator)
+                degrees = float(dms[0][0]) / float(dms[0][1]) if dms[0][1] != 0 else 0
+                minutes = float(dms[1][0]) / float(dms[1][1]) / 60.0 if dms[1][1] != 0 else 0
+                seconds = float(dms[2][0]) / float(dms[2][1]) / 3600.0 if dms[2][1] != 0 else 0
+                decimal = degrees + minutes + seconds
+            # Standard format: [degrees, minutes, seconds]
+            elif len(dms) >= 3:
+                degrees = float(dms[0])
+                minutes = float(dms[1]) / 60.0
+                seconds = float(dms[2]) / 3600.0
+                decimal = degrees + minutes + seconds
+            elif len(dms) == 2:
+                # Some formats only provide degrees and minutes
+                degrees = float(dms[0])
+                minutes = float(dms[1]) / 60.0
+                decimal = degrees + minutes
+            else:
+                # If we only have degrees
+                decimal = float(dms[0])
+        elif isinstance(dms, (int, float)):
+            # Some formats might already provide decimal degrees
+            decimal = float(dms)
+        else:
+            # Unsupported format
+            logger.error(f"Unsupported GPS data format: {type(dms)} - {dms}")
+            return None
+        
+        # Apply the reference direction (N/S/E/W)
+        if ref and (ref == 'S' or ref == 'W' or ref == b'S' or ref == b'W'):
+            decimal = -decimal
+        
+        return decimal
+    except Exception as e:
+        logger.error(f"Error converting GPS coordinates: {e}, data: {dms}, ref: {ref}")
+        return None
 
 def extract_gps(image_path):
-    """Extract GPS coordinates from image EXIF data"""
+    """Extract GPS coordinates from an image's EXIF data"""
+    # Check if the file is a HEIC file and we don't have HEIC support
+    if image_path.lower().endswith('.heic') and not HEIC_SUPPORT:
+        logger.warning(f"Skipping GPS extraction for {image_path}: HEIC support not enabled")
+        return None, None
+        
     try:
         with Image.open(image_path) as img:
-            exif_data = img._getexif()
+            # Get EXIF data using our helper function
+            exif_data = get_exif_data(img)
+            
             if not exif_data:
+                logger.debug(f"No EXIF data found in {image_path}")
                 return None, None
                 
             gps_info = {}
             
+            # Special handling for HEIC files
+            is_heic = image_path.lower().endswith('.heic')
+            
             for tag_id, value in exif_data.items():
                 tag = TAGS.get(tag_id, tag_id)
                 if tag == 'GPSInfo':
-                    for gps_tag in value:
-                        gps_info[GPSTAGS.get(gps_tag, gps_tag)] = value[gps_tag]
+                    logger.debug(f"Found GPSInfo tag: {tag_id}")
+                    logger.debug(f"GPS value type: {type(value)}")
+                    
+                    # Handle different GPS data formats
+                    try:
+                        if isinstance(value, dict):
+                            # Some implementations might return a dictionary directly
+                            logger.debug("Dictionary format")
+                            gps_info = value
+                        elif isinstance(value, int):
+                            # Sometimes GPSInfo is stored as an integer reference
+                            # This is a known issue with some Samsung phones like Galaxy S24+
+                            logger.debug(f"Integer format: {value} - using direct GPS extraction method")
+                            # We need to try a different approach for these files                            # Try to get GPS data directly from EXIF
+                            if HAS_PIEXIF:
+                                try:
+                                    with open(image_path, 'rb') as f:
+                                        exif_dict = piexif.load(f.read())
+                                        if 'GPS' in exif_dict and exif_dict['GPS']:
+                                            # Map the GPS data
+                                            for gps_tag, val in exif_dict['GPS'].items():
+                                                gps_info[GPSTAGS.get(gps_tag, gps_tag)] = val
+                                            logger.debug(f"Direct GPS extraction found: {len(gps_info)} items")
+                                except Exception as e:
+                                    logger.debug(f"Direct GPS extraction failed: {e}")
+                        else:
+                            # Standard format where value is a dictionary-like object
+                            logger.debug("Standard format")
+                            for gps_tag in value:
+                                gps_info[GPSTAGS.get(gps_tag, gps_tag)] = value[gps_tag]
+                    except TypeError as e:
+                        # If we get a TypeError (like 'int' object is not iterable)
+                        logger.debug(f"Error inspecting GPS data: {e}")
+                        if is_heic:
+                            # For HEIC files, try alternative extraction method
+                            logger.debug("Using alternative method for HEIC GPS extraction")
+            
+            logger.debug(f"Extracted GPS info: {gps_info}")
             
             if 'GPSLatitude' in gps_info and 'GPSLongitude' in gps_info:
-                lat = get_decimal_from_dms(gps_info['GPSLatitude'], gps_info['GPSLatitudeRef'])
-                lon = get_decimal_from_dms(gps_info['GPSLongitude'], gps_info['GPSLongitudeRef'])
-                return lat, lon
+                try:
+                    lat = get_decimal_from_dms(gps_info['GPSLatitude'], gps_info['GPSLatitudeRef'])
+                    lon = get_decimal_from_dms(gps_info['GPSLongitude'], gps_info['GPSLongitudeRef'])
+                    logger.debug(f"Converted GPS coordinates: {lat}, {lon}")
+                    return lat, lon
+                except Exception as e:
+                    logger.error(f"Error converting GPS coordinates: {e}")
+                    return None, None
+            else:                # Try one more fallback method for Samsung phones specifically
+                if HAS_EXIFREAD:
+                    try:
+                        with open(image_path, 'rb') as f:
+                            tags = exifread.process_file(f)
+                            if 'GPS GPSLatitude' in tags and 'GPS GPSLongitude' in tags:
+                                lat_ref = str(tags.get('GPS GPSLatitudeRef', 'N'))
+                                lon_ref = str(tags.get('GPS GPSLongitudeRef', 'E'))
+                                
+                                lat = tags['GPS GPSLatitude'].values
+                                lon = tags['GPS GPSLongitude'].values
+                                
+                                # Convert to decimal degrees
+                                lat_val = float(lat[0].num) / float(lat[0].den) + \
+                                      float(lat[1].num) / float(lat[1].den) / 60 + \
+                                      float(lat[2].num) / float(lat[2].den) / 3600
+                                      
+                                lon_val = float(lon[0].num) / float(lon[0].den) + \
+                                      float(lon[1].num) / float(lon[1].den) / 60 + \
+                                      float(lon[2].num) / float(lon[2].den) / 3600
+                                      
+                                if lat_ref == 'S':
+                                    lat_val = -lat_val
+                                if lon_ref == 'W':
+                                    lon_val = -lon_val
+                                    
+                                logger.debug(f"Extracted GPS via exifread: {lat_val}, {lon_val}")
+                                return lat_val, lon_val
+                    except Exception as e:
+                        logger.debug(f"Fallback GPS extraction failed: {e}")
+                    pass
     except Exception as e:
-        print(f"Error extracting GPS data from {image_path}: {e}")
+        logger.error(f"Error extracting GPS data from {image_path}: {e}")
     
     return None, None
 
@@ -77,6 +255,71 @@ def process_image(image_path):
     """Process a single image and return its metadata"""
     try:
         filename = os.path.basename(image_path)
+        # Skip unsupported files if HEIC support is not available
+        if filename.lower().endswith('.heic') and not HEIC_SUPPORT:
+            logger.info(f"Skipping HEIC file {filename} - install pillow-heif for HEIC support")
+            # Return basic information without GPS or datetime
+            return {
+                'filename': filename,
+                'path': image_path,
+                'latitude': None,
+                'longitude': None,
+                'datetime': None,
+                'hash': None
+            }
+        
+        # Handle DNG files which Pillow may not be able to open directly
+        if filename.lower().endswith('.dng'):
+            # Try to get basic info without opening with Pillow
+            hash_value = get_image_hash(image_path)
+            try:
+                file_time = os.path.getctime(image_path)
+                dt = datetime.fromtimestamp(file_time).isoformat()
+            except:
+                dt = None
+            
+            # For DNG files, try using exifread for GPS data
+            lat, lon = None, None
+            if HAS_EXIFREAD:
+                try:
+                    with open(image_path, 'rb') as f:
+                        tags = exifread.process_file(f)
+                        if 'GPS GPSLatitude' in tags and 'GPS GPSLongitude' in tags:
+                            lat_ref = str(tags.get('GPS GPSLatitudeRef', 'N'))
+                            lon_ref = str(tags.get('GPS GPSLongitudeRef', 'E'))
+                            
+                            lat = tags['GPS GPSLatitude'].values
+                            lon = tags['GPS GPSLongitude'].values
+                            
+                            # Convert to decimal degrees
+                            lat_val = float(lat[0].num) / float(lat[0].den) + \
+                                  float(lat[1].num) / float(lat[1].den) / 60 + \
+                                  float(lat[2].num) / float(lat[2].den) / 3600
+                                  
+                            lon_val = float(lon[0].num) / float(lon[0].den) + \
+                                  float(lon[1].num) / float(lon[1].den) / 60 + \
+                                  float(lon[2].num) / float(lon[2].den) / 3600
+                                  
+                            if lat_ref == 'S':
+                                lat_val = -lat_val
+                            if lon_ref == 'W':
+                                lon_val = -lon_val
+                                
+                            logger.debug(f"Extracted DNG GPS via exifread: {lat_val}, {lon_val}")
+                            lat, lon = lat_val, lon_val
+                except Exception as e:
+                    logger.debug(f"DNG GPS extraction failed: {e}")
+            
+            return {
+                'filename': filename,
+                'path': image_path,
+                'latitude': lat,
+                'longitude': lon,
+                'datetime': dt,
+                'hash': hash_value
+            }
+            
+        # Continue processing for supported files
         lat, lon = extract_gps(image_path)
         dt = extract_datetime(image_path)
         img_hash = get_image_hash(image_path)
@@ -90,7 +333,7 @@ def process_image(image_path):
             'hash': img_hash
         }
     except Exception as e:
-        print(f"Error processing {image_path}: {e}")
+        logger.error(f"Error processing {image_path}: {e}")
         return None
 
 def get_or_create_library(cursor, library_name, source_dirs=None, description=None):
@@ -342,16 +585,15 @@ def export_to_json(db_path='photo_library.db', output_path='photo_heatmap_data.j
     # Ensure the directory exists
     output_dir = os.path.dirname(output_path)
     if output_dir and not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    
+        os.makedirs(output_dir)    
     # Create a temporary file first, then move it to the final destination
     # This helps prevent truncated files if the process is interrupted
     temp_output_path = f"{output_path}.tmp"
     
     try:
-        with open(temp_output_path, 'w') as f:
-            # Use a higher indent value for better readability if needed
-            json.dump(result, f, indent=None)
+        with open(temp_output_path, 'w', encoding='utf-8') as f:
+            # Use a more compact format to avoid formatting issues
+            json.dump(result, f, ensure_ascii=False)
         
         # Check if the JSON file was written successfully
         if os.path.exists(temp_output_path):

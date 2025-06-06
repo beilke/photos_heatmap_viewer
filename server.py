@@ -12,6 +12,30 @@ import io
 import logging
 import json
 import datetime
+import mimetypes
+
+# Add MIME type for HEIC files
+mimetypes.add_type('image/heic', '.heic')
+mimetypes.add_type('image/heic', '.HEIC')
+
+# Try to import HEIC support
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+    HEIC_SUPPORT = True
+except ImportError:
+    HEIC_SUPPORT = False
+    
+# Helper function for EXIF data
+def get_exif_data(img):
+    """Get EXIF data from an image, handling different image types"""
+    if hasattr(img, 'getexif'):  # Newer versions of PIL or regular image formats
+        return img.getexif()
+    elif hasattr(img, '_getexif'):  # Older versions of PIL
+        return img._getexif()
+    else:
+        # HEIC and other formats might not have these methods
+        return None
 
 # Configure logging
 logging.basicConfig(
@@ -113,12 +137,12 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         # Check if this is a full photo request
         elif path.startswith('/photos/'):
             logger.info(f"Full photo request received: {path}")
-            self.serve_original_photo(path[8:])  # Remove '/photos/' prefix
-        # Add API endpoint for photo markers
+            self.serve_original_photo(path[8:])  # Remove '/photos/' prefix        # Add API endpoint for photo markers
         elif path.startswith('/api/markers'):
             logger.info(f"API request received: {path}")
             self.serve_photo_markers()
-        # Add special handling for JSON data requests
+            return  # Important: return after serving API response
+        # Add special handling for JSON data requests        
         elif path.endswith('.json'):
             logger.info(f"JSON request received: {path}")
             self.serve_json_with_logging()
@@ -126,7 +150,7 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             # Handle as a normal file request
             logger.debug(f"Regular file request: {path}")
             super().do_GET()
-
+            
     def serve_original_photo(self, filename):
         """Serve the original photo file without any resizing"""
         # URL decode the filename
@@ -165,13 +189,44 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_error(404, f"Photo file not found at {normalized_path}")
                 return
 
-            # Open and serve the original file
+            # Check if this is a HEIC file
+            is_heic = filename.lower().endswith('.heic')
+            
+            if is_heic and HEIC_SUPPORT:
+                # For HEIC files with support, convert to JPEG on the fly
+                try:
+                    logger.debug(f"Converting HEIC file to JPEG: {normalized_path}")
+                    with Image.open(normalized_path) as img:
+                        buffer = io.BytesIO()
+                        # Convert to JPEG for browser compatibility
+                        img.save(buffer, format='JPEG', quality=95)
+                        buffer.seek(0)
+                        
+                        content = buffer.getvalue()
+                        content_length = len(content)
+                        
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'image/jpeg')
+                        self.send_header('Content-Length', str(content_length))
+                        self.end_headers()
+                        
+                        # Send the converted image
+                        self.wfile.write(content)
+                        return
+                except Exception as e:
+                    logger.error(f"Error converting HEIC file: {e}")
+                    # Fall back to serving the original file
+            
+            # For non-HEIC files or if conversion failed, serve the original file
             with open(normalized_path, 'rb') as f:
                 fs = os.fstat(f.fileno())
                 content_length = fs[6]
 
                 self.send_response(200)
-                self.send_header('Content-Type', 'image/jpeg')  # Could be made more dynamic
+                
+                # Determine content type based on file extension
+                content_type = mimetypes.guess_type(normalized_path)[0] or 'application/octet-stream'
+                self.send_header('Content-Type', content_type)
                 self.send_header('Content-Length', str(content_length))
                 self.end_headers()
                 
@@ -229,21 +284,35 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             if not os.path.exists(normalized_path):
                 logger.error(f"Photo file not found at {normalized_path}")
                 self.send_error(404, f"Photo file not found at {normalized_path}")
-                return
-                
-            # Generate thumbnail
+                return            # Generate thumbnail
             logger.debug(f"Generating thumbnail for: {normalized_path}")
-            with Image.open(normalized_path) as img:
-                # Resize to a thumbnail
-                img.thumbnail((200, 200))
-                
-                # Prepare to send the image
-                buffer = io.BytesIO()
-                img_format = img.format if img.format else 'JPEG'
-                img.save(buffer, format=img_format)
-                buffer.seek(0)
-                
-                # Send headers                
+            try:
+                with Image.open(normalized_path) as img:
+                    # Resize to a thumbnail
+                    img.thumbnail((200, 200))
+                    
+                    # Prepare to send the image
+                    buffer = io.BytesIO()
+                    
+                    # For HEIC files, always convert to JPEG for better browser compatibility
+                    if filename.lower().endswith('.heic'):
+                        img_format = 'JPEG'
+                    else:
+                        img_format = img.format if img.format else 'JPEG'
+                    
+                    # Save with appropriate format and quality
+                    if img_format == 'JPEG':
+                        img.save(buffer, format=img_format, quality=85)
+                    else:
+                        img.save(buffer, format=img_format)
+                        
+                    buffer.seek(0)
+                    
+                    # Send headers
+            except Exception as e:
+                logger.error(f"Error generating thumbnail for {filename}: {e}")
+                self.send_error(500, f"Error generating thumbnail: {str(e)}")
+                return
                 self.send_response(200)
                 self.send_header('Content-type', f'image/{img_format.lower()}')
                 self.send_header('Content-Length', str(buffer.getbuffer().nbytes))
@@ -317,12 +386,11 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            
-            # Create final data structure with photos AND libraries
+              # Create final data structure with photos AND libraries
             result = json.dumps({
                 "photos": photos,
                 "libraries": libraries
-            })
+            }, ensure_ascii=False)
             self.wfile.write(result.encode('utf-8'))
             
             logger.info(f"Successfully served {len(photos)} photo markers from {len(libraries)} libraries")
@@ -345,6 +413,12 @@ def start_server(port=8000, directory='.', debug_mode=False):
     if debug_mode:
         logger.setLevel(logging.DEBUG)
         logger.info("Debug mode enabled - verbose logging activated")
+    
+    # Log HEIC support status
+    if HEIC_SUPPORT:
+        logger.info("HEIC file support is enabled")
+    else:
+        logger.warning("HEIC file support is not available. Install pillow-heif package for HEIC support.")
     
     # Change to the specified directory
     os.chdir(directory)
