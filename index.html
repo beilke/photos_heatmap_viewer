@@ -486,19 +486,12 @@
 
         // Initialize map
         debugLog('Initializing map');
-        const map = L.map('map', {
-            center: [0, 0],
-            zoom: 2,
-            minZoom: 2,  // Prevent zooming out too far
-            maxBounds: [[-90, -180], [90, 180]],  // Restrict panning to these bounds
-            maxBoundsViscosity: 1.0  // Make the bounds completely solid
-        });
+        const map = L.map('map').setView([0, 0], 2);
         
         // Add tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19,
-            noWrap: true  // Prevents the tiles from wrapping around horizontally
+            maxZoom: 19
         }).addTo(map);
         
         // Global variables
