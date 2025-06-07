@@ -1,3 +1,58 @@
+# Fixed version of the main section with correct indentation
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Process images and create a photo heatmap database')
+    parser.add_argument('--init', action='store_true', help='Initialize the database')
+    parser.add_argument('--process', help='Process images from the specified directory')
+    parser.add_argument('--export', action='store_true', help='Export database to JSON')
+    parser.add_argument('--db', default='photo_library.db', help='Database file path')
+    parser.add_argument('--output', default='photo_heatmap_data.json', help='Output JSON file path')
+    parser.add_argument('--workers', type=int, default=4, help='Number of worker threads')
+    parser.add_argument('--include-all', action='store_true', help='Include photos without GPS data')
+    parser.add_argument('--export-all', action='store_true', help='Export all photos to JSON, not just those with GPS data')
+    parser.add_argument('--clean', action='store_true', help='Clean database before processing')
+    parser.add_argument('--force', action='store_true', help='Force import even if photo already exists in database')
+    parser.add_argument('--incremental', action='store_true', help='Fast incremental processing - only process new files by path comparison')
+    parser.add_argument('--no-cache', action='store_true', help='Disable directory content cache for incremental processing')
+    parser.add_argument('--no-resume', action='store_true', help='Disable resume capability for interrupted operations')
+    parser.add_argument('--no-optimize-sqlite', action='store_true', help='Disable SQLite optimizations (WAL mode, etc.)')
+    parser.add_argument('--serial-scan', action='store_true', help='Disable parallel directory scanning, use serial scanning instead')
+    parser.add_argument('--library', default='Default', help='Specify the library name for imported photos')
+    parser.add_argument('--description', help='Description for the library (when creating a new library)')
+    
+    args = parser.parse_args()
+    
+    if args.init:
+        from init_db import create_database
+        create_database(args.db)
+    
+    if args.clean:
+        clean_database(args.db)
+    
+    if args.process:
+        if args.incremental:
+            # Use optimized incremental processing with our added features
+            process_directory_incremental(
+                root_dir=args.process,
+                db_path=args.db,
+                max_workers=args.workers,
+                include_all=args.include_all,
+                library_name=args.library,
+                use_cache=not args.no_cache,
+                resume=not args.no_resume
+            )
+        else:
+            # Use standard processing
+            process_directory(
+                root_dir=args.process,
+                db_path=args.db,
+                max_workers=args.workers,
+                include_all=args.include_all,
+                skip_existing=not args.force,
+                library_name=args.library
+            )
+    
+    if args.export:
+        export_to_json(args.db, args.output, include_non_geotagged=args.export_all)
 import sqlite3
 import os
 import json
@@ -50,28 +105,8 @@ except ImportError:
 
 def get_image_hash(image_path):
     """Create a simple hash of the image file to identify duplicates"""
-    try:
-        # Import our optimized performance functions if available
-        try:
-            from optimize_performance import fast_file_hash_cached
-            return fast_file_hash_cached(image_path)
-        except ImportError:
-            # Fall back to the original method
-            with open(image_path, 'rb') as f:
-                return hashlib.md5(f.read()).hexdigest()
-    except Exception as e:
-        logger.error(f"Error hashing file {image_path}: {e}")
-        return None
-
-def fast_hash(image_path):
-    """Fast file hash implementation that tries to use the optimized version if available"""
-    try:
-        # Try to use the optimized version from performance_helpers
-        from performance_helpers import fast_file_hash_cached
-        return fast_file_hash_cached(image_path)
-    except ImportError:
-        # Fall back to standard implementation if module not available
-        return get_image_hash(image_path)
+    with open(image_path, 'rb') as f:
+        return hashlib.md5(f.read()).hexdigest()
 
 def get_exif_data(img):
     """Get EXIF data from an image, handling different image types"""
@@ -281,35 +316,10 @@ def extract_gps(image_path):
 def process_image(image_path):
     """Process a single image and return its metadata"""
     try:
-        # Use faster path operations
         filename = os.path.basename(image_path)
-        
-        # Fast-fail for non-existent files (prevents unnecessary work)
-        if not os.path.exists(image_path):
-            logger.debug(f"Skipping non-existent file: {image_path}")
-            return None
-            
-        # Set a file size limit to prevent memory issues with huge files (>100MB)
-        try:
-            file_size = os.path.getsize(image_path)
-            file_size_mb = file_size / (1024 * 1024)
-            if file_size_mb > 100:
-                logger.warning(f"Skipping oversized file: {filename} ({file_size_mb:.1f} MB)")
-                # Return basic information without GPS or datetime for oversized files
-                return {
-                    'filename': filename,
-                    'path': image_path,
-                    'latitude': None,
-                    'longitude': None,
-                    'datetime': None,
-                    'hash': get_image_hash(image_path)  # Use optimized hash function
-                }
-        except OSError:
-            pass  # Continue if we can't check file size
-            
         # Skip unsupported files if HEIC support is not available
         if filename.lower().endswith('.heic') and not HEIC_SUPPORT:
-            logger.debug(f"Skipping HEIC file {filename} - install pillow-heif for HEIC support")
+            logger.info(f"Skipping HEIC file {filename} - install pillow-heif for HEIC support")
             # Return basic information without GPS or datetime
             return {
                 'filename': filename,
@@ -317,7 +327,7 @@ def process_image(image_path):
                 'latitude': None,
                 'longitude': None,
                 'datetime': None,
-                'hash': get_image_hash(image_path)  # Use optimized hash function
+                'hash': None
             }
         
         # Handle DNG files which Pillow may not be able to open directly
@@ -541,17 +551,12 @@ def process_directory(root_dir, db_path='photo_library.db', max_workers=4, inclu
     processed_count = 0
     inserted_count = 0
     batch_size = 100  # Process in batches of 100 for better commits
-      # Process in optimally sized batches for better memory and database performance
-    # Larger batch size for better SQLite performance with bulk inserts
-    batch_size = 500  # Increased batch size for faster processing
     
-    # Start timing for performance metrics
-    batch_start_time = time.time()
+    # Process in smaller batches to avoid memory issues with large libraries
     for i in range(0, len(to_process), batch_size):
         batch = to_process[i:i+batch_size]
         print(f"Processing batch {i//batch_size + 1}/{(len(to_process) + batch_size - 1)//batch_size} ({len(batch)} images)...")
         
-        # Use thread pool for image processing
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_path = {executor.submit(process_image, path): path for path in batch}
             batch_results = []
@@ -562,11 +567,9 @@ def process_directory(root_dir, db_path='photo_library.db', max_workers=4, inclu
                     result = future.result()
                     processed_count += 1
                     
-                    # Log progress less frequently to reduce overhead
-                    if processed_count % 50 == 0 or processed_count == len(to_process):
-                        elapsed = time.time() - batch_start_time
-                        rate = processed_count / elapsed if elapsed > 0 else 0
-                        print(f"Processed {processed_count}/{len(to_process)} images... ({rate:.1f} images/sec)")
+                    # Log progress
+                    if processed_count % 10 == 0:
+                        print(f"Processed {processed_count}/{len(to_process)} images...")
                     
                     if result:
                         # If include_all is True, keep all photos regardless of GPS data
@@ -578,44 +581,19 @@ def process_directory(root_dir, db_path='photo_library.db', max_workers=4, inclu
                             batch_results.append(result)
                 except Exception as e:
                     print(f"Error with {path}: {e}")
-          # Batch insert the results with optimized SQLite handling
+        
+        # Batch insert the results
         if batch_results:
-            # Use more efficient batch insert with executemany
-            try:
-                cursor.executemany(
-                    "INSERT INTO photos (filename, path, latitude, longitude, datetime, hash, library_id, marker_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    [(photo['filename'], photo['path'], photo['latitude'], photo['longitude'], 
-                      photo['datetime'], photo['hash'], photo['library_id'], photo['marker_data']) for photo in batch_results]
-                )
-                inserted_this_batch = len(batch_results)
-                inserted_count += inserted_this_batch
-                conn.commit()
-                # Calculate and display insertion rate
-                elapsed = time.time() - batch_start_time
-                rate = inserted_count / elapsed if elapsed > 0 else 0
-                print(f"Inserted {inserted_count} photos so far ({rate:.1f} inserts/sec)")
-            except Exception as e:
-                logger.error(f"Error inserting batch: {e}")
-                # Try inserting one by one
-                for photo in batch_results:
-                    try:
-                        cursor.execute(
-                            "INSERT INTO photos (filename, path, latitude, longitude, datetime, hash, library_id, marker_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                            (photo['filename'], photo['path'], photo['latitude'], photo['longitude'], 
-                             photo['datetime'], photo['hash'], photo['library_id'], photo['marker_data'])
-                        )
-                        inserted_count += 1
-                    except sqlite3.IntegrityError:
-                        # Skip duplicates
-                        pass
-                    except Exception as e:
-                        logger.error(f"Error inserting photo {photo['path']}: {e}")
-                conn.commit()
+            inserted_count += batch_insert_photos(cursor, batch_results)
+            conn.commit()
+            print(f"Inserted {inserted_count} photos so far")
             
-        # Final commit
-        conn.commit()
-        conn.close()
-        print(f"Processing complete. {processed_count} images processed, {inserted_count} images inserted into database.")
+    print(f"Processing complete. {processed_count} images processed, {inserted_count} images inserted into database.")
+    
+    # Final commit
+    conn.commit()
+    conn.close()
+    print(f"Processing complete. {processed_count} images processed.")
 
 def export_to_json(db_path='photo_library.db', output_path='photo_heatmap_data.json', include_non_geotagged=False):
     """Export the database to JSON format for the heatmap visualization"""
@@ -791,50 +769,22 @@ def clean_database(db_path='photo_library.db'):
 def optimize_sqlite_connection(conn):
     """Apply performance optimizations to the SQLite connection"""
     try:
-        # Try to use the optimized version from the performance module
-        try:
-            from optimize_performance import optimize_sqlite_connection as optimized_sqlite
-            
-            # Get database file size if available
-            db_size_mb = None
-            if hasattr(conn, 'execute'):
-                try:
-                    db_path = conn.execute("PRAGMA database_list").fetchone()[2]
-                    if db_path and os.path.exists(db_path):
-                        db_size_mb = os.path.getsize(db_path) / (1024 * 1024)
-                except:
-                    pass
-                    
-            settings = optimized_sqlite(conn, file_size_mb=db_size_mb)
-            logger.info(f"Applied advanced SQLite optimizations: {settings}")
-            return settings
-            
-        except ImportError:
-            # Fall back to the original optimization code
-            # Enable WAL (Write-Ahead Logging) mode - greatly improves concurrent write performance
-            conn.execute("PRAGMA journal_mode=WAL")
-            
-            # Set cache size to 20000 pages (about 80MB with default page size) - increased for better performance
-            conn.execute("PRAGMA cache_size=20000")
-            
-            # Configure other performance settings
-            conn.execute("PRAGMA synchronous=NORMAL")  # Less safe but faster than FULL
-            conn.execute("PRAGMA temp_store=MEMORY")   # Store temp tables in memory
-            conn.execute("PRAGMA mmap_size=536870912") # Use memory mapping (512MB) - increased
-            
-            # Additional optimizations
-            conn.execute("PRAGMA page_size=4096")      # Larger page size for better performance
-            conn.execute("PRAGMA count_changes=OFF")   # Disable count_changes for better performance
-            conn.execute("PRAGMA case_sensitive_like=OFF")
-            
-            # For heavy inserts
-            conn.isolation_level = 'DEFERRED'          # Better transaction handling
-            
-            logger.info("Enhanced SQLite optimizations applied")
+        # Enable WAL (Write-Ahead Logging) mode - greatly improves concurrent write performance
+        conn.execute("PRAGMA journal_mode=WAL")
+        
+        # Set cache size to 2000 pages (about 8MB with default page size)
+        conn.execute("PRAGMA cache_size=2000")
+        
+        # Configure other performance settings
+        conn.execute("PRAGMA synchronous=NORMAL")  # Less safe but faster than FULL
+        conn.execute("PRAGMA temp_store=MEMORY")   # Store temp tables in memory
+        conn.execute("PRAGMA mmap_size=268435456") # Use memory mapping (256MB)
+        
+        logger.info("SQLite optimizations applied")
         
         # Return current settings for debugging
         settings = {}
-        for pragma in ["journal_mode", "cache_size", "synchronous", "temp_store", "mmap_size", "page_size"]:
+        for pragma in ["journal_mode", "cache_size", "synchronous", "temp_store", "mmap_size"]:
             settings[pragma] = conn.execute(f"PRAGMA {pragma}").fetchone()[0]
         return settings
     except Exception as e:
@@ -878,53 +828,80 @@ def save_directory_cache(cache_path, cache_data):
         os.makedirs(os.path.dirname(cache_path), exist_ok=True)
         with open(cache_path, 'wb') as f:
             pickle.dump(cache_data, f)
-        logger.info(f"Directory cache saved to {os.path.dirname(cache_path)}")
+        logger.info(f"Directory cache saved to {cache_path}")
     except Exception as e:
         logger.warning(f"Failed to save directory cache: {e}")
 
-# We'll use the scan_functions.py module to handle parallel scanning
-try:
-    from scan_functions import scan_directory_parallel as external_scan
-    from scan_functions import _scan_single_directory
-    HAS_PARALLEL_SCAN = True
-    logger.info("Using external scan_functions module for parallel scanning")
-except ImportError:
-    HAS_PARALLEL_SCAN = False
-    logger.warning("scan_functions.py module not found, parallel scan functionality disabled")
+# Define this as a top-level function so it can be pickled for multiprocessing
+def _scan_single_directory(args):
+    """Scan a single directory for image files
+    
+    Args:
+        args: Tuple of (dir_path, image_extensions, existing_paths_list)
+        
+    Returns:
+        Tuple of (files_found, total_files_in_directory)
+    """
+    dir_path, image_extensions, existing_paths_list = args
+    # Convert the list back to a set for faster lookups
+    existing_paths = set(existing_paths_list)
+    files_found = []
+    total = 0
+    try:
+        for filename in os.listdir(dir_path):
+            full_path = os.path.join(dir_path, filename)
+            if os.path.isfile(full_path) and filename.lower().endswith(image_extensions):
+                total += 1
+                if full_path not in existing_paths:
+                    files_found.append(full_path)
+    except (PermissionError, FileNotFoundError) as e:
+        # Handle permission errors or directories that disappeared
+        logger.warning(f"Error scanning directory {dir_path}: {e}")
+    
+    return files_found, total
 
 def scan_directory_parallel(root_dir, image_extensions, existing_paths=None):
     """Scan a directory for image files in parallel using multiprocessing"""
-    # Try to import scan_functions.py which has properly defined multiprocessing-safe functions
+    if existing_paths is None:
+        existing_paths = set()
+      # Get all directories under the root
+    all_dirs = []
+    # Convert set to list for pickling
+    existing_paths_list = list(existing_paths)
+    for dirpath, _, _ in os.walk(root_dir):
+        all_dirs.append((dirpath, image_extensions, existing_paths_list))
+    
+    new_files = []
+    total_files = 0
+    
+    # Use multiprocessing to scan directories in parallel
+    max_processes = min(multiprocessing.cpu_count(), 8)  # Limit to 8 processes max
+    logger.info(f"Scanning {len(all_dirs)} directories with {max_processes} processes")
+    
     try:
-        from scan_functions import scan_directory_parallel as external_scan
-        logger.info("Using external scan_functions module for parallel scanning")
-        return external_scan(root_dir, image_extensions, existing_paths)
-    except ImportError:
-        logger.warning("scan_functions.py module not found, falling back to serial scanning")
+        # Use multiprocessing with a reasonable chunk size for better performance
+        chunk_size = max(1, len(all_dirs) // (max_processes * 4))
         
-        # Fall back to serial scanning if module not found
-        if existing_paths is None:
-            existing_paths = set()
+        with multiprocessing.Pool(processes=max_processes) as pool:
+            results = pool.map(_scan_single_directory, all_dirs, chunksize=chunk_size)
             
+        # Collect results
+        for files, total in results:
+            new_files.extend(files)
+            total_files += total
+            
+    except Exception as e:
+        # Fall back to serial processing if multiprocessing fails
+        logger.error(f"Parallel scanning failed: {e}. Falling back to serial processing.")
         new_files = []
         total_files = 0
         
-        # Traditional serial scanning method
-        for dirpath, _, filenames in os.walk(root_dir):
-            rel_path = os.path.relpath(dirpath, root_dir)
-            if rel_path != '.' and total_files % 1000 == 0:
-                logger.info(f"Scanning: {rel_path}")
-                
-            for filename in filenames:
-                if filename.lower().endswith(image_extensions):
-                    total_files += 1
-                    full_path = os.path.join(dirpath, filename)
-                    
-                    # Skip if file already exists in database (by path)
-                    if full_path not in existing_paths:
-                        new_files.append(full_path)
-        
-        return new_files, total_files
+        for dir_path, extensions, paths in all_dirs:
+            files, total = _scan_single_directory((dir_path, extensions, paths))
+            new_files.extend(files)
+            total_files += total
+    
+    return new_files, total_files
 
 def create_checkpoint(checkpoint_file, processed_files, current_batch=None):
     """Save checkpoint information to resume processing if interrupted"""
@@ -972,17 +949,14 @@ def batch_insert_photos(cursor, batch):
     
     return inserted
 
-def process_directory_incremental(root_dir, db_path='photo_library.db', max_workers=None, include_all=False, 
+def process_directory_incremental(root_dir, db_path='photo_library.db', max_workers=4, include_all=False, 
                           library_name="Default", use_cache=True, resume=True, use_parallel_scan=True):
     """Fast incremental processing with optimizations:
     - Uses multiprocessing for parallel directory scanning
-    - Uses thread pool for parallel image processing
     - Optional directory cache for avoiding redundant scans
     - SQLite optimizations (WAL mode, memory settings)
     - Resume capability for interrupted operations
     - Directory change detection to skip unchanged directories
-    - Optimized batch sizes for better performance
-    - Fast file hashing without loading entire files into memory
     """
     start_time = time.time()
     
@@ -993,32 +967,6 @@ def process_directory_incremental(root_dir, db_path='photo_library.db', max_work
     
     logger.info(f"Starting optimized incremental scan of {root_dir}")
     
-    # Try to use optimized performance settings
-    try:
-        from optimize_performance import get_optimal_worker_count, optimize_batch_processing, PerformanceMonitor
-        
-        # Auto-determine optimal number of worker threads if not specified
-        if max_workers is None:
-            max_workers = get_optimal_worker_count(task_type='io')
-            logger.info(f"Auto-configured worker count: {max_workers}")
-        
-        # Get optimal batch sizes based on available memory
-        processing_batch_size, db_batch_size = optimize_batch_processing(batch_size=100)
-        
-        # Create performance monitor
-        performance_monitor = PerformanceMonitor("Image processing")
-        
-    except ImportError:
-        # Fall back to default values
-        if max_workers is None:
-            max_workers = min(multiprocessing.cpu_count(), 8)
-        processing_batch_size = 100
-        db_batch_size = 100
-        performance_monitor = None
-        
-    logger.info(f"Using worker count: {max_workers}, processing batch size: {processing_batch_size}, "
-               f"DB batch size: {db_batch_size}")
-        
     # Prepare cache and checkpoint files
     workspace_dir = os.path.join(os.path.dirname(db_path), '.workspace')
     os.makedirs(workspace_dir, exist_ok=True)
@@ -1031,7 +979,7 @@ def process_directory_incremental(root_dir, db_path='photo_library.db', max_work
     
     # Apply SQLite optimizations
     optimization_settings = optimize_sqlite_connection(conn)
-    logger.info(f"SQLite optimization settings applied")
+    logger.info(f"SQLite optimization settings: {optimization_settings}")
     
     cursor = conn.cursor()
     
@@ -1085,18 +1033,8 @@ def process_directory_incremental(root_dir, db_path='photo_library.db', max_work
     
     # Create index of paths that already exist in the database
     logger.info("Building database path index for incremental comparison...")
-    
-    # Use a more efficient approach with a generator to avoid loading all paths into memory at once
     cursor.execute("SELECT path FROM photos")
-    existing_paths = set()
-    
-    # Read in chunks to avoid memory pressure with very large databases
-    while True:
-        rows = cursor.fetchmany(10000)
-        if not rows:
-            break
-        existing_paths.update(row[0] for row in rows)
-    
+    existing_paths = {row[0] for row in cursor.fetchall()}
     logger.info(f"Found {len(existing_paths)} files already in database")
     
     # Check if we have a directory cache from previous runs
@@ -1141,8 +1079,7 @@ def process_directory_incremental(root_dir, db_path='photo_library.db', max_work
                     if os.path.isfile(full_path):
                         total_files += 1
                         if full_path not in existing_paths and full_path not in processed_files:
-                            new_files.append(full_path)
-    else:
+                            new_files.append(full_path)    else:
         # Without cache or directory change detection, decide on scanning method
         if use_parallel_scan:
             logger.info("Using parallel directory scanning...")
@@ -1182,39 +1119,25 @@ def process_directory_incremental(root_dir, db_path='photo_library.db', max_work
         logger.info(f"Incremental scan completed in {end_time - start_time:.2f} seconds")
         return
     
-    # Start performance monitoring if available
-    if performance_monitor:
-        performance_monitor.start()
-    
-    # Process new files in parallel with optimized batch size
+    # Process new files in parallel
+    batch_size = 100  # Process in batches for better performance
     processed_count = 0
     inserted_count = 0
     
     logger.info(f"Processing {len(new_files)} new files with {max_workers} workers...")
     
-    # Reduce logging frequency during batch processing
-    logging.getLogger().setLevel(logging.WARNING)  # Temporarily reduce logging
-    
-    # Use context manager for thread pooling
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+    for i in range(0, len(new_files), batch_size):
+        batch = new_files[i:i+batch_size]
+        logger.info(f"Processing batch {i//batch_size + 1}/{(len(new_files) + batch_size - 1)//batch_size} ({len(batch)} images)...")
         
-        # Process in optimized batches
-        for i in range(0, len(new_files), processing_batch_size):
-            batch = new_files[i:i+processing_batch_size]
-            
-            # Only log every few batches to reduce overhead
-            if i % (processing_batch_size * 5) == 0 or i == 0:
-                logger.warning(f"Processing batch {i//processing_batch_size + 1}/{(len(new_files) + processing_batch_size - 1)//processing_batch_size} ({len(batch)} images)...")
-            
-            # Create a checkpoint for this batch if resume is enabled
-            if resume:
-                create_checkpoint(checkpoint_path, list(processed_files), batch)
-            
-            # Submit all files in this batch for parallel processing
+        # Create a checkpoint for this batch
+        if resume:
+            create_checkpoint(checkpoint_path, list(processed_files), batch)
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_path = {executor.submit(process_image, path): path for path in batch}
             batch_results = []
             
-            # Collect results as they complete
             for future in concurrent.futures.as_completed(future_to_path):
                 path = future_to_path[future]
                 try:
@@ -1222,14 +1145,9 @@ def process_directory_incremental(root_dir, db_path='photo_library.db', max_work
                     processed_count += 1
                     processed_files.add(path)  # Mark as processed for checkpoint
                     
-                    # Update performance monitor if available
-                    if performance_monitor:
-                        performance_monitor.update()
-                    
-                    # Otherwise log progress periodically
-                    elif processed_count % (processing_batch_size // 2) == 0:
-                        percent_done = (processed_count / len(new_files)) * 100
-                        logger.warning(f"Processed {processed_count}/{len(new_files)} images ({percent_done:.1f}%)...")
+                    # Log progress
+                    if processed_count % 10 == 0:
+                        logger.info(f"Processed {processed_count}/{len(new_files)} images...")
                     
                     if result:
                         # If include_all is True, keep all photos regardless of GPS data
@@ -1241,115 +1159,47 @@ def process_directory_incremental(root_dir, db_path='photo_library.db', max_work
                             batch_results.append(result)
                 except Exception as e:
                     logger.error(f"Error processing {path}: {e}")
-            
-            # Insert batch results to database efficiently
-            if batch_results:
-                try:
-                    # Use more efficient batched insert with executemany
-                    cursor.executemany(
-                        "INSERT INTO photos (filename, path, latitude, longitude, datetime, hash, library_id, marker_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                        [(photo['filename'], photo['path'], photo['latitude'], photo['longitude'], 
-                          photo['datetime'], photo['hash'], photo['library_id'], photo['marker_data']) for photo in batch_results]
-                    )
-                    inserted_this_batch = len(batch_results)
-                    inserted_count += inserted_this_batch
-                    conn.commit()
-                except Exception as e:
-                    logger.error(f"Error inserting batch: {e}")
-                    # Try inserting one by one as fallback
-                    inserted_this_batch = batch_insert_photos(cursor, batch_results)
-                    inserted_count += inserted_this_batch
-                    conn.commit()
+        
+        # Insert batch results
+        if batch_results:
+            try:
+                cursor.executemany(
+                    "INSERT INTO photos (filename, path, latitude, longitude, datetime, hash, library_id, marker_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    [(photo['filename'], photo['path'], photo['latitude'], photo['longitude'], 
+                      photo['datetime'], photo['hash'], photo['library_id'], photo['marker_data']) for photo in batch_results]
+                )
+                inserted_this_batch = len(batch_results)
+                inserted_count += inserted_this_batch
+                conn.commit()
+                logger.info(f"Inserted {inserted_this_batch} photos in this batch ({inserted_count} total)")
+            except Exception as e:
+                logger.error(f"Error inserting batch: {e}")
+                # Try inserting one by one
+                for photo in batch_results:
+                    try:
+                        cursor.execute(
+                            "INSERT INTO photos (filename, path, latitude, longitude, datetime, hash, library_id, marker_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                            (photo['filename'], photo['path'], photo['latitude'], photo['longitude'], 
+                             photo['datetime'], photo['hash'], photo['library_id'], photo['marker_data'])
+                        )
+                        inserted_count += 1
+                    except sqlite3.IntegrityError:
+                        # Skip duplicates
+                        pass
+                    except Exception as e:
+                        logger.error(f"Error inserting photo {photo['path']}: {e}")
+                conn.commit()
     
     # Processing complete, remove checkpoint file if it exists
     if resume and os.path.exists(checkpoint_path):
         try:
             os.remove(checkpoint_path)
             logger.info("Removed checkpoint file after successful processing")
-        except Exception as e:
-            logger.warning(f"Could not remove checkpoint file: {e}")
+        except:
+            pass
     
-    # Restore normal logging
-    logging.getLogger().setLevel(logging.INFO)
-    
-    # Stop performance monitoring and get final stats
-    if performance_monitor:
-        items_processed, elapsed = performance_monitor.stop()
-    
-    # Close database connection
     conn.close()
-    
-    # Final statistics
     end_time = time.time()
-    total_time = end_time - start_time
-    logger.info(f"Incremental scan completed in {total_time:.2f} seconds")
-    
-    if inserted_count > 0 and total_time > 0:
-        processing_rate = inserted_count / total_time
-        logger.info(f"Overall processing rate: {processing_rate:.2f} photos/second")
-    
+    logger.info(f"Incremental scan completed in {end_time - start_time:.2f} seconds")
     logger.info(f"Processed {processed_count} images, inserted {inserted_count} into database")
 
-def get_file_index(cursor):
-    """Create an index of existing files in the database for faster lookup"""
-    file_index = {}
-    cursor.execute("SELECT filename, path FROM photos")
-    for row in cursor.fetchall():
-        file_index[row[0]] = row[1]
-    return file_index
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Process images and create a photo heatmap database')
-    parser.add_argument('--init', action='store_true', help='Initialize the database')
-    parser.add_argument('--process', help='Process images from the specified directory')
-    parser.add_argument('--export', action='store_true', help='Export database to JSON')
-    parser.add_argument('--db', default='photo_library.db', help='Database file path')
-    parser.add_argument('--output', default='photo_heatmap_data.json', help='Output JSON file path')
-    parser.add_argument('--workers', type=int, default=4, help='Number of worker threads')
-    parser.add_argument('--include-all', action='store_true', help='Include photos without GPS data')
-    parser.add_argument('--export-all', action='store_true', help='Export all photos to JSON, not just those with GPS data')
-    parser.add_argument('--clean', action='store_true', help='Clean database before processing')
-    parser.add_argument('--force', action='store_true', help='Force import even if photo already exists in database')
-    parser.add_argument('--incremental', action='store_true', help='Fast incremental processing - only process new files by path comparison')
-    parser.add_argument('--no-cache', action='store_true', help='Disable directory content cache for incremental processing')
-    parser.add_argument('--no-resume', action='store_true', help='Disable resume capability for interrupted operations')
-    parser.add_argument('--no-optimize-sqlite', action='store_true', help='Disable SQLite optimizations (WAL mode, etc.)')
-    parser.add_argument('--serial-scan', action='store_true', help='Disable parallel directory scanning, use serial scanning instead')
-    parser.add_argument('--library', default='Default', help='Specify the library name for imported photos')
-    parser.add_argument('--description', help='Description for the library (when creating a new library)')
-    
-    args = parser.parse_args()
-    
-    if args.init:
-        from init_db import create_database
-        create_database(args.db)
-    
-    if args.clean:
-        clean_database(args.db)
-    
-    if args.process:
-        if args.incremental:
-            # Use optimized incremental processing with our added features
-            process_directory_incremental(
-                root_dir=args.process,
-                db_path=args.db,
-                max_workers=args.workers,
-                include_all=args.include_all,
-                library_name=args.library,
-                use_cache=not args.no_cache,
-                resume=not args.no_resume,
-                use_parallel_scan=not args.serial_scan
-            )
-        else:
-            # Use standard processing
-            process_directory(
-                root_dir=args.process,
-                db_path=args.db,
-                max_workers=args.workers,
-                include_all=args.include_all,
-                skip_existing=not args.force,
-                library_name=args.library
-            )
-    
-    if args.export:
-        export_to_json(args.db, args.output, include_non_geotagged=args.export_all)
