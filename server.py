@@ -13,6 +13,12 @@ import logging
 import json
 import datetime
 import mimetypes
+from flask import Flask, send_from_directory, render_template
+
+# Initialize Flask app
+app = Flask(__name__, 
+           static_folder=os.path.abspath('.'),
+           template_folder=os.path.abspath('.'))
 
 # Add MIME type for HEIC files
 mimetypes.add_type('image/heic', '.heic')
@@ -54,6 +60,123 @@ class QuickResponseTCPServer(socketserver.TCPServer):
     timeout = 0.5
     # Allow reuse of the address (faster restarts)
     allow_reuse_address = True
+
+# Health check endpoint for Docker container
+@app.route('/health')
+def health_check():
+    """Health check endpoint for Docker container"""
+    return "OK", 200
+
+# Library updates endpoint
+@app.route('/library_updates')
+def library_updates():
+    """API endpoint to get the last update times for all libraries"""
+    updates = get_last_update_times()
+    logger.debug(f"Library updates endpoint called, returning {len(updates)} updates")
+    return {
+        "updates": updates
+    }
+
+# API endpoint for photo markers
+@app.route('/api/markers')
+def api_markers():
+    """Serve photo markers from the database"""
+    logger.info("Serving photo markers from database")
+    
+    try:
+        # Connect to database
+        db_path = os.path.join(os.getcwd(), 'data', 'photo_library.db')
+        if not os.path.exists(db_path):
+            logger.error(f"Database not found: {db_path}")
+            return {"error": "Database not found"}, 404
+            
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row  # This enables column access by name
+        cursor = conn.cursor()
+        
+        # First get the libraries information
+        cursor.execute("SELECT id, name, description, source_dirs FROM libraries")
+        library_rows = cursor.fetchall()
+        libraries = []
+        
+        for row in library_rows:
+            lib = dict(row)
+            # Parse source_dirs from JSON string
+            try:
+                lib['source_dirs'] = json.loads(lib['source_dirs']) if lib['source_dirs'] else []
+            except Exception:
+                lib['source_dirs'] = []
+            libraries.append(lib)
+            
+        logger.info(f"Found {len(libraries)} libraries")
+        
+        # Then get photos with location data - include path
+        cursor.execute('''
+        SELECT p.filename, p.path, p.latitude, p.longitude, p.datetime, 
+               p.marker_data, p.library_id, l.name as library_name
+        FROM photos p
+        LEFT JOIN libraries l ON p.library_id = l.id
+        WHERE p.latitude IS NOT NULL AND p.longitude IS NOT NULL
+        ''')
+        
+        rows = cursor.fetchall()
+        photos = []
+        
+        for row in rows:
+            photo = dict(row)
+            # Parse marker_data from JSON string if available
+            if photo['marker_data']:
+                try:
+                    photo['marker_data'] = json.loads(photo['marker_data'])
+                except Exception:
+                    photo['marker_data'] = {}
+            else:
+                photo['marker_data'] = {}
+            
+            photos.append(photo)
+        
+        # Return response as JSON
+        result = {
+            "photos": photos,
+            "libraries": libraries
+        }
+        logger.info(f"Successfully served {len(photos)} photo markers from {len(libraries)} libraries")
+        return result
+        
+    except Exception as e:
+        logger.exception(f"Error serving photo markers: {e}")
+        return {"error": str(e)}, 500
+
+# Function to get last update times for libraries
+def get_last_update_times():
+    """Get the last update times for all libraries"""
+    updates = {}
+    data_dir = os.path.join(os.getcwd(), 'data') if os.path.exists(os.path.join(os.getcwd(), 'data')) else os.getcwd()
+    
+    try:
+        update_files = [f for f in os.listdir(data_dir) if f.startswith("last_update_") and f.endswith(".txt")]
+        logger.debug(f"Found {len(update_files)} library update files")
+        
+        for file in update_files:
+            library_name = file.replace("last_update_", "").replace(".txt", "")
+            try:
+                file_path = os.path.join(data_dir, file)
+                with open(file_path, "r") as f:
+                    content = f.read().strip()
+                    updates[library_name] = content
+            except Exception as e:
+                logger.error(f"Error reading update time for {library_name}: {e}")
+    except Exception as e:
+        logger.error(f"Error accessing data directory {data_dir}: {e}")
+    
+    return updates
+
+# Make last update times available to all templates
+@app.context_processor
+def inject_last_updates():
+    return {
+        "last_updates": get_last_update_times()
+    }
 
 def normalize_path(path):
     """Normalize path to handle potential drive letter differences"""
@@ -404,8 +527,8 @@ def signal_handler(sig, frame):
     logger.info("Gracefully shutting down server...")
     sys.exit(0)
 
-def start_server(port=8000, directory='.', debug_mode=False):
-    """Start a simple HTTP server to serve the photo heatmap viewer"""
+def start_server(port=8000, directory='.', debug_mode=False, db_path=None, host="0.0.0.0"):
+    """Start a Flask server to serve the photo heatmap viewer"""
     # Register signal handler for Ctrl+C
     signal.signal(signal.SIGINT, signal_handler)
     
@@ -474,24 +597,139 @@ def start_server(port=8000, directory='.', debug_mode=False):
     else:
         logger.warning(f"{json_file} not found in {os.path.abspath(directory)}")
     
-    # Create the server with our responsive subclass and custom handler
-    with QuickResponseTCPServer(("", port), PhotoHTTPRequestHandler) as httpd:
-        logger.info(f"Serving at http://localhost:{port}")
-        logger.info(f"Press Ctrl+C to stop the server")
+    # Define Flask routes for serving static files
+    @app.route('/')
+    def serve_index():
+        return send_from_directory(os.path.abspath(directory), 'index.html')
+    
+    # Endpoint for serving original photos
+    @app.route('/photos/<path:filename>')
+    def serve_original_photo(filename):
+        """Serve the original photo file"""
+        filename = urllib.parse.unquote(filename)
+        logger.info(f"Serving original photo: {filename}")
         
         try:
-            # Use polling pattern instead of serve_forever() for more responsiveness
-            while True:
-                httpd.handle_request()
-                time.sleep(0.01)  # Small sleep to prevent CPU hogging
-        except KeyboardInterrupt:
-            logger.info("Server stopped.")
+            # Connect to database
+            db_path = os.path.join(os.getcwd(), 'data', 'photo_library.db')
+            if not os.path.exists(db_path):
+                logger.error(f"Database not found: {db_path}")
+                return "Database not found", 404
+                
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            # Look up the photo path
+            cursor.execute("SELECT path FROM photos WHERE filename = ?", (filename,))
+            result = cursor.fetchone()
+            conn.close()
+            
+            if not result:
+                logger.error(f"Photo not found in database: {filename}")
+                return "Photo not found in database", 404
+                
+            photo_path = result[0]
+            logger.debug(f"Found photo path in DB: {photo_path}")
+            
+            normalized_path = normalize_path(photo_path)
+            
+            if not os.path.exists(normalized_path):
+                logger.error(f"Photo file not found at {normalized_path}")
+                return f"Photo file not found at {normalized_path}", 404
+            
+            # Get the file's mimetype
+            mimetype, _ = mimetypes.guess_type(normalized_path)
+            
+            # Return the file
+            return send_from_directory(os.path.dirname(normalized_path), os.path.basename(normalized_path), mimetype=mimetype)
+            
+        except Exception as e:
+            logger.exception(f"Error serving original photo: {e}")
+            return f"Internal server error: {str(e)}", 500
+    
+    # Endpoint for serving thumbnails
+    @app.route('/thumbnails/<path:filename>')
+    def serve_thumbnail(filename):
+        """Serve a thumbnail version of the photo"""
+        filename = urllib.parse.unquote(filename)
+        logger.info(f"Serving thumbnail: {filename}")
+        
+        try:
+            # Connect to database
+            db_path = os.path.join(os.getcwd(), 'data', 'photo_library.db')
+            if not os.path.exists(db_path):
+                logger.error(f"Database not found: {db_path}")
+                return "Database not found", 404
+                
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            # Look up the photo path
+            cursor.execute("SELECT path FROM photos WHERE filename = ?", (filename,))
+            result = cursor.fetchone()
+            conn.close()
+            
+            if not result:
+                logger.error(f"Photo not found in database: {filename}")
+                return "Photo not found in database", 404
+                
+            photo_path = result[0]
+            logger.debug(f"Found photo path in DB: {photo_path}")
+            
+            normalized_path = normalize_path(photo_path)
+            
+            if not os.path.exists(normalized_path):
+                logger.error(f"Photo file not found at {normalized_path}")
+                return f"Photo file not found at {normalized_path}", 404
+                
+            # Generate thumbnail
+            logger.debug(f"Generating thumbnail for: {normalized_path}")
+            try:
+                with Image.open(normalized_path) as img:
+                    # Resize to a thumbnail
+                    img.thumbnail((200, 200))
+                    
+                    # Prepare to send the image
+                    buffer = io.BytesIO()
+                    
+                    # For HEIC files, always convert to JPEG for better browser compatibility
+                    if filename.lower().endswith('.heic'):
+                        img_format = 'JPEG'
+                    else:
+                        img_format = img.format if img.format else 'JPEG'
+                    
+                    # Save with appropriate format and quality
+                    if img_format == 'JPEG':
+                        img.save(buffer, format=img_format, quality=85)
+                    else:
+                        img.save(buffer, format=img_format)
+                        
+                    buffer.seek(0)
+                    
+                    return buffer.getvalue(), 200, {'Content-Type': f'image/{img_format.lower()}'}
+            except Exception as e:
+                logger.error(f"Error generating thumbnail for {filename}: {e}")
+                return f"Error generating thumbnail: {str(e)}", 500
+                
+        except Exception as e:
+            logger.exception(f"Error serving thumbnail: {e}")
+            return f"Internal server error: {str(e)}", 500
+    
+    @app.route('/<path:path>')
+    def serve_static(path):
+        return send_from_directory(os.path.abspath(directory), path)
+    
+    # Start the Flask application
+    logger.info(f"Starting Flask server at http://{host}:{port}")
+    app.run(host=host, port=port, debug=debug_mode)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Start a web server for the Photo Heatmap Viewer')
     parser.add_argument('--port', type=int, default=8000, help='Port to run the server on')
     parser.add_argument('--dir', default='.', help='Directory to serve files from')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging')
+    parser.add_argument('--db', default=None, help='Path to the photo library database')
+    parser.add_argument('--host', default='0.0.0.0', help='Host address to bind the server to')
     
     args = parser.parse_args()
     
@@ -500,4 +738,4 @@ if __name__ == "__main__":
         logger.setLevel(logging.DEBUG)
         logger.info("Debug logging enabled")
     
-    start_server(args.port, args.dir)
+    start_server(port=args.port, directory=args.dir, debug_mode=args.debug, db_path=args.db, host=args.host)

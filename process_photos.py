@@ -749,22 +749,25 @@ def process_directory(root_dir, db_path='photo_library.db', max_workers=None, in
                         conn.commit()
                     except Exception as commit_e:
                         logger.error(f"Error during commit: {commit_e}")
-                
-                # Final commit - wrapped in try/except to avoid issues
-        try:
-            if conn is not None and hasattr(conn, 'commit'):
-                conn.commit()
-                conn.close()
-            print(f"Processing complete. {processed_count} images processed, {inserted_count} images inserted into database.")
-        except Exception as e:
-            logger.error(f"Error during final database operations: {e}")
-            print(f"Processing completed with some errors. {processed_count} images processed, approximately {inserted_count} inserted.")
-            # Try to ensure the connection is closed
+                  # Final commit - wrapped in try/except to avoid issues        
             try:
-                if conn is not None and hasattr(conn, 'close'):
+                if conn is not None and hasattr(conn, 'commit'):
+                    conn.commit()
                     conn.close()
-            except:
-                pass
+                print(f"Processing complete. {processed_count} images processed, {inserted_count} images inserted into database.")
+                
+                # Record the processing timestamp for this library
+                data_dir = os.path.dirname(db_path) if os.path.dirname(db_path) else './data'
+                record_processing_time(library_name, data_dir)
+            except Exception as e:
+                logger.error(f"Error during final database operations: {e}")
+                print(f"Processing completed with some errors. {processed_count} images processed, approximately {inserted_count} inserted.")
+                # Try to ensure the connection is closed
+                try:
+                    if conn is not None and hasattr(conn, 'close'):
+                        conn.close()
+                except:
+                    pass
 
 def export_to_json(db_path='photo_library.db', output_path='photo_heatmap_data.json', include_non_geotagged=False):
     """Export the database to JSON format for the heatmap visualization"""
@@ -1445,8 +1448,7 @@ def process_directory_incremental(root_dir, db_path='photo_library.db', max_work
     
     # Close database connection
     conn.close()
-    
-    # Final statistics
+      # Final statistics
     end_time = time.time()
     total_time = end_time - start_time
     logger.info(f"Incremental scan completed in {total_time:.2f} seconds")
@@ -1456,6 +1458,10 @@ def process_directory_incremental(root_dir, db_path='photo_library.db', max_work
         logger.info(f"Overall processing rate: {processing_rate:.2f} photos/second")
     
     logger.info(f"Processed {processed_count} images, inserted {inserted_count} into database")
+    
+    # Record the processing timestamp for this library
+    data_dir = os.path.dirname(db_path) if os.path.dirname(db_path) else './data'
+    record_processing_time(library_name, data_dir)
 
 def ensure_database_initialized(db_path):
     """Check if the database exists and has required tables, initialize if needed"""
@@ -1477,7 +1483,6 @@ def ensure_database_tables(db_path):
     try:
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        
         # Check if the libraries table exists
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='libraries'")
         if not cursor.fetchone():
@@ -1535,6 +1540,31 @@ def get_file_index(cursor):
     for row in cursor.fetchall():
         file_index[row[0]] = row[1]
     return file_index
+
+def record_processing_time(library_name, data_dir='./data'):
+    """
+    Record the timestamp of the last library processing.
+    This will be used by the web UI to display when the library was last updated.
+    
+    Args:
+        library_name (str): Name of the library being processed
+        data_dir (str): Directory where to store the timestamp files
+    """
+    try:
+        # Ensure the data directory exists
+        os.makedirs(data_dir, exist_ok=True)
+        
+        # Get current timestamp in a readable format
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Create a file with the timestamp
+        update_file = os.path.join(data_dir, f"last_update_{library_name}.txt")
+        with open(update_file, "w") as f:
+            f.write(f"{timestamp}")
+        
+        logger.info(f"Recorded processing time for library '{library_name}' at {timestamp}")
+    except Exception as e:
+        logger.error(f"Failed to record processing time: {e}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process images and create a photo heatmap database')
