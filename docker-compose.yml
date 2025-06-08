@@ -1,11 +1,22 @@
-version: '3'
+version: '3.8'
 
 services:
   photo-heatmap:
     build: .
+    image: photo-heatmap:latest
+    container_name: photo-heatmap-viewer
     ports:
       - "8000:8000"
     volumes:
-      - ./photo_library.db:/app/photo_library.db
-      - ./photo_heatmap_data.json:/app/photo_heatmap_data.json
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ${PHOTOS_ROOT_DIR:-./photos}:/photos:ro  # Mount photos directory as read-only
+    environment:
+      - TZ=${TZ:-UTC}
+    healthcheck:
+      test: ["CMD", "/app/healthcheck.sh"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     restart: unless-stopped

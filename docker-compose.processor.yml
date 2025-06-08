@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  photo-heatmap:
+    build: .
+    image: photo-heatmap:latest
+    container_name: photo-heatmap-viewer
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ${PHOTOS_ROOT_DIR:-./photos}:/photos:ro  # Mount photos directory as read-only
+    environment:
+      - TZ=${TZ:-UTC}
+    healthcheck:
+      test: ["CMD", "/app/healthcheck.sh"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+      # Processor service that runs the photo processing script periodically
+  photo-processor:
+    build: .
+    image: photo-heatmap:latest
+    container_name: photo-heatmap-processor
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ${PHOTOS_ROOT_DIR:-./photos}:/photos:ro  # Mount photos directory as read-only
+    environment:
+      - TZ=${TZ:-UTC}
+      - LIBRARIES=${LIBRARIES:-library1:Library1,library2:Library2}  # Format: path:name,path2:name2
+      - UPDATE_SCHEDULE=${UPDATE_SCHEDULE:-0 */6 * * *}  # Default: every 6 hours
+    # Use a custom entrypoint to set up cron jobs and run them
+    entrypoint: >
+      /bin/bash -c "
+      # Create cron files directory
+      mkdir -p /etc/cron.d
+      
+      # Process libraries from environment variable
+      IFS=',' read -ra LIB_ARRAY <<< \"$LIBRARIES\"
+      echo '' > /etc/cron.d/process_photos
+      
+      for LIB in \"$${LIB_ARRAY[@]}\"; do
+        IFS=':' read -r LIB_PATH LIB_NAME <<< \"$LIB\"
+        echo \"$UPDATE_SCHEDULE /app/process_library.sh /photos/$LIB_PATH \\\"$LIB_NAME\\\" >> /app/logs/cron.log 2>&1\" >> /etc/cron.d/process_photos
+        echo \"Added scheduled processing for library: $LIB_NAME from path: $LIB_PATH\"
+      done
+      
+      # Give execution rights to the cron job
+      chmod 0644 /etc/cron.d/process_photos
+      
+      # Apply cron job
+      crontab /etc/cron.d/process_photos
+      
+      # Set up logrotate to run daily
+      echo '0 0 * * * /usr/sbin/logrotate /etc/logrotate.d/photo_heatmap --state /app/logrotate.state >> /app/logs/logrotate.log 2>&1' > /etc/cron.d/logrotate_photos
+      chmod 0644 /etc/cron.d/logrotate_photos
+      crontab -l | cat - /etc/cron.d/logrotate_photos | crontab -
+      
+      # Start cron and keep container running
+      cron
+      tail -f /dev/null
+      "
+      
+      # Start cron daemon
+      cron
+      
+      # Run initial processing of each library
+      echo 'Running initial processing of libraries...'
+      /app/process_library.sh /photos/library1 'Library1'
+      /app/process_library.sh /photos/library2 'Library2'
+      
+      # Keep container running
+      tail -f /dev/null
+      "
+    restart: unless-stopped
+    depends_on:
+      - photo-heatmap
