@@ -429,13 +429,33 @@ def create_marker_data(photo):
     
     return json.dumps(marker_data)
 
-def process_directory(root_dir, db_path='photo_library.db', max_workers=4, include_all=False, 
+def process_directory(root_dir, db_path='photo_library.db', max_workers=None, include_all=False, 
                      skip_existing=True, library_name="Default"):
     """Process all images in a directory and its subdirectories"""
-    conn = sqlite3.connect(db_path)
+    # Determine optimal number of workers if not specified
+    if max_workers is None:
+        try:
+            from performance_helpers import get_optimal_worker_count
+            max_workers = get_optimal_worker_count('cpu')
+            logger.info(f"Using auto-configured optimal worker count: {max_workers}")
+        except ImportError:
+            max_workers = min(8, multiprocessing.cpu_count())
+            logger.info(f"Using default worker count: {max_workers}")
     
-    # Apply SQLite optimizations for better performance
-    optimize_sqlite_connection(conn)
+    # Use our improved database connection manager
+    try:
+        # Import the database connection manager
+        from db_connection import DatabaseConnectionManager
+        db_manager = DatabaseConnectionManager(db_path)
+        db_manager.set_optimizer(optimize_sqlite_connection)
+        conn = db_manager.connect()
+        logger.info("Using robust database connection manager with auto-reconnection")
+    except ImportError:
+        # Fall back to standard connection if the module is not available
+        logger.info("Database connection manager not available, using standard connection")
+        conn = sqlite3.connect(db_path, isolation_level="DEFERRED", check_same_thread=False)
+        # Apply SQLite optimizations for better performance
+        optimize_sqlite_connection(conn)
     
     cursor = conn.cursor()
     
@@ -536,14 +556,19 @@ def process_directory(root_dir, db_path='photo_library.db', max_workers=4, inclu
         to_process.append(img_path)
     
     print(f"Skipping {skipped_count} existing files. Processing {len(to_process)} new or modified images...")
-    
-    # Process images in parallel using batches for better performance
+      # Process images in parallel using batches for better performance
     processed_count = 0
     inserted_count = 0
-    batch_size = 100  # Process in batches of 100 for better commits
-      # Process in optimally sized batches for better memory and database performance
-    # Larger batch size for better SQLite performance with bulk inserts
-    batch_size = 500  # Increased batch size for faster processing
+    
+    # Calculate optimal batch size for processing
+    try:
+        from performance_helpers import optimize_batch_processing
+        batch_size = optimize_batch_processing(500)  # Start with 500 as default
+        logger.info(f"Using optimized batch size: {batch_size}")
+    except ImportError:
+        # Use a reasonable default if helper not available
+        batch_size = 500  # Increased batch size for faster processing
+        logger.info(f"Using default batch size: {batch_size}")
     
     # Start timing for performance metrics
     batch_start_time = time.time()
@@ -577,45 +602,169 @@ def process_directory(root_dir, db_path='photo_library.db', max_workers=4, inclu
                             result['library_id'] = library_id
                             batch_results.append(result)
                 except Exception as e:
-                    print(f"Error with {path}: {e}")
-          # Batch insert the results with optimized SQLite handling
+                    print(f"Error with {path}: {e}")        # Batch insert the results with robust database handling
         if batch_results:
             # Use more efficient batch insert with executemany
-            try:
-                cursor.executemany(
-                    "INSERT INTO photos (filename, path, latitude, longitude, datetime, hash, library_id, marker_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    [(photo['filename'], photo['path'], photo['latitude'], photo['longitude'], 
-                      photo['datetime'], photo['hash'], photo['library_id'], photo['marker_data']) for photo in batch_results]
-                )
-                inserted_this_batch = len(batch_results)
-                inserted_count += inserted_this_batch
-                conn.commit()
-                # Calculate and display insertion rate
-                elapsed = time.time() - batch_start_time
-                rate = inserted_count / elapsed if elapsed > 0 else 0
-                print(f"Inserted {inserted_count} photos so far ({rate:.1f} inserts/sec)")
-            except Exception as e:
-                logger.error(f"Error inserting batch: {e}")
-                # Try inserting one by one
-                for photo in batch_results:
-                    try:
-                        cursor.execute(
-                            "INSERT INTO photos (filename, path, latitude, longitude, datetime, hash, library_id, marker_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                            (photo['filename'], photo['path'], photo['latitude'], photo['longitude'], 
-                             photo['datetime'], photo['hash'], photo['library_id'], photo['marker_data'])
-                        )
-                        inserted_count += 1
-                    except sqlite3.IntegrityError:
-                        # Skip duplicates
-                        pass
-                    except Exception as e:
-                        logger.error(f"Error inserting photo {photo['path']}: {e}")
-                conn.commit()
+            max_attempts = 3
+            attempt = 0
+            success = False
             
-        # Final commit
-        conn.commit()
-        conn.close()
-        print(f"Processing complete. {processed_count} images processed, {inserted_count} images inserted into database.")
+            while attempt < max_attempts and not success:
+                try:
+                    attempt += 1
+                    # Check if we're using the database manager
+                    if 'db_manager' in locals():
+                        # Use robust connection manager
+                        logger.debug(f"Using database manager for batch insert (attempt {attempt}/{max_attempts})")
+                        cursor = conn.cursor()
+                        cursor.executemany(
+                            "INSERT INTO photos (filename, path, latitude, longitude, datetime, hash, library_id, marker_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                            [(photo['filename'], photo['path'], photo['latitude'], photo['longitude'], 
+                              photo['datetime'], photo['hash'], photo['library_id'], photo['marker_data']) for photo in batch_results]
+                        )
+                        inserted_this_batch = len(batch_results)
+                        inserted_count += inserted_this_batch
+                        db_manager.commit_with_retry()
+                    else:
+                        # Make sure connection is still valid
+                        if conn is None or not hasattr(conn, 'execute'):
+                            logger.warning("Database connection lost, reconnecting...")
+                            conn = sqlite3.connect(db_path, isolation_level="DEFERRED", check_same_thread=False)
+                            cursor = conn.cursor()
+                            optimize_sqlite_connection(conn)
+                        else:
+                            cursor = conn.cursor()
+                        
+                        # Insert data safely
+                        cursor.executemany(
+                            "INSERT INTO photos (filename, path, latitude, longitude, datetime, hash, library_id, marker_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                            [(photo['filename'], photo['path'], photo['latitude'], photo['longitude'], 
+                              photo['datetime'], photo['hash'], photo['library_id'], photo['marker_data']) for photo in batch_results]
+                        )
+                        inserted_this_batch = len(batch_results)
+                        inserted_count += inserted_this_batch
+                        conn.commit()
+                      # Success! Break the retry loop
+                    success = True
+                      # Calculate and display insertion rate
+                    elapsed = time.time() - batch_start_time
+                    rate = inserted_count / elapsed if elapsed > 0 else 0
+                    print(f"Inserted {inserted_count} photos so far ({rate:.1f} inserts/sec)")
+                except (sqlite3.OperationalError, sqlite3.ProgrammingError, sqlite3.DatabaseError) as e:
+                    error_str = str(e).lower()
+                    if "closed database" in error_str or "not a database" in error_str or "database is locked" in error_str:
+                        if attempt < max_attempts:
+                            logger.warning(f"Database error: {e}, retrying (attempt {attempt}/{max_attempts})...")
+                            time.sleep(1)  # Wait before retrying
+                            
+                            # Try to reconnect if we're not using the connection manager
+                            if 'db_manager' not in locals():
+                                try:
+                                    if conn:
+                                        try:
+                                            conn.close()
+                                        except:
+                                            pass
+                                    conn = sqlite3.connect(db_path, isolation_level="DEFERRED", check_same_thread=False, timeout=30.0)
+                                    optimize_sqlite_connection(conn)
+                                except Exception as conn_err:
+                                    logger.error(f"Error reconnecting to database: {conn_err}")
+                        else:
+                            # If we've reached max attempts, fall back to individual inserts
+                            logger.error(f"Failed to insert batch after {max_attempts} attempts: {e}")
+                            
+                            # Try to ensure we have a valid connection
+                            try:
+                                if 'db_manager' in locals():
+                                    conn = db_manager.connect()
+                                else:
+                                    if conn:
+                                        try:
+                                            conn.close()
+                                        except:
+                                            pass
+                                    conn = sqlite3.connect(db_path, isolation_level="DEFERRED", check_same_thread=False, timeout=30.0)
+                                    optimize_sqlite_connection(conn)
+                                    
+                                cursor = conn.cursor()
+                                
+                                # Try one by one to avoid losing too much data
+                                logger.info("Falling back to individual inserts...")
+                                success_count = 0
+                                for photo in batch_results:
+                                    try:
+                                        cursor.execute(
+                                            "INSERT INTO photos (filename, path, latitude, longitude, datetime, hash, library_id, marker_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                                            (photo['filename'], photo['path'], photo['latitude'], photo['longitude'], 
+                                             photo['datetime'], photo['hash'], photo['library_id'], photo['marker_data'])
+                                        )
+                                        success_count += 1
+                                        
+                                        # Commit every 10 records to avoid large transactions
+                                        if success_count % 10 == 0:
+                                            conn.commit()
+                                    except sqlite3.IntegrityError:
+                                        # Skip duplicates
+                                        pass
+                                    except Exception as insert_err:
+                                        logger.error(f"Error inserting photo {photo['path']}: {insert_err}")
+                                
+                                # Final commit
+                                conn.commit()
+                                logger.info(f"Individual inserts completed: {success_count}/{len(batch_results)} successful")
+                                inserted_count += success_count
+                                print(f"Reconnected and inserted {success_count} photos individually.")
+                                
+                                # Skip the remaining attempts in the batch loop
+                                success = True
+                                
+                            except Exception as recovery_err:
+                                logger.error(f"Failed to recover database connection: {recovery_err}")
+                                # Skip the remaining attempts in the batch loop
+                                success = True
+                    else:
+                        logger.error(f"SQLite error: {e}")
+                except Exception as e:
+                    logger.error(f"Error inserting batch: {e}")
+                    # Try inserting one by one
+                    success_count = 0
+                    for photo in batch_results:
+                        try:
+                            cursor.execute(
+                                "INSERT INTO photos (filename, path, latitude, longitude, datetime, hash, library_id, marker_data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                                (photo['filename'], photo['path'], photo['latitude'], photo['longitude'], 
+                                 photo['datetime'], photo['hash'], photo['library_id'], photo['marker_data'])
+                            )
+                            success_count += 1
+                            inserted_count += 1
+                            if success_count % 10 == 0:
+                                conn.commit()  # Commit in smaller batches                        except sqlite3.IntegrityError:
+                            # Skip duplicates
+                            pass
+                        except Exception as e:
+                            logger.error(f"Error inserting photo {photo['path']}: {e}")
+                    
+                    # Final batch commit
+                    try:
+                        conn.commit()
+                    except Exception as commit_e:
+                        logger.error(f"Error during commit: {commit_e}")
+                
+                # Final commit - wrapped in try/except to avoid issues
+        try:
+            if conn is not None and hasattr(conn, 'commit'):
+                conn.commit()
+                conn.close()
+            print(f"Processing complete. {processed_count} images processed, {inserted_count} images inserted into database.")
+        except Exception as e:
+            logger.error(f"Error during final database operations: {e}")
+            print(f"Processing completed with some errors. {processed_count} images processed, approximately {inserted_count} inserted.")
+            # Try to ensure the connection is closed
+            try:
+                if conn is not None and hasattr(conn, 'close'):
+                    conn.close()
+            except:
+                pass
 
 def export_to_json(db_path='photo_library.db', output_path='photo_heatmap_data.json', include_non_geotagged=False):
     """Export the database to JSON format for the heatmap visualization"""
@@ -985,33 +1134,51 @@ def process_directory_incremental(root_dir, db_path='photo_library.db', max_work
     - Fast file hashing without loading entire files into memory
     """
     start_time = time.time()
-    
-    # Validate the directory
+      # Validate the directory
     if not os.path.isdir(root_dir):
         logger.error(f"Error: {root_dir} is not a directory")
         return
     
     logger.info(f"Starting optimized incremental scan of {root_dir}")
     
-    # Try to use optimized performance settings
+    # Ensure the database is initialized
+    ensure_database_initialized(db_path)
+      # Try to use optimized performance settings
     try:
-        from optimize_performance import get_optimal_worker_count, optimize_batch_processing, PerformanceMonitor
-        
+        # First try the simple performance helpers module
+        try:
+            from performance_helpers import get_optimal_worker_count, optimize_batch_processing, PerformanceMonitor
+            logger.info("Using performance_helpers module")
+        except ImportError:
+            # Then try the full optimization module
+            from optimize_performance import get_optimal_worker_count, optimize_batch_processing, PerformanceMonitor
+            logger.info("Using optimize_performance module")
+            
         # Auto-determine optimal number of worker threads if not specified
         if max_workers is None:
             max_workers = get_optimal_worker_count(task_type='io')
             logger.info(f"Auto-configured worker count: {max_workers}")
         
         # Get optimal batch sizes based on available memory
-        processing_batch_size, db_batch_size = optimize_batch_processing(batch_size=100)
+        try:
+            processing_batch_size, db_batch_size = optimize_batch_processing(batch_size=100)
+        except TypeError:
+            # Simple version might return just one value
+            processing_batch_size = optimize_batch_processing(batch_size=100)
+            db_batch_size = processing_batch_size
+            
+        logger.info(f"Auto-configured batch sizes: processing={processing_batch_size}, db={db_batch_size}")
         
         # Create performance monitor
         performance_monitor = PerformanceMonitor("Image processing")
         
     except ImportError:
         # Fall back to default values
+        logger.info("Performance optimization modules not available, using default settings")
         if max_workers is None:
             max_workers = min(multiprocessing.cpu_count(), 8)
+        processing_batch_size = 250
+        db_batch_size = 250
         processing_batch_size = 100
         db_batch_size = 100
         performance_monitor = None
@@ -1290,6 +1457,77 @@ def process_directory_incremental(root_dir, db_path='photo_library.db', max_work
     
     logger.info(f"Processed {processed_count} images, inserted {inserted_count} into database")
 
+def ensure_database_initialized(db_path):
+    """Check if the database exists and has required tables, initialize if needed"""
+    db_exists = os.path.exists(db_path)
+    
+    if not db_exists:
+        logger.info(f"Database at {db_path} doesn't exist, creating...")
+    else:
+        logger.info(f"Database at {db_path} exists, checking tables...")
+      # Always ensure tables exist
+    ensure_database_tables(db_path)
+    return True
+    
+    conn.close()
+    return False
+
+def ensure_database_tables(db_path):
+    """Ensure that all necessary tables exist in the database, creating them if needed."""
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Check if the libraries table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='libraries'")
+        if not cursor.fetchone():
+            logger.info(f"Creating libraries table in {db_path}")
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS libraries (
+              id INTEGER PRIMARY KEY,
+              name TEXT NOT NULL UNIQUE,
+              description TEXT,
+              source_dirs TEXT,
+              created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+            ''')
+        
+        # Check if the photos table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='photos'")
+        if not cursor.fetchone():
+            logger.info(f"Creating photos table in {db_path}")
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS photos (
+              id INTEGER PRIMARY KEY,
+              filename TEXT,
+              path TEXT,
+              latitude REAL,
+              longitude REAL,
+              datetime TEXT,
+              tags TEXT,
+              hash TEXT,
+              library_id INTEGER,
+              marker_data TEXT,
+              FOREIGN KEY (library_id) REFERENCES libraries(id)
+            )
+            ''')
+            
+            # Create indexes for better query performance
+            logger.info("Creating indexes...")
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_coords ON photos(latitude, longitude)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_datetime ON photos(datetime)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_filename ON photos(filename)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_hash ON photos(hash)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_path ON photos(path)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_library_id ON photos(library_id)')
+        
+        conn.commit()
+        conn.close()
+        logger.info("Database tables created or verified successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Error ensuring database tables: {e}")
+        return False
 def get_file_index(cursor):
     """Create an index of existing files in the database for faster lookup"""
     file_index = {}
@@ -1310,26 +1548,41 @@ if __name__ == "__main__":
     parser.add_argument('--export-all', action='store_true', help='Export all photos to JSON, not just those with GPS data')
     parser.add_argument('--clean', action='store_true', help='Clean database before processing')
     parser.add_argument('--force', action='store_true', help='Force import even if photo already exists in database')
-    parser.add_argument('--incremental', action='store_true', help='Fast incremental processing - only process new files by path comparison')
+    parser.add_argument('--legacy', action='store_true', help='Use legacy processing mode (slower, not recommended)')
     parser.add_argument('--no-cache', action='store_true', help='Disable directory content cache for incremental processing')
     parser.add_argument('--no-resume', action='store_true', help='Disable resume capability for interrupted operations')
     parser.add_argument('--no-optimize-sqlite', action='store_true', help='Disable SQLite optimizations (WAL mode, etc.)')
     parser.add_argument('--serial-scan', action='store_true', help='Disable parallel directory scanning, use serial scanning instead')
     parser.add_argument('--library', default='Default', help='Specify the library name for imported photos')
     parser.add_argument('--description', help='Description for the library (when creating a new library)')
-    
     args = parser.parse_args()
-    
+      # We'll automatically initialize the database if needed
+    # The --init flag is kept for backward compatibility but is no longer required
     if args.init:
         from init_db import create_database
         create_database(args.db)
+        logger.info(f"Database initialized at {args.db}")
     
     if args.clean:
         clean_database(args.db)
     
     if args.process:
-        if args.incremental:
-            # Use optimized incremental processing with our added features
+        # Always use the incremental processing by default as it's much faster
+        # Only use the legacy processing if explicitly requested with --legacy flag
+        if getattr(args, 'legacy', False):
+            # Use legacy standard processing
+            logger.info("Using legacy processing mode (slower)")
+            process_directory(
+                root_dir=args.process,
+                db_path=args.db,
+                max_workers=args.workers,
+                include_all=args.include_all,
+                skip_existing=not args.force,
+                library_name=args.library
+            )
+        else:
+            # Use optimized incremental processing by default
+            logger.info("Using optimized incremental processing mode")
             process_directory_incremental(
                 root_dir=args.process,
                 db_path=args.db,
@@ -1339,16 +1592,6 @@ if __name__ == "__main__":
                 use_cache=not args.no_cache,
                 resume=not args.no_resume,
                 use_parallel_scan=not args.serial_scan
-            )
-        else:
-            # Use standard processing
-            process_directory(
-                root_dir=args.process,
-                db_path=args.db,
-                max_workers=args.workers,
-                include_all=args.include_all,
-                skip_existing=not args.force,
-                library_name=args.library
             )
     
     if args.export:

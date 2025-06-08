@@ -29,7 +29,8 @@ def optimize_sqlite_connection(conn):
 
 def create_database(db_path='photo_library.db'):
     """Create the SQLite database with necessary tables and indexes."""
-    # Check if the database already exists    if os.path.exists(db_path):
+    # Check if the database already exists
+    if os.path.exists(db_path):
         print(f"Database file '{db_path}' already exists. Skipping creation.")
         return
     
