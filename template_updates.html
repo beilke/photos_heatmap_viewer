@@ -1,0 +1,11 @@
+<div class="library-updates" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 5px; z-index: 1000;">
+    <h4>Libraries Last Updated</h4>
+    <ul style="list-style: none; padding-left: 10px;">
+        {% for library, update_time in last_updates.items() %}
+        <li><strong>{{ library }}:</strong> {{ update_time }}</li>
+        {% endfor %}
+        {% if not last_updates %}
+        <li>No libraries processed yet</li>
+        {% endif %}
+    </ul>
+</div>

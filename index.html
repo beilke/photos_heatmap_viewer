@@ -298,41 +298,56 @@
         .library-checkbox {
             margin: 5px 0;
         }
-        
-        #libraryFilterContainer {
+          #libraryFilterContainer {
             max-height: 200px;
             overflow-y: auto;
             margin-bottom: 10px;
             padding-right: 5px;
+            padding-top: 20px; /* Add padding at top for tooltips */
+            padding-bottom: 10px; /* Add padding at bottom for tooltips */
+        }
+        
+        .library-checkbox {
+            position: relative;
+            padding: 3px 0;
+            margin: 5px 0;
         }
           /* Library label tooltip style */
         .library-label {
             position: relative;
             cursor: pointer;
-        }
-        
-        .library-label[data-update-time]:hover:after {
+        }          .library-label[data-update-time]:hover:after {
             content: "Last updated: " attr(data-update-time);
             position: absolute;
-            left: 100%;
-            top: 0;
+            left: 0;
+            bottom: 100%; /* Position above the label */
+            margin-bottom: 5px;
             background: rgba(0, 0, 0, 0.8);
             color: white;
             padding: 3px 6px;
             border-radius: 3px;
             white-space: nowrap;
             font-size: 11px;
-            transform: translateX(5px);
             z-index: 1001;
             pointer-events: none;
-        }
-        
-        .library-label[data-update-time]:hover:after {
-            content: "Last updated: " attr(data-update-time);
+            box-shadow: 0 0 3px rgba(0,0,0,0.3);
         }
         
         .library-label:not([data-update-time]):hover:after {
             content: "No update information available";
+            position: absolute;
+            left: 0;
+            bottom: 100%; /* Position above the label */
+            margin-bottom: 5px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 3px 6px;
+            border-radius: 3px;
+            white-space: nowrap;
+            font-size: 11px;
+            z-index: 1001;
+            pointer-events: none;
+            box-shadow: 0 0 3px rgba(0,0,0,0.3);
         }
         
         /* Remove any custom cluster styling that could hide the count */
@@ -1385,9 +1400,8 @@
                 
                 const div = document.createElement('div');
                 div.className = 'library-checkbox';                // Add update time tooltip if available
-                let updateTimeInfo = '';
-                if (window.libraryUpdateTimes && window.libraryUpdateTimes[library.name]) {
-                    updateTimeInfo = `data-update-time="${window.libraryUpdateTimes[library.name]}" title="Last updated: ${window.libraryUpdateTimes[library.name]}"`;
+                let updateTimeInfo = '';                if (window.libraryUpdateTimes && window.libraryUpdateTimes[library.name]) {
+                    updateTimeInfo = `data-update-time="${window.libraryUpdateTimes[library.name]}"`;
                 }
 
                 div.innerHTML = `
@@ -1548,7 +1562,7 @@
                 const libraryName = label.textContent.trim().split(' ')[0]; // Get just the library name
                 if (window.libraryUpdateTimes[libraryName]) {
                     label.setAttribute('data-update-time', window.libraryUpdateTimes[libraryName]);
-                    label.setAttribute('title', 'Last updated: ' + window.libraryUpdateTimes[libraryName]);
+                    //label.setAttribute('title', 'Last updated: ' + window.libraryUpdateTimes[libraryName]);
                 }
             });
         }
