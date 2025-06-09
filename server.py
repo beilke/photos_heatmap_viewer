@@ -83,19 +83,20 @@ def api_markers():
     """Serve photo markers from the database"""
     logger.info("Serving photo markers from database")
     
-    try:
-        # Connect to database
+    try:        # Connect to database
         db_path = os.path.join(os.getcwd(), 'data', 'photo_library.db')
         if not os.path.exists(db_path):
-            logger.error(f"Database not found: {db_path}")
-            return {"error": "Database not found"}, 404
+            db_path = os.path.join(os.getcwd(), 'photo_library.db')
+            if not os.path.exists(db_path):
+                logger.error(f"Database not found: {db_path}")
+                return {"error": "Database not found"}, 404
             
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row  # This enables column access by name
         cursor = conn.cursor()
         
-        # First get the libraries information
-        cursor.execute("SELECT id, name, description, source_dirs FROM libraries")
+        # First get the libraries information with last_updated timestamp
+        cursor.execute("SELECT id, name, description, source_dirs, last_updated FROM libraries")
         library_rows = cursor.fetchall()
         libraries = []
         
@@ -149,13 +150,51 @@ def api_markers():
 
 # Function to get last update times for libraries
 def get_last_update_times():
-    """Get the last update times for all libraries"""
+    """Get the last update times for all libraries from the database"""
+    updates = {}
+    
+    try:
+        # Connect to database
+        db_path = os.path.join(os.getcwd(), 'data', 'photo_library.db')
+        if not os.path.exists(db_path):
+            db_path = os.path.join(os.getcwd(), 'photo_library.db')
+            
+        if not os.path.exists(db_path):
+            logger.error(f"Database not found: {db_path}")
+            return updates
+            
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row  # This enables column access by name
+        cursor = conn.cursor()
+        
+        # Get the libraries with their last_updated timestamps
+        cursor.execute("SELECT name, last_updated FROM libraries")
+        rows = cursor.fetchall()
+        
+        for row in rows:
+            if row['last_updated']:  # Only add if there's a timestamp
+                updates[row['name']] = row['last_updated']
+        
+        conn.close()
+        logger.debug(f"Found {len(updates)} library update times in database")
+        
+    except Exception as e:
+        logger.error(f"Error getting library update times: {e}")
+        
+    # Fall back to legacy file-based update times if database didn't provide any
+    if not updates:
+        updates = get_legacy_update_times()
+        
+    return updates
+
+def get_legacy_update_times():
+    """Get the last update times for all libraries from legacy text files (for backward compatibility)"""
     updates = {}
     data_dir = os.path.join(os.getcwd(), 'data') if os.path.exists(os.path.join(os.getcwd(), 'data')) else os.getcwd()
     
     try:
         update_files = [f for f in os.listdir(data_dir) if f.startswith("last_update_") and f.endswith(".txt")]
-        logger.debug(f"Found {len(update_files)} library update files")
+        logger.debug(f"Found {len(update_files)} legacy library update files")
         
         for file in update_files:
             library_name = file.replace("last_update_", "").replace(".txt", "")
@@ -165,10 +204,10 @@ def get_last_update_times():
                     content = f.read().strip()
                     updates[library_name] = content
             except Exception as e:
-                logger.error(f"Error reading update time for {library_name}: {e}")
+                logger.error(f"Error reading legacy update time for {library_name}: {e}")
     except Exception as e:
         logger.error(f"Error accessing data directory {data_dir}: {e}")
-    
+        
     return updates
 
 # Make last update times available to all templates

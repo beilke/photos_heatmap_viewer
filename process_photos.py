@@ -470,7 +470,8 @@ def process_directory(root_dir, db_path='photo_library.db', max_workers=None, in
               name TEXT NOT NULL UNIQUE,
               description TEXT,
               source_dirs TEXT,
-              created_at TEXT DEFAULT CURRENT_TIMESTAMP
+              created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+              last_updated TEXT
             )
             ''')
     except sqlite3.Error as e:
@@ -1213,7 +1214,8 @@ def process_directory_incremental(root_dir, db_path='photo_library.db', max_work
           name TEXT NOT NULL UNIQUE,
           description TEXT,
           source_dirs TEXT,
-          created_at TEXT DEFAULT CURRENT_TIMESTAMP
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          last_updated TEXT
         )
         ''')
     except sqlite3.Error as e:
@@ -1493,9 +1495,18 @@ def ensure_database_tables(db_path):
               name TEXT NOT NULL UNIQUE,
               description TEXT,
               source_dirs TEXT,
-              created_at TEXT DEFAULT CURRENT_TIMESTAMP
+              created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+              last_updated TEXT
             )
             ''')
+        else:
+            # Check if last_updated column exists in libraries table
+            cursor.execute("PRAGMA table_info(libraries)")
+            columns = [column[1] for column in cursor.fetchall()]
+            if 'last_updated' not in columns:
+                logger.info("Adding last_updated column to libraries table")
+                cursor.execute("ALTER TABLE libraries ADD COLUMN last_updated TEXT")
+                conn.commit()
         
         # Check if the photos table exists
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='photos'")
@@ -1541,28 +1552,76 @@ def get_file_index(cursor):
         file_index[row[0]] = row[1]
     return file_index
 
-def record_processing_time(library_name, data_dir='./data'):
+def record_processing_time(library_name, data_dir='./data', db_path='data/photo_library.db'):
     """
     Record the timestamp of the last library processing.
     This will be used by the web UI to display when the library was last updated.
     
     Args:
         library_name (str): Name of the library being processed
-        data_dir (str): Directory where to store the timestamp files
+        data_dir (str): Directory where the database is located (legacy parameter for backward compatibility)
+        db_path (str): Path to database file
     """
     try:
-        # Ensure the data directory exists
-        os.makedirs(data_dir, exist_ok=True)
-        
         # Get current timestamp in a readable format
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        # Create a file with the timestamp
-        update_file = os.path.join(data_dir, f"last_update_{library_name}.txt")
-        with open(update_file, "w") as f:
-            f.write(f"{timestamp}")
+        # Ensure 'data' directory exists
+        os.makedirs(data_dir, exist_ok=True)
         
-        logger.info(f"Recorded processing time for library '{library_name}' at {timestamp}")
+        # Create legacy text file for backward compatibility
+        try:
+            update_file = os.path.join(data_dir, f"last_update_{library_name}.txt")
+            with open(update_file, "w") as f:
+                f.write(f"{timestamp}")
+        except Exception as e:
+            logger.warning(f"Failed to write legacy timestamp file: {e}")
+        
+        # Connect to the database
+        if not os.path.isabs(db_path):
+            # If relative path, resolve it correctly
+            if os.path.exists(os.path.join(data_dir, db_path)):
+                db_path = os.path.join(data_dir, db_path)
+        
+        if not os.path.exists(db_path):
+            logger.error(f"Database not found: {db_path}")
+            return
+        
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Check if last_updated column exists
+        cursor.execute("PRAGMA table_info(libraries)")
+        columns = [col[1] for col in cursor.fetchall()]
+        
+        if 'last_updated' in columns:
+            # Update the last_updated field for this library
+            cursor.execute(
+                "UPDATE libraries SET last_updated = ? WHERE name = ?",
+                (timestamp, library_name)
+            )
+            conn.commit()
+            logger.info(f"Updated database timestamp for library '{library_name}' at {timestamp}")
+        else:
+            logger.warning("last_updated column not found in libraries table")
+            
+            # Try to add the column if it doesn't exist
+            try:
+                cursor.execute("ALTER TABLE libraries ADD COLUMN last_updated TEXT")
+                conn.commit()
+                logger.info("Added last_updated column to libraries table")
+                
+                # Now update the value
+                cursor.execute(
+                    "UPDATE libraries SET last_updated = ? WHERE name = ?",
+                    (timestamp, library_name)
+                )
+                conn.commit()
+                logger.info(f"Updated database timestamp for library '{library_name}' at {timestamp}")
+            except Exception as e:
+                logger.error(f"Failed to add last_updated column: {e}")
+                
+        conn.close()
     except Exception as e:
         logger.error(f"Failed to record processing time: {e}")
 
@@ -1570,12 +1629,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process images and create a photo heatmap database')
     parser.add_argument('--init', action='store_true', help='Initialize the database')
     parser.add_argument('--process', help='Process images from the specified directory')
-    parser.add_argument('--export', action='store_true', help='Export database to JSON')
-    parser.add_argument('--db', default='photo_library.db', help='Database file path')
-    parser.add_argument('--output', default='photo_heatmap_data.json', help='Output JSON file path')
+    parser.add_argument('--db', default='data/photo_library.db', help='Database file path')
     parser.add_argument('--workers', type=int, default=4, help='Number of worker threads')
     parser.add_argument('--include-all', action='store_true', help='Include photos without GPS data')
-    parser.add_argument('--export-all', action='store_true', help='Export all photos to JSON, not just those with GPS data')
     parser.add_argument('--clean', action='store_true', help='Clean database before processing')
     parser.add_argument('--force', action='store_true', help='Force import even if photo already exists in database')
     parser.add_argument('--legacy', action='store_true', help='Use legacy processing mode (slower, not recommended)')
@@ -1586,12 +1642,20 @@ if __name__ == "__main__":
     parser.add_argument('--library', default='Default', help='Specify the library name for imported photos')
     parser.add_argument('--description', help='Description for the library (when creating a new library)')
     args = parser.parse_args()
-      # We'll automatically initialize the database if needed
+    
+    # Ensure 'data' directory exists
+    data_dir = os.path.join(os.getcwd(), 'data')
+    os.makedirs(data_dir, exist_ok=True)
+    
+    # Ensure DB path exists
+    db_dir = os.path.dirname(args.db)
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
+      
+    # We'll automatically initialize the database if needed
     # The --init flag is kept for backward compatibility but is no longer required
     if args.init:
-        from init_db import create_database
-        create_database(args.db)
-        logger.info(f"Database initialized at {args.db}")
+        ensure_database_initialized(args.db)
     
     if args.clean:
         clean_database(args.db)
@@ -1623,6 +1687,3 @@ if __name__ == "__main__":
                 resume=not args.no_resume,
                 use_parallel_scan=not args.serial_scan
             )
-    
-    if args.export:
-        export_to_json(args.db, args.output, include_non_geotagged=args.export_all)

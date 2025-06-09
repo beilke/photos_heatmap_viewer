@@ -409,7 +409,7 @@
             debugLog(`Heatmap created with ${points.length} points`);
         }
         // Update markers
-        function updateMarkers(filteredPhotos) {
+        function updateMarkers(filteredPhotos = []) {
             debugLog('Updating markers');
             debugLog(`Loading markers for ${filteredPhotos.length} photos...`);
 
@@ -1029,7 +1029,12 @@
         label.className = 'library-label';
 
         // Add update time data if available
-        if (window.libraryUpdateTimes && window.libraryUpdateTimes[library.name]) {
+        // First check if the library object has the last_updated field directly from API
+        if (library.last_updated) {
+            label.dataset.updateTime = library.last_updated;
+        }
+        // Fall back to the window.libraryUpdateTimes from legacy API
+        else if (window.libraryUpdateTimes && window.libraryUpdateTimes[library.name]) {
             label.dataset.updateTime = window.libraryUpdateTimes[library.name];
         }
 

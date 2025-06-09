@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import argparse
 
 # Function to apply SQLite optimizations (imported from process_photos.py)
 def optimize_sqlite_connection(conn):
@@ -83,4 +84,14 @@ def create_database(db_path='photo_library.db'):
     print(f"Database created successfully at '{db_path}'")
 
 if __name__ == "__main__":
-    create_database()
+    parser = argparse.ArgumentParser(description="Initialize photo heatmap database")
+    parser.add_argument('--db', default='data/photo_library.db', help='Database file path')
+    args = parser.parse_args()
+    
+    # Ensure directory exists
+    db_dir = os.path.dirname(args.db)
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
+        print(f"Created directory: {db_dir}")
+        
+    create_database(args.db)
