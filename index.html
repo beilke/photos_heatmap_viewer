@@ -407,182 +407,182 @@
             }).addTo(map);
 
             debugLog(`Heatmap created with ${points.length} points`);
+        }        // Update markers
+        function updateMarkers(inputPhotos = []) {
+    debugLog('Updating markers');
+
+    // Deduplicate photos
+    const photoMap = new Map();
+    inputPhotos.forEach(photo => {
+        const photoKey = photo.id || `${photo.latitude}_${photo.longitude}_${photo.filename}`;
+        if (!photoMap.has(photoKey)) {
+            photoMap.set(photoKey, photo);
         }
-        // Update markers
-        function updateMarkers(filteredPhotos = []) {
-            debugLog('Updating markers');
-            debugLog(`Loading markers for ${filteredPhotos.length} photos...`);
+    });
+    const uniquePhotos = Array.from(photoMap.values());
+    const dupesRemoved = inputPhotos.length - uniquePhotos.length;
 
-            // Show loading indicator for markers
-            const markerLoadingStatus = document.createElement('div');
-            markerLoadingStatus.className = 'marker-loading-status';
-            markerLoadingStatus.innerHTML = '<strong>Loading markers...</strong>';
-            markerLoadingStatus.style.position = 'absolute';
-            markerLoadingStatus.style.bottom = '10px';
-            markerLoadingStatus.style.right = '10px';
-            markerLoadingStatus.style.backgroundColor = 'rgba(255,255,255,0.8)';
-            markerLoadingStatus.style.padding = '5px 10px';
-            markerLoadingStatus.style.borderRadius = '4px';
-            markerLoadingStatus.style.zIndex = '1000';
-            document.body.appendChild(markerLoadingStatus);
+    if (dupesRemoved > 0) {
+        debugLog(`Removed ${dupesRemoved} duplicate photos before creating markers`);
+    }
 
-            // Remove existing markers if present
-            if (markerGroup) {
-                map.removeLayer(markerGroup);
-            }
+    const filteredPhotos = uniquePhotos;
+    debugLog(`Loading markers for ${filteredPhotos.length} unique photos...`);
 
-            // Create a simple marker group - no custom options
-            if (typeof L.markerClusterGroup === 'function') {
-                debugLog('Using MarkerClusterGroup - SIMPLE CONFIGURATION');
+    // Show loading indicator
+    const markerLoadingStatus = document.createElement('div');
+    markerLoadingStatus.className = 'marker-loading-status';
+    markerLoadingStatus.innerHTML = '<strong>Loading markers...</strong>';
+    Object.assign(markerLoadingStatus.style, {
+        position: 'absolute',
+        bottom: '10px',
+        right: '10px',
+        backgroundColor: 'rgba(255,255,255,0.8)',
+        padding: '5px 10px',
+        borderRadius: '4px',
+        zIndex: '1000'
+    });
+    document.body.appendChild(markerLoadingStatus);
 
+    // Remove old markers
+    if (typeof markerGroup !== 'undefined' && markerGroup) {
+        map.removeLayer(markerGroup);
+    }
+
+    // Create new marker group
+    try {
+        markerGroup = typeof L.markerClusterGroup === 'function'
+            ? L.markerClusterGroup()
+            : L.layerGroup();
+
+        if (markerGroup.on) {
+            markerGroup.on('clusterclick', function (e) {
                 try {
-                    // Create marker cluster group with default settings
-                    markerGroup = L.markerClusterGroup();
+                    const photos = e.layer.getAllChildMarkers()
+                        .filter(marker => marker.photoData)
+                        .map(marker => marker.photoData);
 
-                    // Add our cluster click listener
-                    markerGroup.on('clusterclick', function (e) {
-                        debugLog('CLUSTER CLICK DETECTED');
-
-                        try {
-                            const markers = e.layer.getAllChildMarkers();
-                            debugLog('Markers in cluster: ' + markers.length);
-
-                            const photos = markers
-                                .filter(marker => marker.photoData)
-                                .map(marker => marker.photoData);
-
-                            debugLog('Photos found in cluster: ' + photos.length);
-
-                            if (photos && photos.length > 0) {
-                                // Force open the photo viewer
-                                debugLog('Opening photo viewer modal');
-                                openPhotoViewer(photos, 0);
-                            }
-                        } catch (err) {
-                            debugLog('Error in cluster click handler: ' + err.message);
-                        }
-                    });
-
+                    if (photos.length > 0) {
+                        openPhotoViewer(photos, 0);
+                    }
                 } catch (err) {
-                    debugLog('Error creating MarkerClusterGroup: ' + err.message);
-                    // Fallback to regular layer group
-                    markerGroup = L.layerGroup();
+                    debugLog('Error in cluster click handler: ' + err.message);
                 }
-            } else {
-                debugLog('Using LayerGroup (MarkerClusterGroup not available)');
-                markerGroup = L.layerGroup();
-            }            // Add markers for each photo - using chunking for large datasets
-            const processInChunks = filteredPhotos.length > 500; // Only use chunking for large datasets
-
-            if (processInChunks) {
-                debugLog(`Using chunked processing for ${filteredPhotos.length} markers`);
-                // Process markers in chunks to avoid blocking the UI
-                const chunkSize = 100;
-                const totalChunks = Math.ceil(filteredPhotos.length / chunkSize);
-                let currentChunk = 0;
-
-                function processChunk() {
-                    const start = currentChunk * chunkSize;
-                    const end = Math.min(start + chunkSize, filteredPhotos.length);
-
-                    for (let i = start; i < end; i++) {
-                        addMarker(filteredPhotos[i]);
-                    }
-
-                    markerLoadingStatus.innerHTML = `<strong>Loading markers: ${Math.min(100, Math.round((end / filteredPhotos.length) * 100))}%</strong>`;
-
-                    currentChunk++;
-                    if (currentChunk < totalChunks) {
-                        setTimeout(processChunk, 10);
-                    } else {
-                        finishMarkerLoading();
-                    }
-                }
-
-                processChunk();
-            } else {
-                // For smaller datasets, process all at once
-                filteredPhotos.forEach(photo => addMarker(photo));
-                finishMarkerLoading();
-            }
-
-            function addMarker(photo) {
-                const marker = L.marker([photo.latitude, photo.longitude]);
-
-                // Don't generate popup content yet - do it on demand
-                marker.photoData = photo;
-                // Create popup content
-                const container = document.createElement('div');
-                container.className = 'marker-popup';
-                container.innerHTML = `
-                    <strong>${photo.filename || 'Unknown'}</strong><br>
-                    ${photo.datetime ? new Date(photo.datetime).toLocaleString() : 'No date'}<br>
-                    <div class="popup-image-container" style="width: 150px; height: 150px; background: #f0f0f0; display: flex; align-items: center; justify-content: center;">
-                        <span class="loading-placeholder">Loading...</span>
-                    </div>
-                `;
-
-                // Bind the popup with static content first
-                marker.bindPopup(container);
-
-                // Set up lazy loading when popup opens
-                marker.on('popupopen', function () {
-                    const imageContainer = container.querySelector('.popup-image-container');
-                    if (!imageContainer.querySelector('img')) {
-                        const img = new Image();
-                        img.style.maxWidth = '150px';
-                        img.style.maxHeight = '150px';
-
-                        img.onload = function () {
-                            imageContainer.innerHTML = '';
-                            imageContainer.appendChild(img);
-                        };
-                        img.onerror = function () {
-                            // Set an error handler for the image path
-                            img.onerror = function () {
-                                imageContainer.innerHTML = 'Image not available';
-                                debugLog(`Failed to load popup image for ${photo.filename}`);
-                            };
-                        };
-
-                        // Load the full image directly
-                        img.src = `photos/${encodeURIComponent(photo.filename)}`;
-                    }
-                });                // Store photo data in marker for later use
-                marker.photoData = photo;
-                // Add click handler for individual markers
-                marker.on('click', function (e) {
-                    // Find all photos at this location
-                    const photosAtSameLocation = filteredPhotos.filter(p =>
-                        p.latitude === photo.latitude &&
-                        p.longitude === photo.longitude
-                    );
-
-                    debugLog(`Marker clicked: ${photo.filename} (${photosAtSameLocation.length} photos at this location)`);
-
-                    // Find the index of this photo
-                    const photoIndex = photosAtSameLocation.findIndex(p => p.id === photo.id);
-
-                    // Open the photo viewer with all photos at this location
-                    openPhotoViewer(photosAtSameLocation, photoIndex >= 0 ? photoIndex : 0);
-
-                    // Since we're opening our custom viewer, prevent the popup
-                    e.originalEvent.stopPropagation();
-                    L.DomEvent.stopPropagation(e);
-                });                // Add marker to group
-                markerGroup.addLayer(marker);
-            }
-            // Function to complete marker loading and cleanup
-            function finishMarkerLoading() {
-                // Add marker group to map
-                map.addLayer(markerGroup);
-
-                // Remove loading status
-                if (markerLoadingStatus.parentNode) {
-                    markerLoadingStatus.parentNode.removeChild(markerLoadingStatus);
-                } debugLog(`Successfully added markers to map`);
-            }
+            });
         }
+    } catch (err) {
+        debugLog('Error creating marker group: ' + err.message);
+        markerGroup = L.layerGroup();
+    }
+
+    // Process markers (chunked if large dataset)
+    const chunkSize = 100;
+    let currentChunk = 0;
+    const totalChunks = Math.ceil(filteredPhotos.length / chunkSize);
+
+    function processChunk() {
+        const start = currentChunk * chunkSize;
+        const end = Math.min(start + chunkSize, filteredPhotos.length);
+
+        for (let i = start; i < end; i++) {
+            addMarker(filteredPhotos[i]);
+        }
+
+        markerLoadingStatus.innerHTML = `<strong>Loading markers: ${Math.min(100, Math.round((end / filteredPhotos.length) * 100))}%</strong>`;
+
+        currentChunk++;
+        if (currentChunk < totalChunks) {
+            setTimeout(processChunk, 20);
+        } else {
+            finishMarkerLoading();
+        }
+    }
+
+    if (filteredPhotos.length > 500) {
+        debugLog(`Using chunked processing for ${filteredPhotos.length} markers`);
+        processChunk();
+    } else {
+        filteredPhotos.forEach(photo => addMarker(photo));
+        finishMarkerLoading();
+    }
+
+    function addMarker(photo) {
+        if (photo.latitude == null || photo.longitude == null) {
+            debugLog(`Skipping photo with invalid coordinates: ${photo.filename}`);
+            return;
+        }
+
+        const marker = L.marker([photo.latitude, photo.longitude]);
+        marker.photoData = photo;
+
+        const container = document.createElement('div');
+        container.className = 'marker-popup';
+        container.innerHTML = `
+            <strong>${photo.filename || 'Unknown'}</strong><br>
+            ${photo.datetime ? new Date(photo.datetime).toLocaleString() : 'No date'}<br>
+            <div class="popup-image-container" style="width: 150px; height: 150px; background: #f0f0f0; display: flex; align-items: center; justify-content: center;">
+                <span class="loading-placeholder">Loading...</span>
+            </div>
+        `;
+
+        marker.bindPopup(container);
+
+        marker.on('popupopen', function () {
+            const imageContainer = container.querySelector('.popup-image-container');
+            if (!imageContainer.querySelector('img')) {
+                const img = new Image();
+                img.style.maxWidth = '150px';
+                img.style.maxHeight = '150px';
+
+                img.onload = function () {
+                    imageContainer.innerHTML = '';
+                    imageContainer.appendChild(img);
+                };
+
+                img.onerror = function () {
+                    imageContainer.innerHTML = 'Image not available';
+                    debugLog(`Failed to load popup image for ${photo.filename}`);
+                };
+
+                img.src = `photos/${encodeURIComponent(photo.filename)}`;
+            }
+        });
+
+        marker.on('click', function (e) {
+            let photosAtSameLocation = filteredPhotos.filter(p =>
+                p.latitude === photo.latitude && p.longitude === photo.longitude
+            );
+
+            const locationMap = new Map();
+            photosAtSameLocation.forEach(p => {
+                const key = p.id || p.filename;
+                if (!locationMap.has(key)) {
+                    locationMap.set(key, p);
+                }
+            });
+            photosAtSameLocation = Array.from(locationMap.values());
+
+            debugLog(`Marker clicked: ${photo.filename} (${photosAtSameLocation.length} unique photos at this location)`);
+
+            const index = photosAtSameLocation.findIndex(p =>
+                p.id === photo.id || p.filename === photo.filename
+            );
+
+            openPhotoViewer(photosAtSameLocation, index >= 0 ? index : 0);
+            e.originalEvent?.stopPropagation();
+            L.DomEvent.stopPropagation(e);
+        });
+
+        markerGroup.addLayer(marker);
+    }
+
+    function finishMarkerLoading() {
+        map.addLayer(markerGroup);
+        markerLoadingStatus.remove();
+        debugLog('Successfully added markers to map');
+    }
+}
+
 
         // Photo viewer functions
         function openPhotoViewer(photos, startIndex = 0) {
@@ -874,13 +874,24 @@
 
                 // If we found a cluster element
                 if (target && target.classList.contains('marker-cluster')) {
-                    debugLog('DOCUMENT LEVEL CLUSTER CLICK DETECTED');
-
-                    // This is a fallback - try to force the modal to open with all photos
-                    if (photoData && photoData.length > 0) {
-                        const validPhotos = photoData.filter(p => p.latitude && p.longitude).slice(0, 50);
-                        if (validPhotos.length > 0) {
-                            openPhotoViewer(validPhotos, 0);
+                    debugLog('DOCUMENT LEVEL CLUSTER CLICK DETECTED');                    // This is a fallback - try to force the modal to open with all photos
+                    if (photoData && photoData.photos && photoData.photos.length > 0) {
+                        // Get valid photos with GPS data
+                        const validPhotos = photoData.photos.filter(p => p.latitude && p.longitude).slice(0, 50);
+                        
+                        // Deduplicate photos
+                        const photoMap = new Map();
+                        validPhotos.forEach(p => {
+                            const key = p.id || p.filename;
+                            if (!photoMap.has(key)) {
+                                photoMap.set(key, p);
+                            }
+                        });
+                        
+                        const uniquePhotos = Array.from(photoMap.values());
+                        if (uniquePhotos.length > 0) {
+                            debugLog(`Fallback opening viewer with ${uniquePhotos.length} photos`);
+                            openPhotoViewer(uniquePhotos, 0);
                         }
                     }
                 }
@@ -963,18 +974,29 @@
                         const count = cluster.getChildCount();
                         const markers = cluster.getAllChildMarkers();
 
-                        debugLog(`Cluster has ${count} markers`);
-
-                        // Get photos from markers
-                        const photos = [];
+                        debugLog(`Cluster has ${count} markers`);                        // Get photos from markers - with deduplication by ID
+                        const photoMap = new Map(); // Use a Map to deduplicate by photo ID
+                        
                         for (let i = 0; i < markers.length; i++) {
                             if (markers[i].photoData) {
-                                photos.push(markers[i].photoData);
+                                const photo = markers[i].photoData;
+                                // Use photo ID or filename as unique key
+                                const photoKey = photo.id || photo.filename;
+                                
+                                // Only add if not already in the map
+                                if (!photoMap.has(photoKey)) {
+                                    photoMap.set(photoKey, photo);
+                                } else {
+                                    debugLog(`Skipping duplicate photo: ${photoKey}`);
+                                }
                             }
                         }
+                        
+                        // Convert Map values to array
+                        const photos = Array.from(photoMap.values());
 
                         if (photos.length > 0) {
-                            debugLog(`Opening viewer with ${photos.length} photos`);
+                            debugLog(`Opening viewer with ${photos.length} unique photos (from ${markers.length} markers)`);
 
                             // Force display
                             photoViewerOverlay.style.display = 'flex';
