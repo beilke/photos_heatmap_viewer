@@ -1390,6 +1390,15 @@
                     updateTimeInfo = `data-update-time="${window.libraryUpdateTimes[library.name]}" title="Last updated: ${window.libraryUpdateTimes[library.name]}"`;
                 }
 
+                div.innerHTML = `
+                    <input type="checkbox" id="library-${library.id}" checked 
+                           data-library-id="${library.id}" class="library-filter">
+                    <label for="library-${library.id}" ${updateTimeInfo} class="library-label">
+                        ${library.name} 
+                        <span class="library-count">(${geotaggedCount} photos)</span>
+                    </label>
+                `;
+                container.appendChild(div);
                 
                 // Add event listener
                 const checkbox = div.querySelector(`#library-${library.id}`);
