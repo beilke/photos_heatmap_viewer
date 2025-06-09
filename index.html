@@ -29,12 +29,14 @@
             padding: 10px;
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0,0,0,0.2);
-        }
-        .debug-panel {
+        }        .debug-panel-container {
             position: absolute;
             bottom: 10px;
             left: 10px;
             z-index: 1000;
+        }
+        
+        .debug-panel {
             background: rgba(255, 255, 255, 0.9);
             padding: 10px;
             border-radius: 5px;
@@ -44,6 +46,25 @@
             overflow-y: auto;
             font-family: monospace;
             font-size: 12px;
+            display: none; /* Hidden by default */
+        }
+        
+        .debug-panel-toggle {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px 10px;
+            border-radius: 5px 5px 0 0;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 120px;
+        }
+        
+        .debug-panel-toggle:hover {
+            background: rgba(240, 240, 240, 0.95);
         }
         .loading {
             position: fixed;
@@ -467,7 +488,13 @@
         
         <div id="photoCount"></div>
     </div>
-    <div class="debug-panel" id="debugPanel"></div>
+    <div class="debug-panel-container">
+        <div class="debug-panel-toggle" id="debugPanelToggle">
+            <span>Debug Info</span>
+            <span class="toggle-icon">▲</span>
+        </div>
+        <div class="debug-panel" id="debugPanel"></div>
+    </div>
     <div class="loading" id="loading">
         <h2>Loading photo data...</h2>
         <p>Please wait while we load your photo data.</p>
@@ -519,9 +546,26 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div>    <script>
+        // Add debug panel toggle functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const debugPanelToggle = document.getElementById('debugPanelToggle');
+            if (debugPanelToggle) {
+                debugPanelToggle.addEventListener('click', function() {
+                    const debugPanel = document.getElementById('debugPanel');
+                    const toggleIcon = this.querySelector('.toggle-icon');
+                    
+                    if (debugPanel.style.display === 'block') {
+                        debugPanel.style.display = 'none';
+                        toggleIcon.textContent = '▲';
+                    } else {
+                        debugPanel.style.display = 'block';
+                        toggleIcon.textContent = '▼';
+                    }
+                });
+            }
+        });
 
-    <script>
         // Debug logging function
         function debugLog(message, data) {
             const timestamp = new Date().toLocaleTimeString();
