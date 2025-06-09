@@ -43,14 +43,14 @@ def create_database(db_path='photo_library.db'):
     
     cursor = conn.cursor()
     
-    # Create libraries table
-    cursor.execute('''
+    # Create libraries table    cursor.execute('''
     CREATE TABLE libraries (
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
       description TEXT,
       source_dirs TEXT,  -- JSON array of source directories
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      last_updated TEXT
     )
     ''')
     

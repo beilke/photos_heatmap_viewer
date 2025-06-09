@@ -1,3 +1,11 @@
+#!/bin/bash
+# Script to patch the Dockerfile for proper file handling
+
+# Backup original Dockerfile
+cp Dockerfile Dockerfile.bak
+
+# Create updated Dockerfile
+cat > Dockerfile.new << 'EOF'
 FROM python:3.10-slim
 
 WORKDIR /app
@@ -16,12 +24,12 @@ RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir Flask
 
 # Create necessary directories
-RUN mkdir -p /app/logs /app/data /app/templates /app/static
+RUN mkdir -p /app/logs /app/data
 
 # Copy application files
 COPY *.py ./
 COPY *.html ./
-COPY ./static/*.css ./static/
+COPY *.css ./
 # Database files are mounted via volume at runtime
 
 # Configure logrotate to keep logs for one week
@@ -52,6 +60,11 @@ RUN echo '#!/bin/bash\n\
 curl -f http://localhost:8000/health || exit 1\n\
 ' > /app/healthcheck.sh && chmod +x /app/healthcheck.sh
 
+# Copy the fix script to detect and fix issues with file locations
+COPY fix_docker_env.py ./
+RUN chmod +x ./fix_docker_env.py
+RUN python ./fix_docker_env.py
+
 # Expose port
 EXPOSE 8000
 
@@ -60,3 +73,9 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD ["./he
 
 # Run the server
 CMD ["python", "server.py", "--db", "/app/data/photo_library.db", "--host", "0.0.0.0", "--port", "8000"]
+EOF
+
+# Replace old Dockerfile with new one
+mv Dockerfile.new Dockerfile
+
+echo "Dockerfile has been patched to fix HTML file location issues."

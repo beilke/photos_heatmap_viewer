@@ -1134,11 +1134,26 @@ def process_directory_incremental(root_dir, db_path='photo_library.db', max_work
     - SQLite optimizations (WAL mode, memory settings)
     - Resume capability for interrupted operations
     - Directory change detection to skip unchanged directories
-    - Optimized batch sizes for better performance
-    - Fast file hashing without loading entire files into memory
+    - Optimized batch sizes for better performance    - Fast file hashing without loading entire files into memory
     """
+    
     start_time = time.time()
-      # Validate the directory
+      # Normalize and validate the directory
+    root_dir = normalize_path(root_dir)
+    
+    # Try to handle Docker volume mount paths
+    if not os.path.isdir(root_dir) and '/photos/' in root_dir:
+        # Check available directories to help debugging
+        parent_dir = os.path.dirname(root_dir)
+        if os.path.exists(parent_dir):
+            logger.info(f"Parent directory exists. Contents of {parent_dir}:")
+            try:
+                for item in os.listdir(parent_dir):
+                    logger.info(f"  - {item}")
+            except Exception as e:
+                logger.error(f"Could not list parent directory: {e}")
+    
+    # Final check after normalization
     if not os.path.isdir(root_dir):
         logger.error(f"Error: {root_dir} is not a directory")
         return
@@ -1625,6 +1640,75 @@ def record_processing_time(library_name, data_dir='./data', db_path='data/photo_
     except Exception as e:
         logger.error(f"Failed to record processing time: {e}")
 
+def normalize_path(path):
+    """
+    Normalize path for cross-platform compatibility.
+    This helps handle both Windows and Linux paths correctly.
+    """
+    # Convert to absolute path
+    if not os.path.isabs(path):
+        path = os.path.abspath(path)
+    
+    # On Windows, check if this is a valid path format for another OS
+    if os.name == 'nt' and path.startswith('/'):
+        logger.info(f"Detected Linux-style path on Windows: {path}")
+        # Try to translate a Linux-style path to current OS
+        # This handles paths like /photos/Fernando when running on Windows
+        parts = path.split('/')
+        path = os.path.join(*[p for p in parts if p])
+        logger.info(f"Normalized to: {path}")
+    
+    # Handle cases where Docker volume mounts might use different paths than host
+    if not os.path.exists(path) and path.startswith('/photos/'):
+        alt_path = path.replace('/photos/', './')
+        if os.path.exists(alt_path):
+            logger.info(f"Using alternative path: {alt_path} instead of {path}")
+            path = alt_path
+    
+    return path
+
+def cross_platform_scan_dir(directory, extensions=None):
+    """
+    Scan a directory for files with specific extensions in a cross-platform compatible way.
+    
+    Args:
+        directory (str): Directory path to scan
+        extensions (tuple): File extensions to filter by (case-insensitive)
+        
+    Returns:
+        list: List of file paths matching the extensions
+    """
+    # Normalize path for cross-platform compatibility
+    norm_dir = normalize_path(directory)
+    
+    if not os.path.isdir(norm_dir):
+        logger.error(f"Cannot scan non-existent directory: {norm_dir} (original: {directory})")
+        # Try to output what's available
+        try:
+            parent_dir = os.path.dirname(norm_dir)
+            if os.path.exists(parent_dir):
+                logger.info(f"Contents of parent directory {parent_dir}:")
+                for item in os.listdir(parent_dir):
+                    logger.info(f"  - {item}")
+        except Exception:
+            pass
+        return []
+    
+    matching_files = []
+    logger.info(f"Scanning directory: {norm_dir}")
+    
+    try:
+        for root, _, files in os.walk(norm_dir):
+            for filename in files:
+                if extensions and not filename.lower().endswith(extensions):
+                    continue
+                full_path = os.path.join(root, filename)
+                matching_files.append(full_path)
+    except Exception as e:
+        logger.error(f"Error scanning directory {norm_dir}: {e}")
+    
+    logger.info(f"Found {len(matching_files)} matching files in {norm_dir}")
+    return matching_files
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process images and create a photo heatmap database')
     parser.add_argument('--init', action='store_true', help='Initialize the database')
@@ -1646,12 +1730,11 @@ if __name__ == "__main__":
     # Ensure 'data' directory exists
     data_dir = os.path.join(os.getcwd(), 'data')
     os.makedirs(data_dir, exist_ok=True)
-    
-    # Ensure DB path exists
+      # Ensure DB path exists
     db_dir = os.path.dirname(args.db)
     if db_dir and not os.path.exists(db_dir):
         os.makedirs(db_dir, exist_ok=True)
-      
+    
     # We'll automatically initialize the database if needed
     # The --init flag is kept for backward compatibility but is no longer required
     if args.init:
@@ -1661,24 +1744,26 @@ if __name__ == "__main__":
         clean_database(args.db)
     
     if args.process:
+        # Normalize the process directory path
+        process_dir = normalize_path(args.process)
+        logger.info(f"Normalized process directory: {process_dir}")
+        
         # Always use the incremental processing by default as it's much faster
         # Only use the legacy processing if explicitly requested with --legacy flag
-        if getattr(args, 'legacy', False):
-            # Use legacy standard processing
+        if getattr(args, 'legacy', False):            # Use legacy standard processing
             logger.info("Using legacy processing mode (slower)")
             process_directory(
-                root_dir=args.process,
+                root_dir=process_dir,
                 db_path=args.db,
                 max_workers=args.workers,
                 include_all=args.include_all,
                 skip_existing=not args.force,
                 library_name=args.library
             )
-        else:
-            # Use optimized incremental processing by default
+        else:            # Use optimized incremental processing by default
             logger.info("Using optimized incremental processing mode")
             process_directory_incremental(
-                root_dir=args.process,
+                root_dir=process_dir,
                 db_path=args.db,
                 max_workers=args.workers,
                 include_all=args.include_all,
