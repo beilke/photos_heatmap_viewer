@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Photo Heatmap Viewer - Simplified</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -17,37 +17,41 @@
 
 <body>
     <div id="map"></div>
-    <div class="controls">
-        <h3>Photo Heatmap</h3>
-        <div>
-            <label for="intensity">Intensity: </label>
-            <input type="range" id="intensity" min="1" max="30" value="15">
+    <div class="controls-container">            <div class="controls-toggle" id="controlsToggle">
+            <span>Photo Heatmap</span>
+            <span class="toggle-icon">▲</span>
         </div>
-        <div>
-            <label for="radius">Radius: </label>
-            <input type="range" id="radius" min="5" max="50" value="25">
-        </div>
-        <div>
-            <input type="checkbox" id="showMarkers" checked>
-            <label for="showMarkers">Show Photos Count</label>
-        </div>
-        <div class="library-filters">
-            <h4>Libraries</h4>
+        <div class="controls" id="controlsPanel" style="display: none;">
             <div>
-                <input type="checkbox" id="selectAllLibraries" checked>
-                <label for="selectAllLibraries"><strong>All Libraries</strong></label>
+                <label for="intensity">Intensity: </label>
+                <input type="range" id="intensity" min="1" max="30" value="15">
             </div>
-            <div id="libraryFilterContainer">
-                <!-- Library filters will be added here dynamically -->
+            <div>
+                <label for="radius">Radius: </label>
+                <input type="range" id="radius" min="5" max="50" value="25">
             </div>
-        </div>
+            <div>
+                <input type="checkbox" id="showMarkers" checked>
+                <label for="showMarkers">Show Photos Count</label>
+            </div>
+            <div class="library-filters">
+                <h4>Libraries</h4>
+                <div>
+                    <input type="checkbox" id="selectAllLibraries" checked>
+                    <label for="selectAllLibraries"><strong>All Libraries</strong></label>
+                </div>
+                <div id="libraryFilterContainer">
+                    <!-- Library filters will be added here dynamically -->
+                </div>
+            </div>
 
-        <div>
-            <button id="updateMap">Update Map</button>
-            <button id="fullscreenBtn" style="margin-left: 10px;">Fullscreen</button>
-        </div>
+            <div>
+                <button id="updateMap">Update Map</button>
+                <button id="fullscreenBtn" style="margin-left: 10px;">Fullscreen</button>
+            </div>
 
-        <div id="photoCount"></div>
+            <div id="photoCount"></div>
+        </div>
     </div>
     <div class="debug-panel-container">
         <div class="debug-panel-toggle" id="debugPanelToggle">
@@ -113,11 +117,21 @@
         </div>
     </div>
     <script>
-        // Add debug panel toggle functionality
+        // Add panel toggle functionality
+        // Mobile detection is already done before map initialization
+        
         document.addEventListener('DOMContentLoaded', function () {
+            // Set mobile-specific body class
+            if (isMobile) {
+                document.body.classList.add('mobile-device');
+            }
+            
+            // Debug panel toggle
             const debugPanelToggle = document.getElementById('debugPanelToggle');
             if (debugPanelToggle) {
-                debugPanelToggle.addEventListener('click', function () {
+                // Use touchend for mobile and click for desktop
+                debugPanelToggle.addEventListener(isMobile ? 'touchend' : 'click', function (e) {
+                    if (isMobile) e.preventDefault();
                     const debugPanel = document.getElementById('debugPanel');
                     const toggleIcon = this.querySelector('.toggle-icon');
 
@@ -126,6 +140,25 @@
                         toggleIcon.textContent = '▲';
                     } else {
                         debugPanel.style.display = 'block';
+                        toggleIcon.textContent = '▼';
+                    }
+                });
+            }
+            
+            // Controls panel toggle
+            const controlsToggle = document.getElementById('controlsToggle');
+            if (controlsToggle) {
+                // Use touchend for mobile and click for desktop
+                controlsToggle.addEventListener(isMobile ? 'touchend' : 'click', function (e) {
+                    if (isMobile) e.preventDefault();
+                    const controlsPanel = document.getElementById('controlsPanel');
+                    const toggleIcon = this.querySelector('.toggle-icon');
+                    
+                    if (controlsPanel.style.display === 'block') {
+                        controlsPanel.style.display = 'none';
+                        toggleIcon.textContent = '▲';
+                    } else {
+                        controlsPanel.style.display = 'block';
                         toggleIcon.textContent = '▼';
                     }
                 });
@@ -160,8 +193,25 @@
             return false;
         });
 
+        // Detect if we're on mobile
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        
+        // Handle device orientation changes
+        window.addEventListener('orientationchange', function() {
+            setTimeout(function() {
+                map.invalidateSize();
+                debugLog('Orientation changed, map size updated');
+            }, 200);
+        });
+        
         // Initialize map
         debugLog('Initializing map');
+        if (isMobile) {
+            debugLog('Mobile device detected, optimizing layout');
+            document.body.classList.add('mobile-device');
+        }
+        debugLog('Mobile device detected: ' + isMobile);
+        
         const map = L.map('map', {
             minZoom: 2,
             maxZoom: 19,
@@ -169,8 +219,12 @@
                 [-90, -180],  // Southwest corner
                 [90, 180]     // Northeast corner
             ],
-            maxBoundsViscosity: 1.0  // Strict bounds enforcement
-        }).setView([50, 0], 5); // Initial center and zoom
+            maxBoundsViscosity: 1.0,  // Strict bounds enforcement
+            tap: isMobile, // Enable tap for mobile devices
+            dragging: !isMobile || !L.Browser.mobile, // Disable drag on mobile by default
+            tap: true, // Enable tap handler
+            tapTolerance: 15 // Increased tap tolerance for mobile
+        }).setView([50, 0], isMobile ? 3 : 5); // Adjust initial zoom for mobile
 
 
         // Update your tile layer to prevent wrapping:

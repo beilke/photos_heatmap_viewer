@@ -42,7 +42,7 @@
     margin-top: 5px;
     text-align: center;
     border-radius: 15px;
-    font-size: 16px !important;
+    font-size: 12px !important; /* Reduced from 14px to 12px */
     font-weight: bold !important;
     color: white !important;
     display: flex !important;
@@ -62,15 +62,64 @@ body {
             height: 100vh;
         }
 
-        .controls {
+        .controls-container {
             position: absolute;
             top: 10px;
             right: 10px;
             z-index: 1000;
-            background: white;
+        }
+        
+        .controls {
+            background: rgba(255, 255, 255, 0.9);
             padding: 10px;
-            border-radius: 5px;
+            border-radius: 0 0 5px 5px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            max-width: 250px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .controls input {
+            font-size: 12px;
+        }
+        
+        .controls button {
+            padding: 5px 10px;
+            background: #4CAF50;
+            border: none;
+            color: white;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .controls h4 {
+            margin: 10px 0 5px 0;
+            font-size: 13px;
+        }
+        
+        .controls label {
+            font-size: 12px;
+        }
+        
+        .controls-toggle {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px 10px;
+            border-radius: 5px 5px 0 0;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 120px;
+        }
+        
+        .controls-toggle:hover {
+            background: rgba(240, 240, 240, 0.95);
         }
 
         .debug-panel-container {
@@ -520,3 +569,170 @@ body {
             background: #4CAF50;
             border-radius: 5px;
         }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    /* Basic layout adjustments */
+    body {
+        font-size: 14px;
+    }
+    
+    /* Adjust map for mobile */
+    #map {
+        height: 100vh;
+        width: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+    }
+    
+    /* Make controls better for touch */
+    .controls-container {
+        width: 100%;
+        top: auto;
+        bottom: 0;
+        right: 0;
+        z-index: 1001;
+    }
+    
+    .controls-toggle {
+        width: 100%;
+        padding: 10px;
+        border-radius: 10px 10px 0 0;
+    }
+    
+    .controls {
+        width: 100%;
+        max-width: 100%;
+        padding: 15px;
+        border-radius: 10px 10px 0 0;
+        max-height: 60vh;
+    }
+    
+    /* Improve touch targets */
+    .controls button {
+        padding: 10px 15px;
+        margin: 5px 0;
+        min-height: 44px;
+    }
+    
+    /* Force all inputs to be larger for touch */
+    .controls input[type="checkbox"],
+    .controls input[type="radio"] {
+        width: 20px;
+        height: 20px;
+        vertical-align: middle;
+    }
+    
+    .controls input[type="range"] {
+        height: 25px;
+        -webkit-appearance: none;
+        appearance: none;
+        margin: 10px 0;
+        width: 100%;
+    }
+    
+    .controls input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 30px;
+        width: 30px;
+        border-radius: 15px;
+        background: #4CAF50;
+        margin-top: -10px;
+    }
+    
+    .controls input[type="range"]::-moz-range-thumb {
+        height: 30px;
+        width: 30px;
+        border-radius: 15px;
+        background: #4CAF50;
+    }
+    
+    .controls select {
+        height: 40px;
+        font-size: 16px; /* Prevent iOS zoom on focus */
+    }
+    
+    /* Adjust debug panel */
+    .debug-panel-container {
+        width: 100%;
+        left: 0;
+        bottom: auto;
+        top: 0;
+    }
+    
+    .debug-panel-toggle {
+        width: 100%;
+        padding: 10px;
+        border-radius: 0 0 10px 10px;
+    }
+    
+    .debug-panel {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 0 0 10px 10px;
+    }
+    
+    /* Fix photo viewer */
+    .photo-viewer-container {
+        width: 95%;
+        max-width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .photo-viewer-content {
+        flex-direction: column;
+    }
+    
+    .photo-viewer-image {
+        width: 100%;
+    }
+    
+    .photo-viewer-info {
+        width: 100%;
+    }
+    
+    .photo-viewer-header {
+        padding: 15px;
+    }
+    
+    .photo-viewer-close {
+        font-size: 28px;
+        padding: 5px 15px;
+    }
+    
+    /* Larger cluster touch areas */
+    .marker-cluster {
+        transform: scale(1.25);
+    }
+    
+    /* Ensure filters are easy to tap */
+    .library-filters label {
+        padding: 8px 0;
+        display: block;
+    }
+    
+    /* Make all labels tap-friendly */
+    label {
+        min-height: 30px;
+        display: inline-block;
+        padding: 5px 0;
+    }
+}
+
+/* Additional adjustments for very small screens */
+@media (max-width: 480px) {
+    .photo-viewer-nav button {
+        padding: 12px;
+        min-width: 44px;
+        min-height: 44px;
+    }
+    
+    .image-control-btn {
+        padding: 10px;
+        min-width: 44px;
+        min-height: 44px;
+        margin: 0 2px;
+    }
+}
