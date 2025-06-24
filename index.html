@@ -79,12 +79,14 @@
             <div class="photo-viewer-content">
                 <div class="photo-viewer-image">
                     <img id="photoViewerImg" src="" alt="Photo">                    
-                    <div class="image-controls">                         
-                        <button class="image-control-btn" id="rotateLeftBtn" title="Rotate Left ([ or L key)">↺</button>
-                        <button class="image-control-btn" id="rotateRightBtn" title="Rotate Right (] key)">↻</button>
-                        <button class="image-control-btn" id="zoomInBtn" title="Zoom In (+ key)">+</button>
-                        <button class="image-control-btn" id="zoomOutBtn" title="Zoom Out (- key)">-</button>
-                        <button class="image-control-btn" id="resetViewBtn" title="Reset View (0 or R key)">R</button>
+                    <div class="image-navigation">
+                        <div class="photo-viewer-counter">
+                            <span id="currentPhotoIndex">1</span> / <span id="totalPhotos">1</span>
+                        </div>
+                        <div class="nav-buttons">
+                            <button id="prevPhotoBtn" class="photo-nav-btn" aria-label="Previous photo">&lt;</button>
+                            <button id="nextPhotoBtn" class="photo-nav-btn" aria-label="Next photo">&gt;</button>
+                        </div>
                     </div>
                 </div>
                 <div class="photo-viewer-info">
@@ -106,15 +108,8 @@
             </div>
             <div class="photo-viewer-footer">
                 <div class="photo-info-item">
-                        <div class="photo-info-label">Path:</div>
-                        <div id="photoInfoPath"></div>
-                    </div>
-                <div class="photo-viewer-nav">
-                    <div class="photo-viewer-counter">
-                        <span id="currentPhotoIndex">1</span> / <span id="totalPhotos">1</span>
-                    </div>
-                    <button id="prevPhotoBtn" class="photo-nav-btn" aria-label="Previous photo">&lt;</button>
-                    <button id="nextPhotoBtn" class="photo-nav-btn" aria-label="Next photo">&gt;</button>
+                    <div class="photo-info-label">Path:</div>
+                    <div id="photoInfoPath"></div>
                 </div>
             </div>
         </div>
@@ -391,14 +386,7 @@
         const nextPhotoBtn = document.getElementById('nextPhotoBtn');
         const closePhotoViewerBtn = document.getElementById('closePhotoViewer');
 
-        // Image control buttons
-        const rotateLeftBtn = document.getElementById('rotateLeftBtn');
-        const rotateRightBtn = document.getElementById('rotateRightBtn');
-        const zoomInBtn = document.getElementById('zoomInBtn');
-        const zoomOutBtn = document.getElementById('zoomOutBtn'); const resetViewBtn = document.getElementById('resetViewBtn');
-        // Image transformations
-        let currentZoom = 1;
-        let currentRotation = 0;
+        // No image transformation controls needed
 
         // Load photo data
         function loadPhotoData() {
@@ -906,10 +894,7 @@
             // Update counter
             currentPhotoIndex.textContent = currentPhotoIdx + 1;
 
-            // Reset view when showing a new photo
-            currentZoom = 1;
-            currentRotation = 0;
-            updateImageTransform();
+            // No image transformations needed
             debugLog(`Loading image for ${photo.filename}`);
             // Set new image with error handling - using direct loading from photos endpoint
             // Use full images directly for better quality and reliability
@@ -978,8 +963,7 @@
 
                 debugLog(`Image orientation: ${isPortrait ? 'portrait' : 'landscape'}, aspect ratio: ${aspectRatio.toFixed(2)}`);
 
-                // Apply any existing transformations
-                updateImageTransform();
+                // No image transformations needed
             };
 
 
@@ -1056,17 +1040,7 @@
         });
         
         // Image control event listeners
-        rotateLeftBtn.addEventListener(eventType, function(e) {
-            if (isMobile) e.preventDefault();
-            rotateLeft();
-        });
-        
-        rotateRightBtn.addEventListener(eventType, function(e) {
-            if (isMobile) e.preventDefault();
-            rotateRight();
-        });
-        // Note: zoomIn, zoomOut and resetView are handled by the existing event listeners
-        // through the setZoomLevel function
+        // No image control event listeners needed
         // Keyboard navigation in photo viewer
         document.addEventListener('keydown', function (e) {
             if (photoViewerOverlay.style.display === 'flex') {
@@ -1076,21 +1050,6 @@
                     showNextPhoto();
                 } else if (e.key === 'ArrowLeft') {
                     showPreviousPhoto();
-                } else if (e.key === '+' || e.key === '=') {
-                    // + or = key for zooming in (= is easier to press without shift)
-                    zoomIn();
-                } else if (e.key === '-') {
-                    // - key for zooming out
-                    zoomOut();
-                } else if (e.key === '0' || e.key === 'r' || e.key === 'R') {
-                    // 0 or r key for reset
-                    resetView();
-                } else if (e.key === '[' || e.key === 'l' || e.key === 'L') {
-                    // [ or l key for rotate left
-                    rotateLeft();
-                } else if (e.key === ']') {
-                    // ] key for rotate right
-                    rotateRight();
                 }
             }
         });
@@ -1138,103 +1097,7 @@
                 }
             });
         });
-        // Zoom control functions
-        function setZoomLevel(level) {
-            currentZoom = level;
-            // Use updateImageTransform to ensure consistency with rotation
-            updateImageTransform();
-            debugLog(`Zoom level set to ${currentZoom}`);
-        }
-
-        zoomInBtn.addEventListener(eventType, (e) => {
-            if (isMobile) e.preventDefault();
-            setZoomLevel(Math.min(currentZoom + 0.25, 4));
-        });
-
-        zoomOutBtn.addEventListener(eventType, (e) => {
-            if (isMobile) e.preventDefault();
-            setZoomLevel(Math.max(currentZoom - 0.25, 0.5));
-        });
-        
-        resetViewBtn.addEventListener(eventType, (e) => {
-            if (isMobile) e.preventDefault();
-            setZoomLevel(1);
-        });
-        
-        // Add pinch-zoom gesture support for mobile
-        if (isMobile) {
-            const photoImage = document.getElementById('photoViewerImg');
-            let initialPinchDistance = 0;
-            
-            photoImage.addEventListener('touchstart', (e) => {
-                if (e.touches.length === 2) {
-                    initialPinchDistance = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                }
-            });
-            
-            photoImage.addEventListener('touchmove', (e) => {
-                if (e.touches.length === 2) {
-                    e.preventDefault(); // Prevent default to allow pinch zoom
-                    
-                    const currentDistance = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                    
-                    if (initialPinchDistance > 0) {
-                        const pinchRatio = currentDistance / initialPinchDistance;
-                        const zoomDelta = pinchRatio > 1 ? 0.05 : -0.05;
-                        const newZoom = Math.max(0.5, Math.min(4, currentZoom + zoomDelta));
-                        setZoomLevel(newZoom);
-                        initialPinchDistance = currentDistance;
-                    }
-                }
-            }, { passive: false });
-        }          // Image transformation functions
-        function zoomIn() {
-            // Use setZoomLevel to ensure consistency
-            setZoomLevel(Math.min(currentZoom + 0.25, 4));
-            debugLog(`Zoomed in to ${currentZoom}x`);
-        }
-
-        function zoomOut() {
-            // Use setZoomLevel to ensure consistency
-            setZoomLevel(Math.max(currentZoom - 0.25, 0.5));
-            debugLog(`Zoomed out to ${currentZoom}x`);
-        }
-
-        function rotateLeft() {
-            // Normalize rotation to keep it in the range of -360 to 360 degrees
-            currentRotation = (currentRotation - 90) % 360;
-            updateImageTransform();
-            debugLog(`Rotated left to ${currentRotation} degrees`);
-        }
-
-        function rotateRight() {
-            // Normalize rotation to keep it in the range of -360 to 360 degrees
-            currentRotation = (currentRotation + 90) % 360;
-            updateImageTransform();
-            debugLog(`Rotated right to ${currentRotation} degrees`);
-        }
-
-        function resetView() {
-            // Reset both zoom and rotation
-            currentZoom = 1;
-            currentRotation = 0;
-            updateImageTransform();
-            debugLog(`Reset view to default`);
-        }
-        function updateImageTransform() {
-            // Apply transform with proper origin point
-            const transform = `scale(${currentZoom}) rotate(${currentRotation}deg)`;
-            photoViewerImg.style.transform = transform;
-            photoViewerImg.style.transformOrigin = 'center center';
-
-            debugLog(`Applied transform: ${transform}`);
-        }
+        // Simple photo navigation functions
 
         // For debugging cluster clicks - override cluster click handling
         function debugClusterFunction() {

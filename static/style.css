@@ -417,35 +417,58 @@ body {
         }
 
         /* Image controls */
-        .image-controls {
+        .image-navigation {
             position: absolute;
             bottom: 10px;
-            left: 10px;
-            background-color: rgba(255, 255, 255, 0.7);
-            padding: 5px;
-            border-radius: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 8px;
             display: flex;
-            gap: 5px;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            z-index: 200;
+        }
+        
+        .image-navigation .nav-buttons {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .photo-viewer-counter {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
         }
 
-        .image-control-btn {
-            background-color: #4CAF50;
+        .photo-nav-btn {
+            padding: 8px 20px;
+            background: rgba(0, 0, 0, 0.5);
             color: white;
-            border: none;
-            width: 30px;
-            height: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 4px;
             cursor: pointer;
-            font-size: 16px;
+            font-weight: bold;
+            font-size: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 44px; /* Better touch target */
             min-width: 44px; /* Better touch target */
+            transition: all 0.2s ease;
         }
 
-        .image-control-btn:hover {
-            background-color: #3e8e41;
+        .photo-nav-btn:hover {
+            background: rgba(20, 20, 20, 0.8);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .photo-nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
         }
 
         /* Additional responsive styles */
@@ -758,19 +781,15 @@ body {
         z-index: 10 !important;
     }
     
-    .photo-viewer-nav {
-        flex: 0 0 auto !important;
-        gap: 5px !important;
-        flex-direction: column !important;
-        align-items: center !important;
-    }
-    
-    /* Position image controls on the left */
-    .image-controls {
-        left: 10px !important;
-        bottom: 10px !important;
-        background-color: rgba(0, 0, 0, 0.5) !important;
-        z-index: 10 !important;
+    /* Position image navigation in the center */
+    .image-navigation {
+        bottom: 20px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        background-color: rgba(0, 0, 0, 0.7) !important;
+        padding: 8px 15px !important;
+        border-radius: 8px !important;
+        z-index: 100 !important;
     }
     
     .image-control-btn,
