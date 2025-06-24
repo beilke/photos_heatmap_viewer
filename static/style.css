@@ -1,5 +1,24 @@
-/* Super obvious marker cluster styling */
-.leaflet-cluster-anim .leaflet-marker-icon, .leaflet-cluster-anim .leaflet-marker-shadow {
+/* ============================================= */
+/* BASE STYLES */
+/* ============================================= */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+}
+
+#map {
+    width: 100%;
+    height: 100vh;
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ============================================= */
+/* MARKER CLUSTER STYLES */
+/* ============================================= */
+.leaflet-cluster-anim .leaflet-marker-icon, 
+.leaflet-cluster-anim .leaflet-marker-shadow {
     -webkit-transition: -webkit-transform 0.3s ease-out, opacity 0.3s ease-in;
     -moz-transition: -moz-transform 0.3s ease-out, opacity 0.3s ease-in;
     -o-transition: -o-transform 0.3s ease-out, opacity 0.3s ease-in;
@@ -27,7 +46,6 @@
     background-color: #4CAF50 !important;
 }
 
-/* Make clusters REALLY obvious */
 .marker-cluster {
     background-clip: padding-box;
     border-radius: 20px;
@@ -42,7 +60,7 @@
     margin-top: 5px;
     text-align: center;
     border-radius: 15px;
-    font-size: 12px !important; /* Reduced from 14px to 12px */
+    font-size: 12px !important;
     font-weight: bold !important;
     color: white !important;
     display: flex !important;
@@ -51,562 +69,464 @@
     text-shadow: 1px 1px 2px rgba(0,0,0,0.5) !important;
 }
 
-body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-        }
+/* ============================================= */
+/* CONTROLS PANEL - DESKTOP */
+/* ============================================= */
+.controls-container {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    pointer-events: none;
+}
 
-        #map {
-            width: 100%;
-            height: 100vh;
-            touch-action: pan-x pan-y;
-            -webkit-overflow-scrolling: touch;
-        }
+.controls {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 0 0 5px 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    max-width: 250px;
+    max-height: 400px;
+    overflow-y: auto;
+    pointer-events: auto;
+    transition: all 0.3s ease;
+}
 
-        .controls-container {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
-            pointer-events: none; /* Let map events pass through container */
-        }
-        
-        .controls {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px;
-            border-radius: 0 0 5px 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            max-width: 250px;
-            max-height: 400px;
-            overflow-y: auto;
-            pointer-events: auto; /* Allow events inside the panel */
-        }
-        
-        .controls input {
-            font-size: 12px;
-        }
-        
-        .controls button {
-            padding: 5px 10px;
-            background: #4CAF50;
-            border: none;
-            color: white;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        
-        .controls h4 {
-            margin: 10px 0 5px 0;
-            font-size: 13px;
-        }
-        
-        .controls label {
-            font-size: 12px;
-        }
-        
-        .controls-toggle {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 5px 10px;
-            border-radius: 5px 5px 0 0;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 120px;
-            pointer-events: auto; /* Allow events on the toggle */
-        }
-        
-        .controls-toggle:hover {
-            background: rgba(240, 240, 240, 0.95);
-        }
+.controls-toggle {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 5px 10px;
+    border-radius: 5px 5px 0 0;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 120px;
+    pointer-events: auto;
+}
 
-        .debug-panel-container {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            z-index: 1000;
-        }
+.controls-toggle:hover {
+    background: rgba(240, 240, 240, 0.95);
+}
 
-        .debug-panel {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-            max-width: 400px;
-            max-height: 200px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 12px;
-            display: none;
-            /* Hidden by default */
-        }
+.toggle-icon {
+    transition: transform 0.3s ease;
+}
 
-        .debug-panel-toggle {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 5px 10px;
-            border-radius: 5px 5px 0 0;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 120px;
-        }
+/* Control elements */
+.controls input {
+    font-size: 12px;
+}
 
-        .debug-panel-toggle:hover {
-            background: rgba(240, 240, 240, 0.95);
-        }
+.controls button {
+    padding: 5px 10px;
+    background: #4CAF50;
+    border: none;
+    color: white;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
 
-        .loading {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
+.controls h4 {
+    margin: 10px 0 5px 0;
+    font-size: 13px;
+}
 
-        .loading button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            background: #4CAF50;
-            border: none;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+.controls label {
+    font-size: 12px;
+}
 
-        .progress-bar {
-            width: 300px;
-            height: 20px;
-            background-color: #f0f0f0;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 10px auto;
-        }
+/* Library filters */
+.library-filters {
+    margin-top: 15px;
+    border-top: 1px solid #ddd;
+    padding-top: 10px;
+}
 
-        .progress-bar div {
-            height: 100%;
-            background-color: #4CAF50;
-            transition: width 0.3s ease;
-        }
-
-        .marker-popup {
-            min-width: 160px;
-        }
-
-        .popup-image-container {
-            margin-top: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .loading-placeholder {
-            color: #666;
-            font-size: 12px;
-        }
-
-        .marker-loading-status {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 8px 12px;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            font-size: 14px;
-        }
-
-        /* Photo Viewer Styles */
-        .photo-viewer-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.85);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-            pointer-events: auto; /* Ensure events work on the overlay */
-            touch-action: none; /* Prevent background touch actions */
-        }
-
-        .photo-viewer-container {
-            position: relative;
-            width: 95%;
-            max-width: 1400px;
-            height: 90%;
-            background-color: #fff;
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            touch-action: pan-y; /* Allow vertical scrolling */
-            -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
-        }
-
-        .photo-viewer-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 20px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .photo-viewer-title {
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        .photo-viewer-close {
-            font-size: 24px;
-            cursor: pointer;
-            background: none;
-            border: none;
-            color: #666;
-            padding: 10px; /* Larger touch target */
-            margin: -10px; /* Keep visual size the same */
-        }
-
-        .photo-viewer-content {
-            flex: 1;
-            display: flex;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .photo-viewer-image {
-            flex: 5;
-            /* Give the image even more space */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 5px;
-            background-color: #000;
-            /* Dark background for better contrast */
-            position: relative;
-            overflow: hidden;
-            min-height: 500px;
-            /* Ensure minimum height */
-        }
-
-        .photo-viewer-image img {
-            max-width: 90%;
-            max-height: 90%;
-            object-fit: contain;
-            transform-origin: center center;
-            transition: transform 0.3s ease;
-            margin: auto;
-            /* Center the image */
-            display: block;
-            /* Remove any inline behavior */
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-            /* Add subtle shadow for better visibility */
-        }
-
-        .photo-viewer-info {
-            flex: 1;
-            /* Make info panel take less space */
-            width: 250px;
-            min-width: 220px;
-            padding: 15px;
-            border-left: 1px solid #eee;
-            overflow-y: auto;
-        }
-
-        .photo-info-item {
-            margin-bottom: 15px;
-        }
-
-        .photo-info-label {
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #555;
-        }
-
-        .photo-viewer-footer {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 20px;
-            border-top: 1px solid #eee;
-        }
-
-        .photo-viewer-nav {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .photo-viewer-counter {
-            font-size: 14px;
-            color: #666;
-        }
-
-        .photo-nav-btn {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            min-height: 44px; /* Better touch target */
-            min-width: 44px; /* Better touch target */
-        }
-
-        .photo-nav-btn:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-
-        /* Image controls */
-        .image-controls {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            background-color: rgba(255, 255, 255, 0.7);
-            padding: 5px;
-            border-radius: 4px;
-            display: flex;
-            gap: 5px;
-        }
-
-        .image-control-btn {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            width: 30px;
-            height: 30px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 44px; /* Better touch target */
-            min-width: 44px; /* Better touch target */
-        }
-
-        .image-control-btn:hover {
-            background-color: #3e8e41;
-        }
-
-        /* Additional responsive styles */
-        @media (max-width: 768px) {
-            .photo-viewer-container {
-                width: 95%;
-                height: 95%;
-                max-width: none;
-            }
-
-            .photo-viewer-content {
-                flex-direction: column;
-            }
-
-            .photo-viewer-image {
-                flex: 2;
-            }
-
-            .photo-viewer-info {
-                width: auto;
-                border-left: none;
-                border-top: 1px solid #eee;
-            }
-            
-            /* Ensure modals work well on touch devices */
-            .photo-viewer-overlay {
-                touch-action: none;
-            }
-            
-            .photo-viewer-image img {
-                touch-action: pinch-zoom;
-            }
-        }
-
-       /* Library filters */
-        .library-filters {
-            margin-top: 15px;
-            border-top: 1px solid #ddd;
-            padding-top: 10px;
-        }
-
-        .library-filters h4 {
-            margin: 0 0 10px 0;
-        }
-
-        .library-checkbox {
+.library-checkbox {
     margin: 0;
     padding: 0;
 }
 
-        #libraryFilterContainer {
-            line-height: 1; /* Adjust as needed */
-            max-height: 200px;
-            overflow-y: auto;
-            margin-bottom: 10px;
-            padding-right: 5px;
-            padding-top: 20px;
-            /* Add padding at top for tooltips */
-            padding-bottom: 10px;
-            /* Add padding at bottom for tooltips */
-        }
-        
+#libraryFilterContainer {
+    line-height: 1;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    padding: 20px 5px 10px;
+}
 
-        /* Library label tooltip style */
-        .library-label {
-            position: relative;
-            cursor: pointer;
-        }
+.library-label {
+    position: relative;
+    cursor: pointer;
+}
 
-        .library-label[data-update-time]:hover:after {
-            content: "Last updated: " attr(data-update-time);
-            position: absolute;
-            left: 0;
-            bottom: 100%;
-            /* Position above the label */
-            margin-bottom: 5px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 3px 6px;
-            border-radius: 3px;
-            white-space: nowrap;
-            font-size: 11px;
-            z-index: 1001;
-            pointer-events: none;
-            box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
-        }
+.library-label[data-update-time]:hover:after {
+    content: "Last updated: " attr(data-update-time);
+    position: absolute;
+    left: 0;
+    bottom: 100%;
+    margin-bottom: 5px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 3px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    font-size: 11px;
+    z-index: 1001;
+    pointer-events: none;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
 
-        .library-label:not([data-update-time]):hover:after {
-            content: "No update information available";
-            position: absolute;
-            left: 0;
-            bottom: 100%;
-            /* Position above the label */
-            margin-bottom: 5px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 3px 6px;
-            border-radius: 3px;
-            white-space: nowrap;
-            font-size: 11px;
-            z-index: 1001;
-            pointer-events: none;
-            box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
-        }
+.library-label:not([data-update-time]):hover:after {
+    content: "No update information available";
+    position: absolute;
+    left: 0;
+    bottom: 100%;
+    margin-bottom: 5px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 3px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    font-size: 11px;
+    z-index: 1001;
+    pointer-events: none;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
 
-        /* Remove any custom cluster styling that could hide the count */
+/* Scrollbar */
+.controls::-webkit-scrollbar {
+    width: 5px;
+}
 
-        /* .marker-cluster, .marker-cluster div, .marker-cluster span { all: unset !important; } */
+.controls::-webkit-scrollbar-thumb {
+    background: #4CAF50;
+    border-radius: 5px;
+}
 
-        .leaflet-cluster-anim .leaflet-marker-icon,
-        .leaflet-cluster-anim .leaflet-marker-shadow {
-            -webkit-transition: -webkit-transform 0.3s ease-out, opacity 0.3s ease-in;
-            -moz-transition: -moz-transform 0.3s ease-out, opacity 0.3s ease-in;
-            -o-transition: -o-transform 0.3s ease-out, opacity 0.3s ease-in;
-            transition: transform 0.3s ease-out, opacity 0.3s ease-in;
-        }
+/* ============================================= */
+/* PHOTO VIEWER STYLES */
+/* ============================================= */
+.photo-viewer-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    touch-action: none;
+}
 
-        /* Zoom controls */
-        .photo-zoom-controls {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            display: flex;
-            gap: 5px;
-        }
+.photo-viewer-container {
+    position: relative;
+    width: 95%;
+    max-width: 1400px;
+    height: 90%;
+    background-color: #fff;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+}
 
-        .photo-zoom-controls button {
-            width: 30px;
-            height: 30px;
-            background-color: rgba(0, 0, 0, 0.5);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            font-size: 16px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.2s;
-            min-height: 44px; /* Better touch target */
-            min-width: 44px; /* Better touch target */
-        }
+.photo-viewer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    border-bottom: 1px solid #eee;
+}
 
-        .photo-zoom-controls button:hover {
-            background-color: rgba(0, 0, 0, 0.8);
-        }
+.photo-viewer-title {
+    font-size: 18px;
+    font-weight: bold;
+}
 
-        .photo-viewer-image {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
+.photo-viewer-close {
+    font-size: 24px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: #666;
+    padding: 10px;
+    margin: -10px;
+}
 
-        .photo-viewer-image img {
-            transition: transform 0.3s ease;
-            object-fit: contain;
-        }
+.photo-viewer-content {
+    flex: 1;
+    display: flex;
+    position: relative;
+    overflow: hidden;
+}
 
-        #fullscreenBtn {
-            padding: 5px 10px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            min-height: 44px; /* Better touch target */
-            min-width: 44px; /* Better touch target */
-        }
+.photo-viewer-image {
+    flex: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    background-color: #000;
+    position: relative;
+    overflow: hidden;
+    min-height: 500px;
+}
 
-        #fullscreenBtn:hover {
-            background-color: #3e8e41;
-        }
+.photo-viewer-image img {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+    transform-origin: center center;
+    transition: transform 0.3s ease;
+    margin: auto;
+    display: block;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
 
-        .controls {
-            /* Keep your existing styles */
-            max-height: 90vh;
-            overflow-y: auto;
-            transition: all 0.3s ease;
-        }
+.photo-viewer-info {
+    flex: 1;
+    width: 250px;
+    min-width: 220px;
+    padding: 15px;
+    border-left: 1px solid #eee;
+    overflow-y: auto;
+}
 
-        /* Add a subtle scrollbar */
-        .controls::-webkit-scrollbar {
-            width: 5px;
-        }
+.photo-info-item {
+    margin-bottom: 15px;
+}
 
-        .controls::-webkit-scrollbar-thumb {
-            background: #4CAF50;
-            border-radius: 5px;
-        }
+.photo-info-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #555;
+}
 
-/* Mobile Responsive Styles */
+.photo-viewer-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 20px;
+    border-top: 1px solid #eee;
+}
+
+.photo-viewer-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.photo-viewer-counter {
+    font-size: 14px;
+    color: #666;
+}
+
+.photo-nav-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    min-height: 44px;
+    min-width: 44px;
+}
+
+.photo-nav-btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+/* Image controls */
+.image-controls {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 5px;
+    border-radius: 4px;
+    display: flex;
+    gap: 5px;
+}
+
+.image-control-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+}
+
+.image-control-btn:hover {
+    background-color: #3e8e41;
+}
+
+/* Zoom controls */
+.photo-zoom-controls {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
+}
+
+.photo-zoom-controls button {
+    width: 30px;
+    height: 30px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+    min-height: 44px;
+    min-width: 44px;
+}
+
+.photo-zoom-controls button:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+/* ============================================= */
+/* UTILITY STYLES */
+/* ============================================= */
+.loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.loading button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background: #4CAF50;
+    border: none;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.progress-bar {
+    width: 300px;
+    height: 20px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 10px auto;
+}
+
+.progress-bar div {
+    height: 100%;
+    background-color: #4CAF50;
+    transition: width 0.3s ease;
+}
+
+.marker-popup {
+    min-width: 160px;
+}
+
+.popup-image-container {
+    margin-top: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.loading-placeholder {
+    color: #666;
+    font-size: 12px;
+}
+
+.marker-loading-status {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 8px 12px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    font-size: 14px;
+}
+
+.debug-panel-container {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    z-index: 1000;
+}
+
+.debug-panel {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 12px;
+    display: none;
+}
+
+.debug-panel-toggle {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 5px 10px;
+    border-radius: 5px 5px 0 0;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 120px;
+}
+
+.debug-panel-toggle:hover {
+    background: rgba(240, 240, 240, 0.95);
+}
+
+/* ============================================= */
+/* MOBILE RESPONSIVE STYLES */
+/* ============================================= */
 @media (max-width: 768px) {
-    /* Basic layout adjustments */
     body {
         font-size: 14px;
         touch-action: manipulation;
     }
     
-    /* Adjust map for mobile */
     #map {
         height: 100vh;
         width: 100%;
@@ -615,43 +535,56 @@ body {
         left: 0;
     }
     
-    /* Make controls better for touch */
+    /* Controls Panel */
     .controls-container {
-        width: 100%;
-        top: auto;
-        bottom: 0;
+        position: fixed;
+        left: 0;
         right: 0;
-        z-index: 1001;
-        pointer-events: none; /* Let map events pass through container */
+        bottom: 0;
+        top: auto;
+        width: 100%;
+        padding: 0 10px 10px;
+        max-width: none;
+        transform: translateZ(0);
     }
     
     .controls-toggle {
         width: 100%;
-        padding: 10px;
-        border-radius: 10px 10px 0 0;
-        pointer-events: auto; /* Allow events on the toggle */
-        touch-action: none; /* Prevent default touch behaviors */
+        border-radius: 8px 8px 0 0;
+        padding: 15px;
+        background: white;
+        box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+        justify-content: center;
     }
     
     .controls {
         width: 100%;
-        max-width: 100%;
-        padding: 15px;
-        border-radius: 10px 10px 0 0;
+        max-width: none;
         max-height: 60vh;
-        pointer-events: auto; /* Allow events inside the panel */
-        touch-action: pan-y; /* Allow only vertical scrolling inside */
-        -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
+        border-radius: 0;
+        box-shadow: none;
+        border-top: 1px solid #eee;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        transform: translateY(100%);
+        opacity: 0;
+        display: block !important;
+        pointer-events: none;
     }
     
-    /* Improve touch targets */
+    .controls-container.expanded .controls {
+        transform: translateY(0);
+        opacity: 1;
+        pointer-events: auto;
+    }
+    
+    /* Form elements */
     .controls button {
         padding: 10px 15px;
         margin: 5px 0;
         min-height: 44px;
     }
     
-    /* Force all inputs to be larger for touch */
     .controls input[type="checkbox"],
     .controls input[type="radio"] {
         width: 20px;
@@ -683,95 +616,46 @@ body {
         background: #4CAF50;
     }
     
-    .controls select {
-        height: 40px;
-        font-size: 16px; /* Prevent iOS zoom on focus */
-    }
-    
-    /* Adjust debug panel */
-    .debug-panel-container {
-        width: 100%;
-        left: 0;
-        bottom: auto;
-        top: 0;
-        pointer-events: none; /* Let map events pass through container */
-    }
-    
-    .debug-panel-toggle {
-        width: 100%;
-        padding: 10px;
-        border-radius: 0 0 10px 10px;
-        pointer-events: auto; /* Allow events on the toggle */
-        touch-action: none; /* Prevent default touch behaviors */
-    }
-    
-    .debug-panel {
-        width: 100%;
-        max-width: 100%;
-        border-radius: 0 0 10px 10px;
-        pointer-events: auto; /* Allow events inside the panel */
-        touch-action: pan-y; /* Allow only vertical scrolling inside */
-        -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
-    }
-    
-    /* Modal adjustments for mobile */
-    .modal-content {
-        width: 90%;
-        max-height: 80vh;
-        padding: 15px;
-        pointer-events: auto; /* Ensure events work in modal */
-    }
-    
-    .photo-controls {
-        margin: 10px 0;
-    }
-    
-    .modal {
-        pointer-events: auto;
-        touch-action: none; /* Prevent background touch actions */
-    }
-    
-    /* Fix photo viewer */
+    /* Photo Viewer */
     .photo-viewer-container {
         width: 95%;
-        max-width: 100%;
-        max-height: 90vh;
-        overflow-y: auto;
+        height: 95%;
+        max-width: none;
     }
-    
+
     .photo-viewer-content {
         flex-direction: column;
     }
-    
+
     .photo-viewer-image {
-        width: 100%;
+        flex: 2;
     }
-    
+
     .photo-viewer-info {
-        width: 100%;
+        width: auto;
+        border-left: none;
+        border-top: 1px solid #eee;
     }
     
-    .photo-viewer-header {
-        padding: 15px;
+    .photo-viewer-overlay {
+        touch-action: none;
     }
     
-    .photo-viewer-close {
-        font-size: 28px;
-        padding: 5px 15px;
+    .photo-viewer-image img {
+        touch-action: pinch-zoom;
     }
     
-    /* Larger cluster touch areas */
+    /* Clusters */
     .marker-cluster {
         transform: scale(1.25);
     }
     
-    /* Ensure filters are easy to tap */
+    /* Labels */
     .library-filters label {
         padding: 8px 0;
         display: block;
     }
     
-    /* Make all labels tap-friendly */
     label {
         min-height: 30px;
         display: inline-block;
@@ -779,7 +663,6 @@ body {
     }
 }
 
-/* Additional adjustments for very small screens */
 @media (max-width: 480px) {
     .photo-viewer-nav button {
         padding: 12px;
