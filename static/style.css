@@ -431,245 +431,145 @@ body {
             body {
                 font-size: 14px;
                 touch-action: manipulation;
+                margin: 0;
+                padding: 0;
+                overflow: hidden; /* Prevent bounce scrolling */
             }
             
             /* Adjust map for mobile */
             #map {
                 height: 100vh;
-                width: 100%;
+                width: 100vw;
                 position: fixed;
                 top: 0;
                 left: 0;
-            }
-            
-            /* Make controls better for touch */
-            .controls-container {
-                position: fixed; /* Use fixed instead of absolute */
-                width: 100%;
-                bottom: 0;
                 right: 0;
-                left: 0; /* Ensure it spans full width */
-                z-index: 1001;
+                bottom: 0;
+            }
+            
+            /* Controls container - fixed to bottom */
+            .controls-container {
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                top: auto !important; /* Override desktop position */
+                width: 100% !important;
+                z-index: 1001 !important;
                 pointer-events: none; /* Let map events pass through container */
-                max-height: 50vh; /* Limit height to prevent overflow issues */
-                display: flex;
-                flex-direction: column-reverse; /* Toggle at bottom, panel above */
+                display: flex !important;
+                flex-direction: column-reverse !important; /* Toggle at bottom, panel above */
+                max-height: 60vh !important; /* Limit container height */
             }
             
+            /* Toggle button - always visible at bottom */
             .controls-toggle {
-                width: 100%;
-                padding: 10px;
-                border-radius: 10px 10px 0 0;
-                pointer-events: auto; /* Allow events on the toggle */
-                touch-action: none; /* Prevent default touch behaviors */
-                position: sticky; /* Change to sticky to ensure visibility */
-                bottom: 0; /* Stick to the bottom */
-                z-index: 1002; /* Ensure toggle is above the controls */
-                background-color: rgba(255, 255, 255, 0.95); /* More opaque background for visibility */
-                box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2); /* Add shadow for visibility */
-                text-align: center; /* Center the text */
-                font-weight: bold;
-                order: 2; /* Place toggle at bottom in flex column-reverse */
-                margin: 0;
+                width: 100% !important;
+                padding: 12px 0 !important;
+                border-radius: 10px 10px 0 0 !important;
+                background-color: rgba(255, 255, 255, 0.95) !important;
+                box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.2) !important;
+                pointer-events: auto !important; /* Allow events on the toggle */
+                position: relative !important; /* Position relative to container */
+                margin: 0 !important;
+                text-align: center !important;
+                z-index: 1002 !important;
+                display: flex !important;
+                justify-content: center !important;
+                align-items: center !important;
+                min-height: 44px !important; /* Better touch target */
+                font-weight: bold !important;
+                font-size: 14px !important;
+                touch-action: manipulation !important; /* Better touch handling */
+                order: 2 !important; /* Place at bottom in flex column-reverse */
             }
             
-            .controls {
-                width: 100%;
-                max-width: 100%;
-                padding: 15px;
-                border-radius: 10px 10px 0 0;
-                max-height: 50vh; /* Limit height to prevent overflow */
-                pointer-events: auto; /* Allow events inside the panel */
-                touch-action: pan-y; /* Allow only vertical scrolling inside */
-                -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
-                overflow-y: auto; /* Ensure scrolling works */
-                box-sizing: border-box; /* Include padding in the width calculation */
-                order: 1; /* Place panel above toggle in flex column-reverse */
-                box-shadow: 0 -3px 10px rgba(0, 0, 0, 0.15); /* Enhanced shadow */
-                border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* Add subtle border */
-                transition: transform 0.3s ease, opacity 0.3s ease; /* Smooth transitions */
-            }
-            
-            /* Make toggle icon more visible */
+            /* Toggle icon */
             .controls-toggle .toggle-icon {
-                font-size: 16px; /* Larger icon */
-                font-weight: bold;
-                display: inline-block;
-                margin-left: 8px;
-                color: #4CAF50; /* Match button color */
+                font-size: 18px !important;
+                margin-left: 10px !important;
+                color: #4CAF50 !important;
+            }
+            
+            /* Controls panel itself */
+            .controls {
+                width: 100% !important;
+                max-height: 50vh !important; /* Prevent overflow */
+                background-color: rgba(255, 255, 255, 0.95) !important;
+                border-radius: 10px 10px 0 0 !important;
+                padding: 15px !important;
+                box-sizing: border-box !important;
+                pointer-events: auto !important;
+                overflow-y: auto !important; 
+                touch-action: pan-y !important;
+                -webkit-overflow-scrolling: touch !important;
+                position: relative !important;
+                order: 1 !important; /* Place above toggle in flex column-reverse */
+                border-bottom: none !important;
+                border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+                box-shadow: 0 -3px 10px rgba(0, 0, 0, 0.15) !important;
+                margin: 0 !important;
+            }
+            
+            /* Hide debug panel completely on mobile */
+            .debug-panel-container {
+                display: none !important;
             }
             
             /* Improve touch targets */
             .controls button {
-                padding: 10px 15px;
-                margin: 5px 0;
-                min-height: 44px;
+                padding: 12px !important;
+                margin: 8px 0 !important;
+                min-height: 44px !important;
+                font-size: 16px !important;
             }
             
-            /* Force all inputs to be larger for touch */
+            /* Force inputs to be touch-friendly */
             .controls input[type="checkbox"],
             .controls input[type="radio"] {
-                width: 20px;
-                height: 20px;
-                vertical-align: middle;
+                width: 22px !important;
+                height: 22px !important;
+                margin: 0 8px 0 0 !important;
+                vertical-align: middle !important;
             }
             
-            .controls input[type="range"] {
-                height: 25px;
-                -webkit-appearance: none;
-                appearance: none;
-                margin: 10px 0;
-                width: 100%;
-            }
-            
-            .controls input[type="range"]::-webkit-slider-thumb {
-                -webkit-appearance: none;
-                height: 30px;
-                width: 30px;
-                border-radius: 15px;
-                background: #4CAF50;
-                margin-top: -10px;
-            }
-            
-            .controls input[type="range"]::-moz-range-thumb {
-                height: 30px;
-                width: 30px;
-                border-radius: 15px;
-                background: #4CAF50;
-            }
-            
-            .controls select {
-                height: 40px;
-                font-size: 16px; /* Prevent iOS zoom on focus */
-            }
-            
-            /* Adjust debug panel */
-            .debug-panel-container {
-                display: none; /* Hide debug panel on mobile completely */
-            }
-            
-            /* Modal adjustments for mobile */
-            .modal-content {
-                width: 90%;
-                max-height: 80vh;
-                padding: 15px;
-                pointer-events: auto; /* Ensure events work in modal */
-            }
-            
-            .photo-controls {
-                margin: 10px 0;
-            }
-            
-            .modal {
-                pointer-events: auto;
-                touch-action: none; /* Prevent background touch actions */
-            }
-            
-            /* Fix photo viewer */
-            .photo-viewer-container {
-                width: 95%;
-                max-width: 100%;
-                max-height: 90vh;
-                overflow-y: auto;
-            }
-            
-            .photo-viewer-content {
-                flex-direction: column;
-            }
-            
-            .photo-viewer-image {
-                width: 100%;
-            }
-            
-            .photo-viewer-info {
-                width: 100%;
-            }
-            
-            .photo-viewer-header {
-                padding: 15px;
-            }
-            
-            .photo-viewer-close {
-                font-size: 28px;
-                padding: 5px 15px;
-            }
-            
-            /* Larger cluster touch areas */
-            .marker-cluster {
-                transform: scale(1.25);
-            }
-            
-            /* Ensure filters are easy to tap */
-            .library-filters label {
-                padding: 8px 0;
-                display: block;
-            }
-            
-            /* Make all labels tap-friendly */
-            label {
-                min-height: 30px;
-                display: inline-block;
-                padding: 5px 0;
+            .controls label {
+                min-height: 44px !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                padding: 8px 0 !important;
+                font-size: 16px !important;
             }
         }
 
-        /* Additional adjustments for very small screens */
+        /* Additional styles for small screens */
         @media (max-width: 480px) {
-            .photo-viewer-nav button {
-                padding: 12px;
-                min-width: 44px;
-                min-height: 44px;
+            /* Even smaller max-height */
+            .controls {
+                max-height: 45vh !important;
             }
             
-            .image-control-btn {
-                padding: 10px;
-                min-width: 44px;
-                min-height: 44px;
-                margin: 0 2px;
-            }
-            
-            /* Ensure toggle is even more visible on small screens */
+            /* Larger toggle button */
             .controls-toggle {
-                padding: 12px 10px;
-                font-size: 14px;
-                position: sticky;
-                bottom: 0;
-                height: auto;
-                min-height: 44px; /* Ensure minimum touch target size */
-                display: flex;
-                justify-content: center;
-                align-items: center;
+                padding: 15px 0 !important;
+                font-size: 16px !important;
+                min-height: 50px !important;
             }
             
             .controls-toggle .toggle-icon {
-                font-size: 18px;
-                margin-left: 10px;
+                font-size: 22px !important;
             }
             
-            /* Limit panel height further on very small screens */
-            .controls {
-                max-height: 40vh;
+            /* Full width buttons */
+            .controls button {
+                width: 100% !important;
             }
         }
 
-        /* Additional fix for iPhone and very small screens */
-        @media (max-width: 375px) {
-            .controls-toggle {
-                padding: 15px 10px;
-                font-size: 16px; /* Larger font for better visibility */
-            }
-            
-            .controls-toggle .toggle-icon {
-                font-size: 20px;
-            }
-            
+        /* iPhone and very small screens */
+        @media (max-width: 380px) {
             .controls {
-                max-height: 35vh; /* Even smaller for tiny screens */
-            }
-            
-            /* Extra visible button styling */
-            .controls button {
-                width: 100%; /* Full width buttons */
-                margin: 8px 0;
+                max-height: 40vh !important;
+                padding: 12px !important;
             }
         }

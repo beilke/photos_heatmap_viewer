@@ -153,16 +153,24 @@
                 const controlsPanel = document.getElementById('controlsPanel');
                 const toggleIcon = controlsToggle.querySelector('.toggle-icon');
                 
+                // Always ensure toggle is visible
+                controlsToggle.style.display = 'flex';
+                
                 // On mobile, start with panel hidden and update toggle icon
                 if (isMobile) {
                     controlsPanel.style.display = 'none';
                     toggleIcon.textContent = '▲';
                     controlsToggle.setAttribute('aria-expanded', 'false');
+                    controlsPanelVisible = false;
                 }
                 
                 // Use touchend for mobile and click for desktop
-                controlsToggle.addEventListener(isMobile ? 'touchend' : 'click', function (e) {
-                    if (isMobile) e.preventDefault();
+                const toggleEvent = isMobile ? 'touchend' : 'click';
+                controlsToggle.addEventListener(toggleEvent, function (e) {
+                    if (isMobile) {
+                        e.preventDefault();
+                        e.stopPropagation(); // Prevent event bubbling
+                    }
                     
                     if (controlsPanel.style.display === 'block') {
                         controlsPanel.style.display = 'none';
@@ -184,6 +192,23 @@
         
         // Track visibility states (helps with orientation changes)
         let controlsPanelVisible = false;
+        
+        // Immediately apply class to body for mobile-specific CSS
+        if (isMobile) {
+            document.body.classList.add('mobile-device');
+            
+            // Set controls container position immediately
+            const controlsContainer = document.querySelector('.controls-container');
+            if (controlsContainer) {
+                controlsContainer.style.position = 'fixed';
+                controlsContainer.style.bottom = '0';
+                controlsContainer.style.top = 'auto';
+                controlsContainer.style.left = '0';
+                controlsContainer.style.right = '0';
+                controlsContainer.style.width = '100%';
+                controlsContainer.style.zIndex = '1001';
+            }
+        }
         
         // Debug logging function - defined based on device type
         let debugLog;
@@ -251,8 +276,8 @@
             }, { passive: false });
         }
         
-        // Handle device orientation changes
-        window.addEventListener('orientationchange', function() {
+        // Handle device orientation changes and resizing
+        function handleViewportChange() {
             // Add a small delay to allow the browser to complete the orientation change
             setTimeout(function() {
                 map.invalidateSize();
@@ -269,9 +294,22 @@
                     controlsPanel.style.display = controlsPanelVisible ? 'block' : 'none';
                 }
                 
-                debugLog('Orientation changed, map and controls updated');
+                // Ensure controls container is at the bottom in mobile view
+                if (isMobile) {
+                    const controlsContainer = document.querySelector('.controls-container');
+                    if (controlsContainer) {
+                        controlsContainer.style.bottom = '0';
+                        controlsContainer.style.top = 'auto';
+                    }
+                }
+                
+                debugLog('Viewport changed, map and controls updated');
             }, 300);
-        });
+        }
+        
+        // Listen for both orientation and resize changes
+        window.addEventListener('orientationchange', handleViewportChange);
+        window.addEventListener('resize', handleViewportChange);
         
         // Initialize map
         debugLog('Initializing map');
