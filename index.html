@@ -268,22 +268,28 @@
         
         // Improve touch handling
         if (isMobile) {
-            // Prevent touch events from interfering with map panning and zooming
+            // Fix map dragging issues by preventing unwanted touch event handling
             document.addEventListener('touchmove', function(e) {
                 // Allow touch events inside controls and modals
                 if (e.target.closest('.controls') || 
                     e.target.closest('.debug-panel') || 
                     e.target.closest('.photo-viewer-container')) {
-                    return;
+                    return; // Don't interfere with scrolling in controls
                 }
                 
-                // Otherwise prevent default on map elements
-                if (e.target.closest('#map')) {
-                    if (e.touches.length === 1) { // Single touch = panning
-                        // Let the map handle it
-                    }
+                // Let map handle all its own touch events
+                if (e.target.closest('#map') || e.target.closest('.leaflet-container')) {
+                    // Don't preventDefault - let Leaflet handle its own events
+                    return;
                 }
-            }, { passive: false });
+            }, { passive: true });
+            
+            // Ensure map gets proper touch events
+            const mapElement = document.getElementById('map');
+            if (mapElement) {
+                // Force map to handle touch events properly
+                mapElement.style.touchAction = 'none';
+            }
         }
         
         // Handle device orientation changes and resizing
@@ -337,10 +343,11 @@
                 [90, 180]     // Northeast corner
             ],
             maxBoundsViscosity: 1.0,  // Strict bounds enforcement
-            tap: isMobile, // Enable tap for mobile devices
-            dragging: !isMobile || !L.Browser.mobile, // Disable drag on mobile by default
-            tap: true, // Enable tap handler
-            tapTolerance: 15 // Increased tap tolerance for mobile
+            tap: true, // Always enable tap handler
+            dragging: true, // Enable dragging for all devices
+            touchZoom: true, // Enable touch zoom
+            tapTolerance: 15, // Increased tap tolerance for mobile
+            bounceAtZoomLimits: false // Prevent bounce when hitting zoom limits
         }).setView([50, 0], isMobile ? 3 : 5); // Adjust initial zoom for mobile
 
 
