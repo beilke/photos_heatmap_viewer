@@ -61,8 +61,11 @@
         <div class="debug-panel" id="debugPanel"></div>
     </div>
     <div class="loading" id="loading">
-        <h2>Loading photo data...</h2>
-        <p>Please wait while we load your photo data.</p>
+        <h2>Loading Photo Data</h2>
+        <p id="loadingMessage">Initializing...</p>
+        <div class="progress-bar" id="loadingProgress">
+            <div id="progressBar" style="width: 0%;"></div>
+        </div>
         <button onclick="location.reload()">Retry</button>
     </div>
 
@@ -107,11 +110,11 @@
                         <div id="photoInfoPath"></div>
                     </div>
                 <div class="photo-viewer-nav">
-                    <button id="prevPhotoBtn" class="photo-nav-btn">&lt; Previous</button>
                     <div class="photo-viewer-counter">
                         <span id="currentPhotoIndex">1</span> / <span id="totalPhotos">1</span>
                     </div>
-                    <button id="nextPhotoBtn" class="photo-nav-btn">Next &gt;</button>
+                    <button id="prevPhotoBtn" class="photo-nav-btn" aria-label="Previous photo">&lt;</button>
+                    <button id="nextPhotoBtn" class="photo-nav-btn" aria-label="Next photo">&gt;</button>
                 </div>
             </div>
         </div>
@@ -403,13 +406,12 @@
 
             // Show loading indicator with progress bar
             loadingElement.style.display = 'flex';
-            loadingElement.innerHTML = `
-                <h2>Loading Photo Data</h2>
-                <p>Please wait...</p>
-                <div class="progress-bar" id="loadingProgress">
-                    <div id="progressBar" style="width: 0%; height: 20px; background-color: #4CAF50; transition: width 0.3s;"></div>
-                </div>
-            `;
+            const loadingMessage = document.getElementById('loadingMessage');
+            const progressBar = document.getElementById('progressBar');
+            
+            // Initialize loading state
+            loadingMessage.textContent = 'Fetching photo data...';
+            progressBar.style.width = '10%';
             // Use the new API endpoint for markers
             fetch('/api/markers')
                 .then(response => {
@@ -465,56 +467,43 @@
                     // Update photo count display
                     photoCountElement.textContent = `${withGPS.length} photos with location`;
 
-                    // Progressive loading sequence
-                    const steps = [
-                        {
-                            name: 'Creating Heatmap',
-                            action: () => {
-                                updateHeatmap(withGPS);
-                                if (withGPS.length > 0) {
-                                    const bounds = L.latLngBounds(withGPS.map(photo => [photo.latitude, photo.longitude]));
-                                    map.fitBounds(bounds);
-                                }
-                                document.getElementById('progressBar').style.width = '50%';
-                            }
-                        },
-                        {
-                            name: 'Preparing Markers',
-                            action: () => {
-                                if (showMarkersCheckbox.checked) {
-                                    updateMarkers(withGPS);
-                                }
-                                document.getElementById('progressBar').style.width = '100%';
-                            }
+                    // Unified loading sequence with progress updates
+                    const progressBar = document.getElementById('progressBar');
+                    const loadingMessage = document.getElementById('loadingMessage');
+                    
+                    // Update loading state (30% progress)
+                    progressBar.style.width = '30%';
+                    loadingMessage.textContent = 'Processing photo data...';
+                    
+                    setTimeout(() => {
+                        // Step 1: Create heatmap (50% progress)
+                        loadingMessage.textContent = 'Creating heatmap...';
+                        progressBar.style.width = '50%';
+                        
+                        updateHeatmap(withGPS);
+                        if (withGPS.length > 0) {
+                            const bounds = L.latLngBounds(withGPS.map(photo => [photo.latitude, photo.longitude]));
+                            map.fitBounds(bounds);
                         }
-                    ];
-
-                    // Execute steps in sequence
-                    let currentStep = 0;
-                    function executeNextStep() {
-                        if (currentStep < steps.length) {
-                            const step = steps[currentStep];
-                            loadingElement.innerHTML = `
-                                <h2>${step.name}</h2>
-                                <p>Processing...</p>
-                                <div class="progress-bar" style="width: 300px; height: 20px; background-color: #eee;">
-                                    <div id="progressBar" style="width: ${currentStep * 50}%; height: 20px; background-color: #4CAF50; transition: width 0.3s;"></div>
-                                </div>
-                            `;
-
-                            // Execute step with small delay to allow UI update
-                            setTimeout(() => {
-                                step.action();
-                                currentStep++;
-                                executeNextStep();
-                            }, 10);
-                        } else {
-                            // All steps complete
-                            loadingElement.style.display = 'none';
-                        }
-                    }
-
-                    executeNextStep();
+                        
+                        // Step 2: Add markers (70% progress)
+                        setTimeout(() => {
+                            loadingMessage.textContent = 'Adding photo markers...';
+                            progressBar.style.width = '70%';
+                            
+                            if (showMarkersCheckbox.checked) {
+                                // The updateMarkers function will handle the rest of the loading process
+                                updateMarkers(withGPS);
+                            } else {
+                                // If markers not shown, complete loading
+                                progressBar.style.width = '100%';
+                                loadingMessage.textContent = 'Finalizing...';
+                                setTimeout(() => {
+                                    loadingElement.style.display = 'none';
+                                }, 500);
+                            }
+                        }, 100);
+                    }, 100);
                 })
                 .catch(error => {
                     debugLog(`Error loading photo data: ${error.message}`);
@@ -607,20 +596,11 @@
     const filteredPhotos = uniquePhotos;
     debugLog(`Loading markers for ${filteredPhotos.length} unique photos...`);
 
-    // Show loading indicator
-    const markerLoadingStatus = document.createElement('div');
-    markerLoadingStatus.className = 'marker-loading-status';
-    markerLoadingStatus.innerHTML = '<strong>Loading markers...</strong>';
-    Object.assign(markerLoadingStatus.style, {
-        position: 'absolute',
-        bottom: '10px',
-        right: '10px',
-        backgroundColor: 'rgba(255,255,255,0.8)',
-        padding: '5px 10px',
-        borderRadius: '4px',
-        zIndex: '1000'
-    });
-    document.body.appendChild(markerLoadingStatus);
+    // Update the main loading indicator instead of creating a new one
+    const loadingMessage = document.getElementById('loadingMessage');
+    const progressBar = document.getElementById('progressBar');
+    loadingMessage.textContent = 'Loading markers...';
+    progressBar.style.width = '70%';
 
     // Remove old markers
     if (typeof markerGroup !== 'undefined' && markerGroup) {
@@ -656,6 +636,21 @@
     // Process markers (chunked if large dataset)
     const chunkSize = 100;
     let currentChunk = 0;
+    
+    // Handle empty filtered photos case
+    if (filteredPhotos.length === 0) {
+        debugLog('No photos with GPS data to display');
+        loadingMessage.textContent = 'No photos with GPS data to display';
+        progressBar.style.width = '100%';
+        
+        // Hide loading screen after a short delay
+        setTimeout(() => {
+            const loadingElement = document.getElementById('loading');
+            loadingElement.style.display = 'none';
+        }, 1000);
+        return;
+    }
+    
     const totalChunks = Math.ceil(filteredPhotos.length / chunkSize);
 
     function processChunk() {
@@ -666,7 +661,9 @@
             addMarker(filteredPhotos[i]);
         }
 
-        markerLoadingStatus.innerHTML = `<strong>Loading markers: ${Math.min(100, Math.round((end / filteredPhotos.length) * 100))}%</strong>`;
+        const percentage = Math.min(100, Math.round((end / filteredPhotos.length) * 100));
+        loadingMessage.textContent = `Loading markers: ${percentage}%`;
+        progressBar.style.width = `${70 + (percentage * 0.3)}%`; // Progress from 70% to 100%
 
         currentChunk++;
         if (currentChunk < totalChunks) {
@@ -680,7 +677,9 @@
         debugLog(`Using chunked processing for ${filteredPhotos.length} markers`);
         processChunk();
     } else {
-        filteredPhotos.forEach(photo => addMarker(photo));
+        if (filteredPhotos.length > 0) {
+            filteredPhotos.forEach(photo => addMarker(photo));
+        }
         finishMarkerLoading();
     }
 
@@ -756,8 +755,15 @@
 
     function finishMarkerLoading() {
         map.addLayer(markerGroup);
-        markerLoadingStatus.remove();
+        progressBar.style.width = '100%';
+        loadingMessage.textContent = 'Finalizing...';
         debugLog('Successfully added markers to map');
+        
+        // Hide loading screen after a short delay
+        setTimeout(() => {
+            const loadingElement = document.getElementById('loading');
+            loadingElement.style.display = 'none';
+        }, 500);
     }
 }
 

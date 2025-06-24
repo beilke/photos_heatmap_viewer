@@ -196,7 +196,18 @@ body {
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 2000;
+            z-index: 2000; /* Higher z-index to ensure it's above all other elements */
+        }
+        
+        /* Make loading text more visible */
+        .loading h2 {
+            margin-bottom: 10px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+        
+        .loading p {
+            margin-bottom: 15px;
+            font-size: 16px;
         }
 
         .loading button {
@@ -210,18 +221,39 @@ body {
         }
 
         .progress-bar {
-            width: 300px;
+            width: 80%;
+            max-width: 400px;
             height: 20px;
-            background-color: #f0f0f0;
+            background-color: rgba(255, 255, 255, 0.2);
             border-radius: 10px;
             overflow: hidden;
-            margin: 10px auto;
+            margin: 15px auto;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .progress-bar div {
             height: 100%;
             background-color: #4CAF50;
-            transition: width 0.3s ease;
+            background: linear-gradient(to right, #4CAF50, #8BC34A);
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+        
+        /* Make progress bar more visible on mobile */
+        @media (max-width: 768px) {
+            .progress-bar {
+                width: 90%;
+                height: 16px;
+                margin: 10px auto;
+            }
+            
+            .loading h2 {
+                font-size: 20px;
+            }
+            
+            .loading p {
+                font-size: 14px;
+            }
         }
 
         .marker-popup {
@@ -240,17 +272,7 @@ body {
             font-size: 12px;
         }
 
-        .marker-loading-status {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 8px 12px;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            font-size: 14px;
-        }
+        /* Loading status has been unified with the main loading indicator */
 
         /* Photo Viewer Styles */
         .photo-viewer-overlay {
@@ -739,6 +761,8 @@ body {
     .photo-viewer-nav {
         flex: 0 0 auto !important;
         gap: 5px !important;
+        flex-direction: column !important;
+        align-items: center !important;
     }
     
     /* Position image controls on the left */
@@ -761,6 +785,38 @@ body {
         align-items: center !important;
         justify-content: center !important;
         font-size: 18px !important;
+    }
+    
+    /* Update navigation button styles for mobile */
+    /* Rearrange navigation with counter on top */
+    .photo-viewer-nav {
+        flex-direction: column !important;
+        align-items: center !important;
+    }
+    
+    .photo-viewer-counter {
+        margin-bottom: 5px !important;
+        font-weight: bold !important;
+        color: white !important;
+        font-size: 16px !important;
+        order: -1 !important; /* Place counter above buttons */
+    }
+    
+    /* Make navigation buttons icon-only */
+    .photo-nav-btn {
+        min-width: 40px !important;
+        width: 40px !important;
+        padding: 8px 0 !important;
+        border-radius: 50% !important; /* Circle buttons */
+        font-size: 18px !important;
+    }
+    
+    /* Add a simple container for nav buttons */
+    .photo-viewer-nav::after {
+        content: '';
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
     }
     
     /* Make counter more visible */
