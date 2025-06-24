@@ -60,6 +60,8 @@ body {
         #map {
             width: 100%;
             height: 100vh;
+            touch-action: pan-x pan-y;
+            -webkit-overflow-scrolling: touch;
         }
 
         .controls-container {
@@ -67,6 +69,7 @@ body {
             top: 10px;
             right: 10px;
             z-index: 1000;
+            pointer-events: none; /* Let map events pass through container */
         }
         
         .controls {
@@ -79,6 +82,7 @@ body {
             max-width: 250px;
             max-height: 400px;
             overflow-y: auto;
+            pointer-events: auto; /* Allow events inside the panel */
         }
         
         .controls input {
@@ -116,6 +120,7 @@ body {
             align-items: center;
             justify-content: space-between;
             width: 120px;
+            pointer-events: auto; /* Allow events on the toggle */
         }
         
         .controls-toggle:hover {
@@ -241,6 +246,8 @@ body {
             z-index: 2000;
             align-items: center;
             justify-content: center;
+            pointer-events: auto; /* Ensure events work on the overlay */
+            touch-action: none; /* Prevent background touch actions */
         }
 
         .photo-viewer-container {
@@ -252,6 +259,8 @@ body {
             border-radius: 8px;
             display: flex;
             flex-direction: column;
+            touch-action: pan-y; /* Allow vertical scrolling */
+            -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
         }
 
         .photo-viewer-header {
@@ -273,6 +282,8 @@ body {
             background: none;
             border: none;
             color: #666;
+            padding: 10px; /* Larger touch target */
+            margin: -10px; /* Keep visual size the same */
         }
 
         .photo-viewer-content {
@@ -356,6 +367,8 @@ body {
             padding: 10px 20px;
             border-radius: 4px;
             cursor: pointer;
+            min-height: 44px; /* Better touch target */
+            min-width: 44px; /* Better touch target */
         }
 
         .photo-nav-btn:disabled {
@@ -387,6 +400,8 @@ body {
             display: flex;
             align-items: center;
             justify-content: center;
+            min-height: 44px; /* Better touch target */
+            min-width: 44px; /* Better touch target */
         }
 
         .image-control-btn:hover {
@@ -413,6 +428,15 @@ body {
                 width: auto;
                 border-left: none;
                 border-top: 1px solid #eee;
+            }
+            
+            /* Ensure modals work well on touch devices */
+            .photo-viewer-overlay {
+                touch-action: none;
+            }
+            
+            .photo-viewer-image img {
+                touch-action: pinch-zoom;
             }
         }
 
@@ -521,6 +545,8 @@ body {
             align-items: center;
             justify-content: center;
             transition: background-color 0.2s;
+            min-height: 44px; /* Better touch target */
+            min-width: 44px; /* Better touch target */
         }
 
         .photo-zoom-controls button:hover {
@@ -547,6 +573,8 @@ body {
             border-radius: 4px;
             cursor: pointer;
             transition: background-color 0.3s;
+            min-height: 44px; /* Better touch target */
+            min-width: 44px; /* Better touch target */
         }
 
         #fullscreenBtn:hover {
@@ -575,6 +603,7 @@ body {
     /* Basic layout adjustments */
     body {
         font-size: 14px;
+        touch-action: manipulation;
     }
     
     /* Adjust map for mobile */
@@ -593,12 +622,15 @@ body {
         bottom: 0;
         right: 0;
         z-index: 1001;
+        pointer-events: none; /* Let map events pass through container */
     }
     
     .controls-toggle {
         width: 100%;
         padding: 10px;
         border-radius: 10px 10px 0 0;
+        pointer-events: auto; /* Allow events on the toggle */
+        touch-action: none; /* Prevent default touch behaviors */
     }
     
     .controls {
@@ -607,6 +639,9 @@ body {
         padding: 15px;
         border-radius: 10px 10px 0 0;
         max-height: 60vh;
+        pointer-events: auto; /* Allow events inside the panel */
+        touch-action: pan-y; /* Allow only vertical scrolling inside */
+        -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
     }
     
     /* Improve touch targets */
@@ -659,18 +694,41 @@ body {
         left: 0;
         bottom: auto;
         top: 0;
+        pointer-events: none; /* Let map events pass through container */
     }
     
     .debug-panel-toggle {
         width: 100%;
         padding: 10px;
         border-radius: 0 0 10px 10px;
+        pointer-events: auto; /* Allow events on the toggle */
+        touch-action: none; /* Prevent default touch behaviors */
     }
     
     .debug-panel {
         width: 100%;
         max-width: 100%;
         border-radius: 0 0 10px 10px;
+        pointer-events: auto; /* Allow events inside the panel */
+        touch-action: pan-y; /* Allow only vertical scrolling inside */
+        -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
+    }
+    
+    /* Modal adjustments for mobile */
+    .modal-content {
+        width: 90%;
+        max-height: 80vh;
+        padding: 15px;
+        pointer-events: auto; /* Ensure events work in modal */
+    }
+    
+    .photo-controls {
+        margin: 10px 0;
+    }
+    
+    .modal {
+        pointer-events: auto;
+        touch-action: none; /* Prevent background touch actions */
     }
     
     /* Fix photo viewer */

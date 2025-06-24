@@ -196,8 +196,29 @@
         // Detect if we're on mobile
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
         
+        // Improve touch handling
+        if (isMobile) {
+            // Prevent touch events from interfering with map panning and zooming
+            document.addEventListener('touchmove', function(e) {
+                // Allow touch events inside controls and modals
+                if (e.target.closest('.controls') || 
+                    e.target.closest('.debug-panel') || 
+                    e.target.closest('.photo-viewer-container')) {
+                    return;
+                }
+                
+                // Otherwise prevent default on map elements
+                if (e.target.closest('#map')) {
+                    if (e.touches.length === 1) { // Single touch = panning
+                        // Let the map handle it
+                    }
+                }
+            }, { passive: false });
+        }
+        
         // Handle device orientation changes
         window.addEventListener('orientationchange', function() {
+            // Add a small delay to allow the browser to complete the orientation change
             setTimeout(function() {
                 map.invalidateSize();
                 debugLog('Orientation changed, map size updated');
@@ -673,6 +694,40 @@
             debugLog('Closing photo viewer');
             photoViewerOverlay.style.display = 'none';
         }
+        
+        // Add swipe gesture support for mobile
+        if (isMobile) {
+            const photoContainer = document.querySelector('.photo-viewer-container');
+            let touchStartX = 0;
+            let touchEndX = 0;
+            let touchStartY = 0; 
+            let touchEndY = 0;
+            
+            photoContainer.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+                touchStartY = e.changedTouches[0].screenY;
+            });
+            
+            photoContainer.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                touchEndY = e.changedTouches[0].screenY;
+                
+                // Calculate horizontal and vertical distances
+                const horizontalDistance = touchEndX - touchStartX;
+                const verticalDistance = Math.abs(touchEndY - touchStartY);
+                
+                // Only register as swipe if horizontal movement is significant and vertical movement is minimal
+                if (Math.abs(horizontalDistance) > 100 && verticalDistance < 50) {
+                    if (horizontalDistance > 0) {
+                        // Swipe right - show previous photo
+                        showPreviousPhoto();
+                    } else {
+                        // Swipe left - show next photo
+                        showNextPhoto();
+                    }
+                }
+            });
+        }
 
         // Constants for virtual scrolling
         const PRELOAD_BATCH_SIZE = 50;
@@ -873,11 +928,34 @@
             updateVisualization();
         });
         // Photo viewer event listeners
-        closePhotoViewerBtn.addEventListener('click', closePhotoViewer);
-        prevPhotoBtn.addEventListener('click', showPreviousPhoto);
-        nextPhotoBtn.addEventListener('click', showNextPhoto);          // Image control event listeners
-        rotateLeftBtn.addEventListener('click', rotateLeft);
-        rotateRightBtn.addEventListener('click', rotateRight);
+        // Use the appropriate event (touchend for mobile, click for desktop)
+        const eventType = isMobile ? 'touchend' : 'click';
+        
+        closePhotoViewerBtn.addEventListener(eventType, function(e) {
+            if (isMobile) e.preventDefault();
+            closePhotoViewer();
+        });
+        
+        prevPhotoBtn.addEventListener(eventType, function(e) {
+            if (isMobile) e.preventDefault();
+            showPreviousPhoto();
+        });
+        
+        nextPhotoBtn.addEventListener(eventType, function(e) {
+            if (isMobile) e.preventDefault();
+            showNextPhoto();
+        });
+        
+        // Image control event listeners
+        rotateLeftBtn.addEventListener(eventType, function(e) {
+            if (isMobile) e.preventDefault();
+            rotateLeft();
+        });
+        
+        rotateRightBtn.addEventListener(eventType, function(e) {
+            if (isMobile) e.preventDefault();
+            rotateRight();
+        });
         // Note: zoomIn, zoomOut and resetView are handled by the existing event listeners
         // through the setZoomLevel function
         // Keyboard navigation in photo viewer
@@ -959,16 +1037,54 @@
             debugLog(`Zoom level set to ${currentZoom}`);
         }
 
-        zoomInBtn.addEventListener('click', () => {
+        zoomInBtn.addEventListener(eventType, (e) => {
+            if (isMobile) e.preventDefault();
             setZoomLevel(Math.min(currentZoom + 0.25, 4));
         });
 
-        zoomOutBtn.addEventListener('click', () => {
+        zoomOutBtn.addEventListener(eventType, (e) => {
+            if (isMobile) e.preventDefault();
             setZoomLevel(Math.max(currentZoom - 0.25, 0.5));
         });
-        resetViewBtn.addEventListener('click', () => {
+        
+        resetViewBtn.addEventListener(eventType, (e) => {
+            if (isMobile) e.preventDefault();
             setZoomLevel(1);
-        });          // Image transformation functions
+        });
+        
+        // Add pinch-zoom gesture support for mobile
+        if (isMobile) {
+            const photoImage = document.getElementById('photoViewerImg');
+            let initialPinchDistance = 0;
+            
+            photoImage.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    initialPinchDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                }
+            });
+            
+            photoImage.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2) {
+                    e.preventDefault(); // Prevent default to allow pinch zoom
+                    
+                    const currentDistance = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    
+                    if (initialPinchDistance > 0) {
+                        const pinchRatio = currentDistance / initialPinchDistance;
+                        const zoomDelta = pinchRatio > 1 ? 0.05 : -0.05;
+                        const newZoom = Math.max(0.5, Math.min(4, currentZoom + zoomDelta));
+                        setZoomLevel(newZoom);
+                        initialPinchDistance = currentDistance;
+                    }
+                }
+            }, { passive: false });
+        }          // Image transformation functions
         function zoomIn() {
             // Use setZoomLevel to ensure consistency
             setZoomLevel(Math.min(currentZoom + 0.25, 4));
