@@ -17,7 +17,8 @@
 
 <body>
     <div id="map"></div>
-    <div class="controls-container">            <div class="controls-toggle" id="controlsToggle">
+    <div class="controls-container">
+        <div class="controls-toggle" id="controlsToggle" aria-controls="controlsPanel" aria-expanded="false">
             <span>Photo Heatmap</span>
             <span class="toggle-icon">▲</span>
         </div>
@@ -148,18 +149,31 @@
             // Controls panel toggle
             const controlsToggle = document.getElementById('controlsToggle');
             if (controlsToggle) {
+                // Initialize the toggle text based on initial state
+                const controlsPanel = document.getElementById('controlsPanel');
+                const toggleIcon = controlsToggle.querySelector('.toggle-icon');
+                
+                // On mobile, start with panel hidden and update toggle icon
+                if (isMobile) {
+                    controlsPanel.style.display = 'none';
+                    toggleIcon.textContent = '▲';
+                    controlsToggle.setAttribute('aria-expanded', 'false');
+                }
+                
                 // Use touchend for mobile and click for desktop
                 controlsToggle.addEventListener(isMobile ? 'touchend' : 'click', function (e) {
                     if (isMobile) e.preventDefault();
-                    const controlsPanel = document.getElementById('controlsPanel');
-                    const toggleIcon = this.querySelector('.toggle-icon');
                     
                     if (controlsPanel.style.display === 'block') {
                         controlsPanel.style.display = 'none';
                         toggleIcon.textContent = '▲';
+                        this.setAttribute('aria-expanded', 'false');
+                        controlsPanelVisible = false;
                     } else {
                         controlsPanel.style.display = 'block';
                         toggleIcon.textContent = '▼';
+                        this.setAttribute('aria-expanded', 'true');
+                        controlsPanelVisible = true;
                     }
                 });
             }
@@ -167,6 +181,9 @@
 
         // Detect if we're on mobile (defined early so we can use it everywhere)
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        
+        // Track visibility states (helps with orientation changes)
+        let controlsPanelVisible = false;
         
         // Debug logging function - defined based on device type
         let debugLog;
@@ -239,8 +256,21 @@
             // Add a small delay to allow the browser to complete the orientation change
             setTimeout(function() {
                 map.invalidateSize();
-                debugLog('Orientation changed, map size updated');
-            }, 200);
+                
+                // Make sure our toggle is still visible after orientation change
+                const controlsToggle = document.getElementById('controlsToggle');
+                if (controlsToggle) {
+                    controlsToggle.style.display = 'flex'; // Ensure toggle is visible
+                }
+                
+                // Update the controls panel display based on our tracking variable
+                const controlsPanel = document.getElementById('controlsPanel');
+                if (controlsPanel) {
+                    controlsPanel.style.display = controlsPanelVisible ? 'block' : 'none';
+                }
+                
+                debugLog('Orientation changed, map and controls updated');
+            }, 300);
         });
         
         // Initialize map
