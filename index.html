@@ -48,7 +48,6 @@
 
             <div class="button-group">
                 <button id="updateMap">Update Map</button>
-                <button id="fullscreenBtn">Fullscreen</button>
             </div>
 
             <div id="photoCount"></div>
@@ -177,11 +176,6 @@
                         toggleIcon.textContent = '▲';
                         this.setAttribute('aria-expanded', 'false');
                         controlsPanelVisible = false;
-                        
-                        // Make toggle more compact when panel is closed
-                        if (isMobile) {
-                            this.style.maxWidth = '120px';
-                        }
                     } else {
                         controlsPanel.style.display = 'block';
                         toggleIcon.textContent = '▼';
@@ -197,9 +191,6 @@
                                 const maxAllowed = Math.min(contentHeight + 20, viewportHeight * 0.7);
                                 controlsPanel.style.maxHeight = maxAllowed + 'px';
                             }, 50);
-                            
-                            // Make toggle wider when panel is open
-                            this.style.maxWidth = '180px';
                         }
                     }
                 });
@@ -1422,46 +1413,7 @@
             }
         }
 
-        // Add this after your other DOM element declarations
-        const fullscreenBtn = document.getElementById('fullscreenBtn');
-
-        // Fullscreen functionality
-        fullscreenBtn.addEventListener('click', function () {
-            const mapContainer = document.getElementById('map');
-
-            if (!document.fullscreenElement) {
-                if (mapContainer.requestFullscreen) {
-                    mapContainer.requestFullscreen();
-                } else if (mapContainer.webkitRequestFullscreen) { /* Safari */
-                    mapContainer.webkitRequestFullscreen();
-                } else if (mapContainer.msRequestFullscreen) { /* IE11 */
-                    mapContainer.msRequestFullscreen();
-                }
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) { /* Safari */
-                    document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) { /* IE11 */
-                    document.msExitFullscreen();
-                }
-            }
-        });
-
-        // Handle fullscreen change events to update button text
-        document.addEventListener('fullscreenchange', updateFullscreenButton);
-        document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
-        document.addEventListener('msfullscreenchange', updateFullscreenButton);
-
-        function updateFullscreenButton() {
-            if (document.fullscreenElement ||
-                document.webkitFullscreenElement ||
-                document.msFullscreenElement) {
-                fullscreenBtn.textContent = 'Exit Fullscreen';
-            } else {
-                fullscreenBtn.textContent = 'Fullscreen';
-            }
-        }    </script>
+        // Fullscreen functionality removed    </script>
 
     <script>
         // Global variable to store library update times

@@ -464,16 +464,14 @@ body {
             
             /* Toggle button - always visible at bottom */
             .controls-toggle {
-                width: auto !important; /* Make it only as wide as needed */
-                max-width: 180px !important; /* Limit width */
-                min-width: 120px !important; /* Ensure minimum width */
+                width: 100% !important; /* Full width across screen */
                 padding: 8px 15px !important; /* Less padding */
                 border-radius: 10px 10px 0 0 !important;
                 background-color: rgba(255, 255, 255, 0.95) !important;
                 box-shadow: 0 -3px 5px rgba(0, 0, 0, 0.2) !important;
                 pointer-events: auto !important; /* Allow events on the toggle */
                 position: relative !important; /* Position relative to container */
-                margin: 0 auto !important; /* Center it */
+                margin: 0 !important; /* Remove auto margin */
                 text-align: center !important;
                 z-index: 1002 !important;
                 display: flex !important;
@@ -552,12 +550,12 @@ body {
                 max-height: 65vh !important; /* Taller to fit content */
             }
             
-            /* More compact toggle button */
+            /* Toggle button - full width but compact height */
             .controls-toggle {
                 padding: 8px 12px !important;
                 font-size: 13px !important;
                 min-height: 36px !important; /* Smaller height */
-                max-width: 120px !important; /* Narrower */
+                width: 100% !important; /* Full width */
             }
             
             .controls-toggle .toggle-icon {
@@ -579,10 +577,9 @@ body {
                 padding: 10px 8px !important; /* Less padding */
             }
             
-            /* Even more compact toggle */
+            /* Smaller toggle height but full width */
             .controls-toggle {
-                max-width: 100px !important;
-                min-width: 80px !important;
+                width: 100% !important;
                 padding: 6px 8px !important;
                 font-size: 12px !important;
             }
