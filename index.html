@@ -126,23 +126,23 @@
                 document.body.classList.add('mobile-device');
             }
             
-            // Debug panel toggle
-            const debugPanelToggle = document.getElementById('debugPanelToggle');
-            if (debugPanelToggle) {
-                // Use touchend for mobile and click for desktop
-                debugPanelToggle.addEventListener(isMobile ? 'touchend' : 'click', function (e) {
-                    if (isMobile) e.preventDefault();
-                    const debugPanel = document.getElementById('debugPanel');
-                    const toggleIcon = this.querySelector('.toggle-icon');
+            // Debug panel toggle - only setup for desktop, on mobile it's hidden
+            if (!isMobile) {
+                const debugPanelToggle = document.getElementById('debugPanelToggle');
+                if (debugPanelToggle) {
+                    debugPanelToggle.addEventListener('click', function () {
+                        const debugPanel = document.getElementById('debugPanel');
+                        const toggleIcon = this.querySelector('.toggle-icon');
 
-                    if (debugPanel.style.display === 'block') {
-                        debugPanel.style.display = 'none';
-                        toggleIcon.textContent = '▲';
-                    } else {
-                        debugPanel.style.display = 'block';
-                        toggleIcon.textContent = '▼';
-                    }
-                });
+                        if (debugPanel.style.display === 'block') {
+                            debugPanel.style.display = 'none';
+                            toggleIcon.textContent = '▲';
+                        } else {
+                            debugPanel.style.display = 'block';
+                            toggleIcon.textContent = '▼';
+                        }
+                    });
+                }
             }
             
             // Controls panel toggle
@@ -165,36 +165,54 @@
             }
         });
 
-        // Debug logging function
-        function debugLog(message, data) {
-            const timestamp = new Date().toLocaleTimeString();
-            console.log(`[${timestamp}] ${message}`, data || '');
-
-            const panel = document.getElementById('debugPanel');
-            if (panel) {
-                let dataText = '';
-                if (data) {
-                    try {
-                        dataText = typeof data === 'object' ?
-                            `<pre>${JSON.stringify(data, null, 2)}</pre>` :
-                            `<pre>${data}</pre>`;
-                    } catch (e) {
-                        dataText = '<pre>[Complex object]</pre>';
+        // Detect if we're on mobile (defined early so we can use it everywhere)
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        
+        // Debug logging function - defined based on device type
+        let debugLog;
+        if (isMobile) {
+            // Simpler logging for mobile (console only)
+            debugLog = function(message, data) {
+                const timestamp = new Date().toLocaleTimeString();
+                console.log(`[${timestamp}] ${message}`, data || '');
+            };
+        } else {
+            // Full logging with UI panel for desktop
+            debugLog = function(message, data) {
+                const timestamp = new Date().toLocaleTimeString();
+                console.log(`[${timestamp}] ${message}`, data || '');
+                
+                const panel = document.getElementById('debugPanel');
+                if (panel) {
+                    let dataText = '';
+                    if (data) {
+                        try {
+                            dataText = typeof data === 'object' ?
+                                `<pre>${JSON.stringify(data, null, 2)}</pre>` :
+                                `<pre>${data}</pre>`;
+                        } catch (e) {
+                            dataText = '<pre>[Complex object]</pre>';
+                        }
                     }
+                    panel.innerHTML += `<div><strong>[${timestamp}]</strong> ${message} ${dataText}</div>`;
+                    panel.scrollTop = panel.scrollHeight;
                 }
-                panel.innerHTML += `<div><strong>[${timestamp}]</strong> ${message} ${dataText}</div>`;
-                panel.scrollTop = panel.scrollHeight;
-            }
+            };
         }
-
+        
         // Catch all errors
         window.addEventListener('error', function (e) {
             debugLog('ERROR: ' + e.message);
             return false;
         });
-
-        // Detect if we're on mobile
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        
+        // Hide debug panel and toggle on mobile devices
+        if (isMobile) {
+            const debugPanelContainer = document.querySelector('.debug-panel-container');
+            if (debugPanelContainer) {
+                debugPanelContainer.style.display = 'none';
+            }
+        }
         
         // Improve touch handling
         if (isMobile) {
