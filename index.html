@@ -19,7 +19,7 @@
     <div id="map"></div>
     <div class="controls-container">
         <div class="controls-toggle" id="controlsToggle" aria-controls="controlsPanel" aria-expanded="false">
-            <span>Photo Heatmap</span>
+            <span>Heatmap</span>
             <span class="toggle-icon">▲</span>
         </div>
         <div class="controls" id="controlsPanel" style="display: none;">
@@ -46,9 +46,9 @@
                 </div>
             </div>
 
-            <div>
+            <div class="button-group">
                 <button id="updateMap">Update Map</button>
-                <button id="fullscreenBtn" style="margin-left: 10px;">Fullscreen</button>
+                <button id="fullscreenBtn">Fullscreen</button>
             </div>
 
             <div id="photoCount"></div>
@@ -177,11 +177,30 @@
                         toggleIcon.textContent = '▲';
                         this.setAttribute('aria-expanded', 'false');
                         controlsPanelVisible = false;
+                        
+                        // Make toggle more compact when panel is closed
+                        if (isMobile) {
+                            this.style.maxWidth = '120px';
+                        }
                     } else {
                         controlsPanel.style.display = 'block';
                         toggleIcon.textContent = '▼';
                         this.setAttribute('aria-expanded', 'true');
                         controlsPanelVisible = true;
+                        
+                        // Adjust panel height based on content
+                        if (isMobile) {
+                            // Wait for panel to render before measuring
+                            setTimeout(() => {
+                                const contentHeight = controlsPanel.scrollHeight;
+                                const viewportHeight = window.innerHeight;
+                                const maxAllowed = Math.min(contentHeight + 20, viewportHeight * 0.7);
+                                controlsPanel.style.maxHeight = maxAllowed + 'px';
+                            }, 50);
+                            
+                            // Make toggle wider when panel is open
+                            this.style.maxWidth = '180px';
+                        }
                     }
                 });
             }

@@ -464,22 +464,24 @@ body {
             
             /* Toggle button - always visible at bottom */
             .controls-toggle {
-                width: 100% !important;
-                padding: 12px 0 !important;
+                width: auto !important; /* Make it only as wide as needed */
+                max-width: 180px !important; /* Limit width */
+                min-width: 120px !important; /* Ensure minimum width */
+                padding: 8px 15px !important; /* Less padding */
                 border-radius: 10px 10px 0 0 !important;
                 background-color: rgba(255, 255, 255, 0.95) !important;
-                box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.2) !important;
+                box-shadow: 0 -3px 5px rgba(0, 0, 0, 0.2) !important;
                 pointer-events: auto !important; /* Allow events on the toggle */
                 position: relative !important; /* Position relative to container */
-                margin: 0 !important;
+                margin: 0 auto !important; /* Center it */
                 text-align: center !important;
                 z-index: 1002 !important;
                 display: flex !important;
                 justify-content: center !important;
                 align-items: center !important;
-                min-height: 44px !important; /* Better touch target */
+                min-height: 36px !important; /* Smaller but still touchable */
                 font-weight: bold !important;
-                font-size: 14px !important;
+                font-size: 13px !important; /* Smaller font */
                 touch-action: manipulation !important; /* Better touch handling */
                 order: 2 !important; /* Place at bottom in flex column-reverse */
             }
@@ -494,10 +496,10 @@ body {
             /* Controls panel itself */
             .controls {
                 width: 100% !important;
-                max-height: 50vh !important; /* Prevent overflow */
+                max-height: 60vh !important; /* Allow a bit more height */
                 background-color: rgba(255, 255, 255, 0.95) !important;
                 border-radius: 10px 10px 0 0 !important;
-                padding: 15px !important;
+                padding: 12px !important; /* Slightly less padding */
                 box-sizing: border-box !important;
                 pointer-events: auto !important;
                 overflow-y: auto !important; 
@@ -508,7 +510,8 @@ body {
                 border-bottom: none !important;
                 border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
                 box-shadow: 0 -3px 10px rgba(0, 0, 0, 0.15) !important;
-                margin: 0 !important;
+                margin: 0 auto !important; /* Center content */
+                max-width: 500px !important; /* Limit width on larger phones */
             }
             
             /* Hide debug panel completely on mobile */
@@ -544,32 +547,135 @@ body {
 
         /* Additional styles for small screens */
         @media (max-width: 480px) {
-            /* Even smaller max-height */
+            /* Adjust max-height for better fit */
             .controls {
-                max-height: 45vh !important;
+                max-height: 65vh !important; /* Taller to fit content */
             }
             
-            /* Larger toggle button */
+            /* More compact toggle button */
             .controls-toggle {
-                padding: 15px 0 !important;
-                font-size: 16px !important;
-                min-height: 50px !important;
+                padding: 8px 12px !important;
+                font-size: 13px !important;
+                min-height: 36px !important; /* Smaller height */
+                max-width: 120px !important; /* Narrower */
             }
             
             .controls-toggle .toggle-icon {
-                font-size: 22px !important;
+                font-size: 16px !important; /* Smaller icon */
             }
             
-            /* Full width buttons */
+            /* Not full width buttons anymore */
             .controls button {
-                width: 100% !important;
+                width: auto !important;
+                padding: 8px 10px !important;
+                margin: 4px !important;
             }
         }
 
         /* iPhone and very small screens */
         @media (max-width: 380px) {
             .controls {
-                max-height: 40vh !important;
-                padding: 12px !important;
+                max-height: 70vh !important; /* Allow more height to fit content properly */
+                padding: 10px 8px !important; /* Less padding */
+            }
+            
+            /* Even more compact toggle */
+            .controls-toggle {
+                max-width: 100px !important;
+                min-width: 80px !important;
+                padding: 6px 8px !important;
+                font-size: 12px !important;
+            }
+            
+            /* Arrange buttons better */
+            .controls div:has(button) {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                justify-content: center !important;
+                gap: 4px !important;
+            }
+            
+            /* Smaller fonts */
+            .controls label, .controls {
+                font-size: 12px !important;
+            }
+            
+            /* Improve library filters scrolling */
+            #libraryFilterContainer {
+                max-height: 100px !important;
             }
         }
+
+        /* More compact form elements for mobile */
+        .controls > div {
+            margin-bottom: 10px !important;
+        }
+        
+        /* Improve slider layout */
+        .controls label {
+            display: block !important;
+            margin-bottom: 3px !important;
+        }
+        
+        .controls input[type="range"] {
+            display: block !important;
+            width: 95% !important; /* Not 100% to prevent horizontal scrolling */
+            margin: 5px auto 10px !important;
+        }
+        
+        /* Make library filters more compact */
+        .library-filters {
+            margin-top: 10px !important;
+            padding-top: 8px !important;
+        }
+        
+        .library-filters h4 {
+            margin: 0 0 8px 0 !important;
+            font-size: 14px !important;
+        }
+        
+        #libraryFilterContainer {
+            max-height: 120px !important; /* Limit height of library list */
+            padding-top: 5px !important;
+            padding-bottom: 5px !important;
+        }
+        
+        /* Make buttons more compact */
+        .controls button {
+            margin: 5px 2px !important; 
+            padding: 8px 10px !important;
+            min-height: 38px !important; /* Still good touch target, but smaller */
+            display: inline-block !important;
+            width: auto !important; /* Not full width */
+        }
+        
+        /* Photo count display */
+        #photoCount {
+            margin-top: 8px !important;
+            font-size: 12px !important;
+            text-align: center !important;
+        }
+
+        /* Button group styling for better layout */
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.button-group button {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 480px) {
+    .button-group {
+        gap: 5px;
+    }
+    
+    .button-group button {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+}
