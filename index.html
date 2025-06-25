@@ -850,7 +850,7 @@
                     debugLog(`Failed to load popup image for ${photo.filename}`);
                 };
 
-                img.src = `photos/${encodeURIComponent(photo.filename)}`;
+                img.src = `/photos/${encodeURIComponent(photo.filename)}`;
             }
         });
 
@@ -1122,47 +1122,61 @@
                 return;
             }
             
-            // SIMPLE IMAGE LOADING APPROACH FROM INDEX2.HTML - THIS WORKS WITH HEIC FILES
-            const fullImageUrl = `photos/${encodeURIComponent(photo.filename)}`;
-            debugLog(`Loading full image URL: ${fullImageUrl}`);
-
-            // Create new image to preload without affecting current display
+            // OPTIMIZED APPROACH - USE CONVERT ENDPOINT FOR HEIC FILES
+            const isHeic = photo.filename.toLowerCase().endsWith('.heic');
+            
+            // Choose endpoint based on file type:
+            // - convert: For HEIC files, gets full resolution but converts to JPEG
+            // - photos: For regular images, serves the original file
+            const endpoint = isHeic ? '/convert' : '/photos';
+            
+            // Build URL with ID parameter if available (more reliable than filename alone)
+            let fullImageUrl;
+            if (photo.id) {
+                fullImageUrl = `${endpoint}/${encodeURIComponent(photo.filename)}?id=${encodeURIComponent(photo.id)}`;
+                debugLog(`Loading with ID parameter: ${fullImageUrl}`);
+            } else if (photo.path) {
+                fullImageUrl = `${endpoint}/${encodeURIComponent(photo.filename)}?path=${encodeURIComponent(photo.path)}`;
+                debugLog(`Loading with path parameter: ${fullImageUrl}`);
+            } else {
+                fullImageUrl = `${endpoint}/${encodeURIComponent(photo.filename)}`;
+                debugLog(`Loading with basic URL: ${fullImageUrl}`);
+            }
+            
+            // Create new image to preload
             const fullImg = new Image();
-            fullImg.onload = function () {
-                // Only change the src once the new image is fully loaded
+            
+            fullImg.onload = function() {
                 photoViewerImg.src = fullImageUrl;
                 photoViewerImg.style.opacity = '1';
-                debugLog(`Full image loaded: ${photo.filename}`);
+                debugLog(`Successfully loaded ${isHeic ? 'converted HEIC' : 'regular'} image: ${photo.filename}`);
                 
                 // For verification, add a tooltip showing the full path
                 if (photo.path) {
                     photoViewerImg.title = `Path: ${photo.path}`;
                 }
             };
-
-            // Handle image loading errors with better fallback
-            fullImg.onerror = function () {
-                debugLog(`Failed to load image for ${photo.filename}, trying alternative fallback`);
-                // Try using the ID if available
-                if (photo.id) {
-                    const alternativePath = `photos/${encodeURIComponent(photo.filename)}?id=${encodeURIComponent(photo.id)}`;
-                    debugLog(`Trying with ID: ${alternativePath}`);
-                    photoViewerImg.src = alternativePath;
-                }
-                // If no ID, try using path as a query parameter instead of in the path
-                else if (photo.path) {
-                    const alternativePath = `photos/${encodeURIComponent(photo.filename)}?path=${encodeURIComponent(photo.path)}`;
-                    debugLog(`Trying with path as query parameter: ${alternativePath}`);
-                    photoViewerImg.src = alternativePath;
+            
+            fullImg.onerror = function() {
+                debugLog(`Failed to load ${fullImageUrl}, trying fallback options`);
+                
+                if (isHeic) {
+                    // If convert endpoint failed for HEIC, try thumbnails as fallback
+                    const thumbnailUrl = `/thumbnails/${encodeURIComponent(photo.filename)}${photo.id ? '?id=' + encodeURIComponent(photo.id) : ''}`;
+                    debugLog(`Trying thumbnail as fallback: ${thumbnailUrl}`);
+                    photoViewerImg.src = thumbnailUrl;
+                } else if (endpoint === '/photos' && photo.id) {
+                    // Try without ID parameter
+                    const basicUrl = `/photos/${encodeURIComponent(photo.filename)}`;
+                    debugLog(`Trying without parameters: ${basicUrl}`);
+                    photoViewerImg.src = basicUrl;
                 } else {
-                    // If all fails, show placeholder after a brief delay
-                    setTimeout(() => {
-                        photoViewerImg.src = 'https://placehold.co/800x600?text=Photo+Unavailable';
-                        photoViewerImg.style.opacity = '1';
-                    }, 500);
+                    debugLog(`All attempts failed, using placeholder`);
+                    photoViewerImg.src = 'https://placehold.co/800x600?text=Photo+Unavailable';
+                    photoViewerImg.style.opacity = '1';
                 }
             };
-
+            
             fullImg.src = fullImageUrl;
 
             // Add error handler for the main viewer image as fallback

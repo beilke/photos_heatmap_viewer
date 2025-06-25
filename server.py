@@ -562,6 +562,91 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             logger.exception(f"Error serving photo markers: {e}")
             self.send_error(500, f"Internal server error: {str(e)}")
 
+# New endpoint for converting HEIC to JPEG at full resolution
+@app.route('/convert/<path:filename>')
+def convert_photo(filename):
+    """Serve a photo file with conversion to JPEG for HEIC files"""
+    filename = urllib.parse.unquote(filename)
+    logger.info(f"Converting and serving photo: {filename}")
+    
+    # Check for additional query parameters (id or path)
+    photo_id = request.args.get('id')
+    path_hint = request.args.get('path')
+    
+    try:
+        # Connect to database
+        db_path = os.path.join(os.getcwd(), 'data', 'photo_library.db')
+        if not os.path.exists(db_path):
+            logger.error(f"Database not found: {db_path}")
+            return "Database not found", 404
+            
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Try different lookup strategies in order of specificity
+        if photo_id is not None:
+            logger.debug(f"Looking up photo by ID: {photo_id}")
+            cursor.execute("SELECT path FROM photos WHERE id = ?", (photo_id,))
+            result = cursor.fetchone()
+            if result:
+                logger.debug(f"Found photo by ID: {photo_id}")
+        else:
+            result = None
+            
+        # If ID lookup failed or wasn't provided, try path hint if available
+        if not result and path_hint:
+            logger.debug(f"Looking up photo by path hint: {path_hint}")
+            cursor.execute("SELECT path FROM photos WHERE path = ?", (path_hint,))
+            result = cursor.fetchone()
+            if result:
+                logger.debug(f"Found photo by path hint: {path_hint}")
+        
+        # If both ID and path lookup failed or weren't provided, fall back to filename
+        if not result:
+            logger.debug(f"Looking up photo by filename: {filename}")
+            cursor.execute("SELECT path FROM photos WHERE filename = ?", (filename,))
+            result = cursor.fetchone()
+            
+        conn.close()
+        
+        if not result:
+            logger.error(f"Photo not found in database: {filename}")
+            return "Photo not found in database", 404
+            
+        photo_path = result[0]
+        logger.debug(f"Found photo path in DB: {photo_path}")
+        
+        normalized_path = normalize_path(photo_path)
+        
+        if not os.path.exists(normalized_path):
+            logger.error(f"Photo file not found at {normalized_path}")
+            return f"Photo file not found at {normalized_path}", 404
+        
+        # Check if this is a HEIC file that we should convert
+        is_heic = filename.lower().endswith('.heic')
+        
+        if is_heic and HEIC_SUPPORT:
+            logger.debug(f"Converting HEIC file to JPEG: {normalized_path}")
+            try:
+                with Image.open(normalized_path) as img:
+                    buffer = io.BytesIO()
+                    # Convert to JPEG at high quality for full resolution
+                    img.save(buffer, format='JPEG', quality=95)
+                    buffer.seek(0)
+                    
+                    return buffer.getvalue(), 200, {'Content-Type': 'image/jpeg'}
+            except Exception as e:
+                logger.error(f"Error converting HEIC file: {e}")
+                return f"Error converting HEIC file: {str(e)}", 500
+        else:
+            # For non-HEIC files, just serve the file normally
+            mimetype, _ = mimetypes.guess_type(normalized_path)
+            return send_from_directory(os.path.dirname(normalized_path), os.path.basename(normalized_path), mimetype=mimetype)
+        
+    except Exception as e:
+        logger.exception(f"Error converting photo: {e}")
+        return f"Internal server error: {str(e)}", 500
+
 def signal_handler(sig, frame):
     logger.info("Gracefully shutting down server...")
     sys.exit(0)
