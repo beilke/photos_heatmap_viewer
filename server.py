@@ -13,7 +13,7 @@ import logging
 import json
 import datetime
 import mimetypes
-from flask import Flask, send_from_directory, render_template
+from flask import Flask, send_from_directory, render_template, request
 
 # Initialize Flask app
 app = Flask(__name__, 
@@ -111,9 +111,9 @@ def api_markers():
             
         logger.info(f"Found {len(libraries)} libraries")
         
-        # Then get photos with location data - include path
+        # Then get photos with location data - include path and ID
         cursor.execute('''
-        SELECT p.filename, p.path, p.latitude, p.longitude, p.datetime, 
+        SELECT p.id, p.filename, p.path, p.latitude, p.longitude, p.datetime, 
                p.marker_data, p.library_id, l.name as library_name
         FROM photos p
         LEFT JOIN libraries l ON p.library_id = l.id
@@ -648,6 +648,10 @@ def start_server(port=8000, directory='.', debug_mode=False, db_path=None, host=
         filename = urllib.parse.unquote(filename)
         logger.info(f"Serving original photo: {filename}")
         
+        # Check for additional query parameters (id or path)
+        photo_id = request.args.get('id')
+        path_hint = request.args.get('path')
+        
         try:
             # Connect to database
             db_path = os.path.join(os.getcwd(), 'data', 'photo_library.db')
@@ -658,9 +662,30 @@ def start_server(port=8000, directory='.', debug_mode=False, db_path=None, host=
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             
-            # Look up the photo path
-            cursor.execute("SELECT path FROM photos WHERE filename = ?", (filename,))
-            result = cursor.fetchone()
+            # Try different lookup strategies in order of specificity
+            if photo_id is not None:
+                logger.debug(f"Looking up photo by ID: {photo_id}")
+                cursor.execute("SELECT path FROM photos WHERE id = ?", (photo_id,))
+                result = cursor.fetchone()
+                if result:
+                    logger.debug(f"Found photo by ID: {photo_id}")
+            else:
+                result = None
+                
+            # If ID lookup failed or wasn't provided, try path hint if available
+            if not result and path_hint:
+                logger.debug(f"Looking up photo by path hint: {path_hint}")
+                cursor.execute("SELECT path FROM photos WHERE path = ?", (path_hint,))
+                result = cursor.fetchone()
+                if result:
+                    logger.debug(f"Found photo by path hint: {path_hint}")
+            
+            # If both ID and path lookup failed or weren't provided, fall back to filename
+            if not result:
+                logger.debug(f"Looking up photo by filename: {filename}")
+                cursor.execute("SELECT path FROM photos WHERE filename = ?", (filename,))
+                result = cursor.fetchone()
+                
             conn.close()
             
             if not result:
@@ -693,6 +718,10 @@ def start_server(port=8000, directory='.', debug_mode=False, db_path=None, host=
         filename = urllib.parse.unquote(filename)
         logger.info(f"Serving thumbnail: {filename}")
         
+        # Check for additional query parameters (id or path)
+        photo_id = request.args.get('id')
+        path_hint = request.args.get('path')
+        
         try:
             # Connect to database
             db_path = os.path.join(os.getcwd(), 'data', 'photo_library.db')
@@ -703,9 +732,30 @@ def start_server(port=8000, directory='.', debug_mode=False, db_path=None, host=
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             
-            # Look up the photo path
-            cursor.execute("SELECT path FROM photos WHERE filename = ?", (filename,))
-            result = cursor.fetchone()
+            # Try different lookup strategies in order of specificity
+            if photo_id is not None:
+                logger.debug(f"Looking up photo by ID: {photo_id}")
+                cursor.execute("SELECT path FROM photos WHERE id = ?", (photo_id,))
+                result = cursor.fetchone()
+                if result:
+                    logger.debug(f"Found photo by ID: {photo_id}")
+            else:
+                result = None
+                
+            # If ID lookup failed or wasn't provided, try path hint if available
+            if not result and path_hint:
+                logger.debug(f"Looking up photo by path hint: {path_hint}")
+                cursor.execute("SELECT path FROM photos WHERE path = ?", (path_hint,))
+                result = cursor.fetchone()
+                if result:
+                    logger.debug(f"Found photo by path hint: {path_hint}")
+            
+            # If both ID and path lookup failed or weren't provided, fall back to filename
+            if not result:
+                logger.debug(f"Looking up photo by filename: {filename}")
+                cursor.execute("SELECT path FROM photos WHERE filename = ?", (filename,))
+                result = cursor.fetchone()
+                
             conn.close()
             
             if not result:

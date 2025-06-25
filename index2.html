@@ -24,11 +24,11 @@
         </div>
         <div class="controls" id="controlsPanel" style="display: none;">
             <div>
-                <label for="intensity">Intensity: <span id="intensityValue">15</span></label>
+                <label for="intensity">Intensity: </label>
                 <input type="range" id="intensity" min="1" max="30" value="15">
             </div>
             <div>
-                <label for="radius">Radius: <span id="radiusValue">25</span></label>
+                <label for="radius">Radius: </label>
                 <input type="range" id="radius" min="5" max="50" value="25">
             </div>
             <div>
@@ -46,7 +46,9 @@
                 </div>
             </div>
 
-            <!-- Update Map button removed - changes now apply automatically -->
+            <div class="button-group">
+                <button id="updateMap">Update Map</button>
+            </div>
 
             <div id="photoCount"></div>
         </div>
@@ -64,6 +66,7 @@
         <div class="progress-bar" id="loadingProgress">
             <div id="progressBar" style="width: 0%;"></div>
         </div>
+        <button onclick="location.reload()">Retry</button>
     </div>
 
     <!-- Photo Viewer Dialog -->
@@ -481,19 +484,11 @@
                                 updateMarkers(withGPS);
                             } else {
                                 // If markers not shown, complete loading
-                                progressBar.style.width = '95%';
+                                progressBar.style.width = '100%';
                                 loadingMessage.textContent = 'Finalizing...';
-                                
-                                // Finish loading after a brief delay to show progress
                                 setTimeout(() => {
-                                    progressBar.style.width = '100%';
-                                    loadingMessage.textContent = 'Complete!';
-                                    
-                                    // Hide the loading screen after a small delay
-                                    setTimeout(() => {
-                                        loadingElement.style.display = 'none';
-                                    }, 500);
-                                }, 300);
+                                    loadingElement.style.display = 'none';
+                                }, 500);
                             }
                         }, 100);
                     }, 100);
@@ -503,7 +498,7 @@
                     loadingElement.innerHTML = `
                         <h2>Error Loading Data</h2>
                         <p>${error.message}</p>
-                        <p class="error-hint">Press F5 to refresh the page</p>
+                        <button onclick="location.reload()">Retry</button>
                     `;
                 });
         }
@@ -550,134 +545,24 @@
                 map.removeLayer(heatLayer);
             }
 
-            // Create heatmap points with varying intensity based on the slider
-            const intensityValue = parseInt(intensitySlider.value);
-            // Use slider value as weight multiplier for each point
+            // Create heatmap points
             const points = photos.map(photo => [
                 photo.latitude,
                 photo.longitude,
-                intensityValue / 10  // Use intensity slider to affect point weights
+                1  // Weight
             ]);
 
-            debugLog(`Setting heatmap with point weight: ${intensityValue / 10} (from intensity value: ${intensityValue})`);
-            
+            // Create new heatmap layer
             heatLayer = L.heatLayer(points, {
                 radius: parseInt(radiusSlider.value),
                 blur: 15,
                 maxZoom: 10,
-                gradient: { 0.4: 'blue', 0.65: 'lime', 1: 'red' }
-                // Note: Leaflet.heat doesn't use an "intensity" param directly, 
-                // instead we modify the point weights above
+                gradient: { 0.4: 'blue', 0.65: 'lime', 1: 'red' },
+                intensity: parseInt(intensitySlider.value) / 10
             }).addTo(map);
 
             debugLog(`Heatmap created with ${points.length} points`);
-        }
-        
-        // Function to update only the heatmap without touching markers
-        function updateHeatmapOnly() {
-            debugLog('Updating only heatmap with new settings');
-            
-            // Get the current filtered data based on active libraries
-            const filteredPhotos = filterPhotosByActiveLibraries();
-            
-            // Update just the heatmap with new intensity/radius
-            updateHeatmap(filteredPhotos);
-            
-            debugLog(`Heatmap updated with intensity=${intensitySlider.value}, radius=${radiusSlider.value}`);
-        }
-        
-        // Function to update only markers without touching heatmap
-        function updateMarkersOnly() {
-            debugLog('Updating only markers');
-            
-            // Get the current filtered data based on active libraries
-            const filteredPhotos = filterPhotosByActiveLibraries();
-            
-            // Update just the markers
-            if (showMarkersCheckbox.checked) {
-                // If we already have a marker group, just add it back to the map
-                // instead of recreating all markers
-                if (markerGroup) {
-                    if (!map.hasLayer(markerGroup)) {
-                        debugLog('Showing existing marker group');
-                        map.addLayer(markerGroup);
-                        
-                        // Show feedback to user
-                        showFeedbackToast('Showing photo markers...');
-                    }
-                } else {
-                    // Only create new markers if we don't have them already
-                    updateMarkers(filteredPhotos);
-                }
-            } else {
-                // If markers are turned off, just remove them from the map
-                // but keep the marker group in memory
-                if (markerGroup && map.hasLayer(markerGroup)) {
-                    debugLog('Hiding markers');
-                    map.removeLayer(markerGroup);
-                    
-                    // Show feedback to user
-                    showFeedbackToast('Hiding photo markers...');
-                }
-            }
-        }
-        
-        // Helper function to show feedback toast
-        function showFeedbackToast(message) {
-            const feedback = document.createElement('div');
-            feedback.className = 'feedback-toast';
-            feedback.textContent = message;
-            feedback.style.cssText = `
-                position: fixed;
-                bottom: 80px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: rgba(0,0,0,0.7);
-                color: white;
-                padding: 8px 15px;
-                border-radius: 4px;
-                font-size: 14px;
-                z-index: 1500;
-            `;
-            document.body.appendChild(feedback);
-            
-            // Remove feedback after a short delay
-            setTimeout(() => feedback.remove(), 1500);
-        }
-        
-        // Filter photos by currently active libraries
-        function filterPhotosByActiveLibraries() {
-            if (!photoData || !photoData.photos || photoData.photos.length === 0) {
-                debugLog('No photo data available to filter');
-                return [];
-            }
-            
-            // If we don't have library info, just return all photos
-            if (!photoData.libraries || !photoData.activeLibraries) {
-                return photoData.photos.filter(photo => 
-                    photo.latitude != null && photo.longitude != null
-                );
-            }
-            
-            // Filter by active libraries
-            return photoData.photos.filter(photo => {
-                // Filter out photos without GPS
-                if (photo.latitude == null || photo.longitude == null) {
-                    return false;
-                }
-                
-                // If no library_id, include it if we don't have library filters
-                if (photo.library_id == null) {
-                    return true;
-                }
-                
-                // Otherwise, check if photo's library is active
-                return photoData.activeLibraries.includes(photo.library_id);
-            });
-        }
-        
-        
-        // Update markers
+        }        // Update markers
         function updateMarkers(inputPhotos = []) {
     debugLog('Updating markers');
 
@@ -700,27 +585,14 @@
     debugLog(`Loading markers for ${filteredPhotos.length} unique photos...`);
 
     // Update the main loading indicator instead of creating a new one
-    const loadingElement = document.getElementById('loading');
     const loadingMessage = document.getElementById('loadingMessage');
     const progressBar = document.getElementById('progressBar');
-    
-    // Make sure loading indicator is visible
-    if (loadingElement) {
-        loadingElement.style.display = 'flex';
-    }
-    
-    if (loadingMessage) {
-        loadingMessage.textContent = 'Loading markers...';
-    }
-    
-    if (progressBar) {
-        progressBar.style.width = '70%';
-    }
+    loadingMessage.textContent = 'Loading markers...';
+    progressBar.style.width = '70%';
 
     // Remove old markers
     if (typeof markerGroup !== 'undefined' && markerGroup) {
         map.removeLayer(markerGroup);
-        markerGroup = null; // Explicitly null it out to ensure full recreation
     }
 
     // Create new marker group
@@ -729,9 +601,21 @@
             ? L.markerClusterGroup()
             : L.layerGroup();
 
-        // We don't add the clusterclick handler here anymore
-        // The handler is added once after all markers are created
-        // to prevent duplicates and ensure proper behavior
+        if (markerGroup.on) {
+            markerGroup.on('clusterclick', function (e) {
+                try {
+                    const photos = e.layer.getAllChildMarkers()
+                        .filter(marker => marker.photoData)
+                        .map(marker => marker.photoData);
+
+                    if (photos.length > 0) {
+                        openPhotoViewer(photos, 0);
+                    }
+                } catch (err) {
+                    debugLog('Error in cluster click handler: ' + err.message);
+                }
+            });
+        }
     } catch (err) {
         debugLog('Error creating marker group: ' + err.message);
         markerGroup = L.layerGroup();
@@ -745,23 +629,13 @@
     if (filteredPhotos.length === 0) {
         debugLog('No photos with GPS data to display');
         loadingMessage.textContent = 'No photos with GPS data to display';
+        progressBar.style.width = '100%';
         
-        // Staged progress for better UX
-        progressBar.style.width = '90%';
-        
-        // Briefly show the message, then finish loading
+        // Hide loading screen after a short delay
         setTimeout(() => {
-            progressBar.style.width = '100%';
-            loadingMessage.textContent = 'Complete!';
-            
-            // Hide loading screen after a short delay
-            setTimeout(() => {
-                const loadingElement = document.getElementById('loading');
-                if (loadingElement) {
-                    loadingElement.style.display = 'none';
-                }
-            }, 800);
-        }, 800);
+            const loadingElement = document.getElementById('loading');
+            loadingElement.style.display = 'none';
+        }, 1000);
         return;
     }
     
@@ -775,15 +649,9 @@
             addMarker(filteredPhotos[i]);
         }
 
-        // Calculate percentage completed and adjust scale to fit in 70-95% range
-        // Only going to 95% to leave the last 5% for the final rendering
-        const percentComplete = Math.min(100, Math.round((end / filteredPhotos.length) * 100));
-        loadingMessage.textContent = `Loading markers: ${percentComplete}%`;
-        
-        // Scale from 70-95% for marker loading instead of going straight to 100%
-        // This leaves room for the final marker rendering step
-        const progressWidth = 70 + (percentComplete * 0.25); // Progress from 70% to 95%
-        progressBar.style.width = `${progressWidth}%`;
+        const percentage = Math.min(100, Math.round((end / filteredPhotos.length) * 100));
+        loadingMessage.textContent = `Loading markers: ${percentage}%`;
+        progressBar.style.width = `${70 + (percentage * 0.3)}%`; // Progress from 70% to 100%
 
         currentChunk++;
         if (currentChunk < totalChunks) {
@@ -798,18 +666,9 @@
         processChunk();
     } else {
         if (filteredPhotos.length > 0) {
-            // For smaller batches, show that we're at 80% progress while processing
-            loadingMessage.textContent = `Loading ${filteredPhotos.length} markers...`;
-            progressBar.style.width = '80%';
-            
-            // Small delay to ensure the UI updates before potentially heavy processing
-            setTimeout(() => {
-                filteredPhotos.forEach(photo => addMarker(photo));
-                finishMarkerLoading();
-            }, 50);
-        } else {
-            finishMarkerLoading();
+            filteredPhotos.forEach(photo => addMarker(photo));
         }
+        finishMarkerLoading();
     }
 
     function addMarker(photo) {
@@ -855,25 +714,15 @@
         });
 
         marker.on('click', function (e) {
-            // Find all photos at exactly the same coordinates - use precise comparison
             let photosAtSameLocation = filteredPhotos.filter(p =>
                 p.latitude === photo.latitude && p.longitude === photo.longitude
             );
 
-            // Log the found photos for verification
-            debugLog(`Found ${photosAtSameLocation.length} photos at location ${photo.latitude},${photo.longitude}`);
-            
             const locationMap = new Map();
             photosAtSameLocation.forEach(p => {
-                // Create a more precise unique key including coordinates
-                const key = p.id || `${p.filename}_${p.latitude}_${p.longitude}`;
+                const key = p.id || p.filename;
                 if (!locationMap.has(key)) {
-                    // Ensure all path info is available
-                    if (p.path && !p.full_path) {
-                        p.full_path = p.path;
-                    }
                     locationMap.set(key, p);
-                    debugLog(`Location photo: ${p.filename}`);
                 }
             });
             photosAtSameLocation = Array.from(locationMap.values());
@@ -894,78 +743,15 @@
 
     function finishMarkerLoading() {
         map.addLayer(markerGroup);
-        
-        // Add the cluster click handler here to ensure it's only added once
-        // after all markers are processed
-        if (markerGroup && markerGroup.on) {
-            // Remove any existing handlers first to prevent duplicates
-            if (typeof markerGroup.off === 'function') {
-                markerGroup.off('clusterclick');
-            }
-            
-            // Add our handler with proper photo filtering
-            markerGroup.on('clusterclick', function (e) {
-                try {
-                    const cluster = e.layer;
-                    const markers = cluster.getAllChildMarkers();
-                    const clusterCount = markers.length;
-                    
-                    debugLog(`Cluster clicked: ${clusterCount} markers`);
-                    
-                    // Use a Map to deduplicate photos by ID
-                    const photoMap = new Map();
-                    
-                    // Process only the markers in this specific cluster
-                    markers.forEach(marker => {
-                        if (marker.photoData) {
-                            const photo = marker.photoData;
-                            // Use unique ID or create one from multiple properties for better uniqueness
-                            const photoKey = photo.id || `${photo.filename}_${photo.latitude}_${photo.longitude}`;
-                            
-                            // Only add if not already in map
-                            if (!photoMap.has(photoKey)) {
-                                // Ensure all path info is available for verification
-                                if (photo.path && !photo.full_path) {
-                                    photo.full_path = photo.path;
-                                }
-                                
-                                photoMap.set(photoKey, photo);
-                                debugLog(`Cluster photo: ${photo.filename}, lat/long: ${photo.latitude}/${photo.longitude}`);
-                            }
-                        }
-                    });
-                    
-                    // Convert map to array of unique photos
-                    const uniquePhotos = Array.from(photoMap.values());
-                    
-                    if (uniquePhotos.length > 0) {
-                        debugLog(`Opening viewer with ${uniquePhotos.length} unique photos from cluster`);
-                        openPhotoViewer(uniquePhotos, 0);
-                    }
-                } catch (err) {
-                    debugLog('Error in cluster click handler: ' + err.message);
-                }
-            });
-        }
-        
-        // Update progress only at the very end when markers are actually added to the map
         progressBar.style.width = '100%';
-        loadingMessage.textContent = 'Complete!';
+        loadingMessage.textContent = 'Finalizing...';
         debugLog('Successfully added markers to map');
         
-        // Clean up library selection flag if it exists
-        if (window._processingLibrarySelection) {
-            window._processingLibrarySelection = false;
-        }
-        
-        // Hide loading screen after a short delay - slightly longer to ensure
-        // users see the 100% state before it disappears
+        // Hide loading screen after a short delay
         setTimeout(() => {
             const loadingElement = document.getElementById('loading');
-            if (loadingElement) {
-                loadingElement.style.display = 'none';
-            }
-        }, 800);
+            loadingElement.style.display = 'none';
+        }, 500);
     }
 }
 
@@ -1050,9 +836,6 @@
                 debugLog('Cannot update photo viewer: No photo at current index');
                 return;
             }
-            
-            // Set the current photo ID for verification
-            photoViewerImg.dataset.loadingPhotoId = photo.id || photo.filename;
 
             // Virtual scrolling: Manage loaded photos based on current index
             if (currentClusterPhotos.fullDataset) {
@@ -1113,46 +896,27 @@
 
             // No image transformations needed
             debugLog(`Loading image for ${photo.filename}`);
-            
-            // First verify we have a valid filename
-            if (!photo.filename) {
-                debugLog('Photo missing filename, using placeholder');
-                photoViewerImg.src = 'https://placehold.co/800x600?text=Missing+Filename';
-                photoViewerImg.style.opacity = '1';
-                return;
-            }
-            
-            // SIMPLE IMAGE LOADING APPROACH FROM INDEX2.HTML - THIS WORKS WITH HEIC FILES
+            // Set new image with error handling - using direct loading from photos endpoint
+            // Use full images directly for better quality and reliability
             const fullImageUrl = `photos/${encodeURIComponent(photo.filename)}`;
             debugLog(`Loading full image URL: ${fullImageUrl}`);
 
-            // Create new image to preload without affecting current display
+            // Create new image to preload            // Create new image to preload without affecting current display
             const fullImg = new Image();
             fullImg.onload = function () {
                 // Only change the src once the new image is fully loaded
                 photoViewerImg.src = fullImageUrl;
                 photoViewerImg.style.opacity = '1';
                 debugLog(`Full image loaded: ${photo.filename}`);
-                
-                // For verification, add a tooltip showing the full path
-                if (photo.path) {
-                    photoViewerImg.title = `Path: ${photo.path}`;
-                }
             };
 
             // Handle image loading errors with better fallback
             fullImg.onerror = function () {
                 debugLog(`Failed to load image for ${photo.filename}, trying alternative fallback`);
-                // Try using the ID if available
-                if (photo.id) {
-                    const alternativePath = `photos/${encodeURIComponent(photo.filename)}?id=${encodeURIComponent(photo.id)}`;
-                    debugLog(`Trying with ID: ${alternativePath}`);
-                    photoViewerImg.src = alternativePath;
-                }
-                // If no ID, try using path as a query parameter instead of in the path
-                else if (photo.path) {
-                    const alternativePath = `photos/${encodeURIComponent(photo.filename)}?path=${encodeURIComponent(photo.path)}`;
-                    debugLog(`Trying with path as query parameter: ${alternativePath}`);
+                // Try an alternative path if available in photo object
+                if (photo.path) {
+                    const alternativePath = `photos/${encodeURIComponent(photo.path)}`;
+                    debugLog(`Trying alternative path: ${alternativePath}`);
                     photoViewerImg.src = alternativePath;
                 } else {
                     // If all fails, show placeholder after a brief delay
@@ -1171,15 +935,9 @@
                 photoViewerImg.src = 'https://placehold.co/800x600?text=Photo+Unavailable';
                 photoViewerImg.style.opacity = '1';
             };
-            
             // Handle successful load
             photoViewerImg.onload = function () {
                 debugLog(`Successfully loaded image for ${photo.filename}, dimensions: ${this.naturalWidth}x${this.naturalHeight}`);
-                
-                // Check if this is a placeholder image
-                if (this.src.includes('placehold.co')) {
-                    debugLog(`WARNING: Displaying placeholder because original image couldn't be loaded`);
-                }
 
                 // Make sure the image is visible
                 this.style.opacity = '1';
@@ -1209,20 +967,11 @@
             };
 
 
-            // Enhanced photo info display with more verification details
             photoInfoFilename.textContent = photo.filename || 'Unknown';
             photoInfoDate.textContent = photo.datetime ? new Date(photo.datetime).toLocaleString() : 'Unknown';
             photoInfoLocation.textContent = (photo.latitude != null && photo.longitude != null) ?
                 `${photo.latitude.toFixed(6)}, ${photo.longitude.toFixed(6)}` : 'Not available';
-            
-            // Show detailed path info to help with verification
-            const pathInfo = [];
-            if (photo.path) pathInfo.push(`Path: ${photo.path}`);
-            if (photo.full_path && photo.full_path !== photo.path) pathInfo.push(`Full path: ${photo.full_path}`);
-            if (photo.library_name) pathInfo.push(`Library: ${photo.library_name}`);
-            if (photo.id) pathInfo.push(`ID: ${photo.id}`);
-            
-            photoInfoPath.textContent = pathInfo.length > 0 ? pathInfo.join(' | ') : (photo.path || 'Unknown');
+            photoInfoPath.textContent = photo.path || 'Unknown';
         }
         function showNextPhoto() {
             // Check if we need to load more photos
@@ -1265,46 +1014,11 @@
                 updatePhotoViewerContent();
             }
         }        // Event listeners
-        // Automatically update on intensity change (with debounce to prevent too frequent updates)
-        let intensityDebounceTimer;
-        const intensityValueDisplay = document.getElementById('intensityValue');
-        
-        intensitySlider.addEventListener('input', function() {
-            // Update the display value immediately for better user feedback
-            intensityValueDisplay.textContent = this.value;
-            
-            // Debounce the actual map update to avoid performance issues
-            clearTimeout(intensityDebounceTimer);
-            intensityDebounceTimer = setTimeout(() => {
-                debugLog(`Intensity changed to: ${this.value}`);
-                // Only update the heatmap, not the markers
-                updateHeatmapOnly();
-            }, 300);
-        });
-        
-        // Automatically update on radius change (with debounce)
-        let radiusDebounceTimer;
-        const radiusValueDisplay = document.getElementById('radiusValue');
-        
-        radiusSlider.addEventListener('input', function() {
-            // Update the display value immediately
-            radiusValueDisplay.textContent = this.value;
-            
-            // Debounce the map update
-            clearTimeout(radiusDebounceTimer);
-            radiusDebounceTimer = setTimeout(() => {
-                debugLog(`Radius changed to: ${this.value}`);
-                // Only update the heatmap, not the markers
-                updateHeatmapOnly();
-            }, 300);
-        });
+        updateMapButton.addEventListener('click', updateVisualization);
 
-        // Immediately update when "Show Photos Count" checkbox is changed
         showMarkersCheckbox.addEventListener('change', function () {
             debugLog(`Show markers changed: ${this.checked}`);
-            
-            // Only update markers, not the heatmap - the feedback toast is now handled inside updateMarkersOnly()
-            updateMarkersOnly();
+            updateVisualization();
         });
         // Photo viewer event listeners
         // Use the appropriate event (touchend for mobile, click for desktop)
@@ -1344,16 +1058,105 @@
             debugLog('Page loaded, fetching photo data...');
             loadPhotoData();
 
-            // No need for debug cluster handlers anymore - our improved handler is added
-        // when markers are created
-            
-            // We've removed the document-level click fallback handler since it was causing
-            // the wrong photos to be shown. The proper handler is now added in finishMarkerLoading.
+            // Set up debug cluster handlers after a short delay
+            setTimeout(function () {
+                debugClusterFunction();
+                debugLog('Debug cluster setup complete');
+            }, 2000);
+
+            // Add a document-level click handler for clusters as a fallback
+            document.addEventListener('click', function (e) {
+                // Check if the click event target is a cluster
+                let target = e.target;
+                while (target && !target.classList.contains('marker-cluster') && target !== document.body) {
+                    target = target.parentNode;
+                }
+
+                // If we found a cluster element
+                if (target && target.classList.contains('marker-cluster')) {
+                    debugLog('DOCUMENT LEVEL CLUSTER CLICK DETECTED');                    // This is a fallback - try to force the modal to open with all photos
+                    if (photoData && photoData.photos && photoData.photos.length > 0) {
+                        // Get valid photos with GPS data
+                        const validPhotos = photoData.photos.filter(p => p.latitude && p.longitude).slice(0, 50);
+                        
+                        // Deduplicate photos
+                        const photoMap = new Map();
+                        validPhotos.forEach(p => {
+                            const key = p.id || p.filename;
+                            if (!photoMap.has(key)) {
+                                photoMap.set(key, p);
+                            }
+                        });
+                        
+                        const uniquePhotos = Array.from(photoMap.values());
+                        if (uniquePhotos.length > 0) {
+                            debugLog(`Fallback opening viewer with ${uniquePhotos.length} photos`);
+                            openPhotoViewer(uniquePhotos, 0);
+                        }
+                    }
+                }
+            });
         });
         // Simple photo navigation functions
 
-        // We've removed the debug cluster function as it was causing conflicts
-        // The proper handler is now added in finishMarkerLoading
+        // For debugging cluster clicks - override cluster click handling
+        function debugClusterFunction() {
+            debugLog('Setting up debug cluster click handling');
+            if (markerGroup && typeof markerGroup.on === 'function') {
+                debugLog('Adding direct cluster click handler');
+
+                // Remove any existing handlers
+                markerGroup.off('clusterclick');
+                // Add our direct handler
+                markerGroup.on('clusterclick', function (e) {
+                    debugLog('DIRECT CLUSTER CLICK DETECTED!');
+
+                    try {
+                        const cluster = e.layer;
+                        const count = cluster.getChildCount();
+                        const markers = cluster.getAllChildMarkers();
+
+                        debugLog(`Cluster has ${count} markers`);                        // Get photos from markers - with deduplication by ID
+                        const photoMap = new Map(); // Use a Map to deduplicate by photo ID
+                        
+                        for (let i = 0; i < markers.length; i++) {
+                            if (markers[i].photoData) {
+                                const photo = markers[i].photoData;
+                                // Use photo ID or filename as unique key
+                                const photoKey = photo.id || photo.filename;
+                                
+                                // Only add if not already in the map
+                                if (!photoMap.has(photoKey)) {
+                                    photoMap.set(photoKey, photo);
+                                } else {
+                                    debugLog(`Skipping duplicate photo: ${photoKey}`);
+                                }
+                            }
+                        }
+                        
+                        // Convert Map values to array
+                        const photos = Array.from(photoMap.values());
+
+                        if (photos.length > 0) {
+                            debugLog(`Opening viewer with ${photos.length} unique photos (from ${markers.length} markers)`);
+
+                            // Force display
+                            photoViewerOverlay.style.display = 'flex';
+                            currentClusterPhotos = photos;
+                            currentPhotoIdx = 0;
+                            totalPhotos.textContent = photos.length;
+                            updatePhotoViewerContent();
+                        }
+                    } catch (error) {
+                        debugLog('ERROR: ' + error.message);
+                    }
+                });
+
+                debugLog('Direct cluster click handler added');
+            } else {
+                debugLog('ERROR: MarkerGroup not available');
+            }
+        }
 
         function createLibraryFilters(libraries) {
     const container = document.getElementById('libraryFilterContainer');
@@ -1460,67 +1263,12 @@
                 allLibrariesCheckbox.indeterminate = true;
             }
 
-            // Show the main loading indicator when updating library selection
-            // because this is a substantial operation that recreates markers
-            const loadingElement = document.getElementById('loading');
-            const loadingMessage = document.getElementById('loadingMessage');
-            const progressBar = document.getElementById('progressBar');
-            
-            if (loadingElement && loadingMessage && progressBar) {
-                loadingElement.style.display = 'flex';
-                loadingMessage.textContent = 'Updating library selection...';
-                progressBar.style.width = '30%';
-                
-                debugLog(`Library selection changed, updating map with progress bar...`);
-                
-                // Use setTimeout to allow the UI to update before heavy processing
-                setTimeout(() => {
-                    // Update progress to show we're working on the heatmap
-                    progressBar.style.width = '50%';
-                    loadingMessage.textContent = 'Updating heatmap...';
-                    
-                    setTimeout(() => {
-                        // Force recreation of markers for library changes
-                        if (markerGroup) {
-                            debugLog('Clearing existing markers for library selection change');
-                            map.removeLayer(markerGroup);
-                            markerGroup = null; // Force recreation of markers
-                        }
-                        
-                        // For library selection we need to update all visualizations
-                        // because it changes the underlying dataset
-                        // Set a flag to indicate we're processing library selection
-                        window._processingLibrarySelection = true;
-                        filterAndUpdateMap();
-                        
-                        // We don't complete the progress here because filterAndUpdateMap 
-                        // will trigger updateMarkers which will handle progress completion
-                        // The progress completion is now managed by the marker loading process
-                    }, 50);
-                }, 50);
-            } else {
-                // Fallback if progress elements aren't found
-                debugLog(`Library selection changed, updating map...`);
-                filterAndUpdateMap();
-            }
+            // Filter photos based on selected libraries
+            filterAndUpdateMap();
         }
 
         function filterAndUpdateMap() {
             if (!photoData || !photoData.photos) return;
-
-            const loadingElement = document.getElementById('loading');
-            const progressBar = document.getElementById('progressBar');
-            const loadingMessage = document.getElementById('loadingMessage');
-            
-            // Check if progress is already showing (called from updateLibrarySelection)
-            const progressAlreadyShowing = loadingElement && loadingElement.style.display === 'flex';
-            
-            // Show progress if not already showing
-            if (!progressAlreadyShowing && loadingElement) {
-                loadingElement.style.display = 'flex';
-                if (progressBar) progressBar.style.width = '20%';
-                if (loadingMessage) loadingMessage.textContent = 'Filtering photos...';
-            }
 
             // Get all photos from active libraries
             let filteredPhotos = photoData.photos.filter(photo =>
@@ -1533,88 +1281,15 @@
             // Update photo count display
             photoCountElement.textContent = `${filteredPhotos.length} photos with location`;
 
-            // Update progress - heatmap step
-            if (!progressAlreadyShowing && progressBar) {
-                progressBar.style.width = '50%';
-                if (loadingMessage) loadingMessage.textContent = 'Updating heatmap...';
-            }
-
-            // Update heatmap
+            // Update map visualization
             updateHeatmap(filteredPhotos);
-            
-            // Update progress - marker step
-            if (!progressAlreadyShowing && progressBar) {
-                progressBar.style.width = '70%';
-                if (loadingMessage) loadingMessage.textContent = 'Updating markers...';
-            }
-            
-            // Handle markers differently depending on context
+
             if (showMarkersCheckbox.checked) {
-                debugLog('Updating markers for complete refresh');
-                
-                // When updating from library selection, we need to recreate markers 
-                // to reflect the new filtered dataset
-                const fromLibrarySelection = 
-                    document.getElementById('loadingMessage') && 
-                    document.getElementById('loadingMessage').textContent && 
-                    document.getElementById('loadingMessage').textContent.includes('library');
-                
-                if (fromLibrarySelection || !markerGroup) {
-                    // If coming from library selection or no marker group exists yet,
-                    // create new markers with filtered data
-                    debugLog('Recreating markers for library selection change');
-                    
-                    // First remove existing markers if any
-                    if (markerGroup && map.hasLayer(markerGroup)) {
-                        map.removeLayer(markerGroup);
-                        markerGroup = null; // Force recreation
-                    }
-                    
-                    // Then create new markers with the filtered data
-                    updateMarkers(filteredPhotos);
-                } else if (markerGroup) {
-                    // For other updates, just add the existing marker group if needed
-                    if (!map.hasLayer(markerGroup)) {
-                        debugLog('Showing existing marker group');
-                        map.addLayer(markerGroup);
-                    }
-                }
-            } else if (markerGroup && map.hasLayer(markerGroup)) {
-                // Just hide markers if they're toggled off
-                debugLog('Removing markers during complete refresh');
-                map.removeLayer(markerGroup);
+                updateMarkers(filteredPhotos);
             }
-            
-            // Only complete progress if we're not going to load markers
-            // (which has its own progress handling)
-            if (!showMarkersCheckbox.checked && !progressAlreadyShowing && loadingElement) {
-                if (progressBar) progressBar.style.width = '100%';
-                if (loadingMessage) loadingMessage.textContent = 'Complete!';
-                
-                // Hide after a short delay
-                setTimeout(() => {
-                    loadingElement.style.display = 'none';
-                }, 500);
-            }
-            // Otherwise, let the marker loading handle the progress completion
         }
 
-        // Fullscreen functionality removed
-        
-        // Marker updating functionality is defined elsewhere
-            
-            // Handle marker display based on checkbox
-            if (showMarkersCheckbox.checked) {
-                debugLog(`Showing markers for ${filteredPhotos.length} photos`);
-                updateMarkers(filteredPhotos);
-            } else {
-                debugLog('Hiding markers');
-                if (markerGroup && map.hasLayer(markerGroup)) {
-                    map.removeLayer(markerGroup);
-                }
-            }
-        
-    </script>
+        // Fullscreen functionality removed    </script>
 
     <script>
         // Global variable to store library update times
