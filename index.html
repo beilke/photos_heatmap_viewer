@@ -253,6 +253,17 @@
             return false;
         });
         
+        // Handle runtime.lastError in browsers
+        // This is needed to suppress "Unchecked runtime.lastError" messages
+        window.addEventListener('error', function(e) {
+            // Check if it's a runtime.lastError
+            if (e && e.message && e.message.includes('runtime.lastError')) {
+                // Suppress the error
+                e.stopPropagation();
+                return true; // Prevents the error from showing in console
+            }
+        });
+        
         // Hide debug panel and toggle on mobile devices
         if (isMobile) {
             const debugPanelContainer = document.querySelector('.debug-panel-container');
@@ -330,29 +341,43 @@
         }
         debugLog('Mobile device detected: ' + isMobile);
         
+        // Create a map with proper handling of world bounds
         const map = L.map('map', {
             minZoom: 2,
             maxZoom: 19,
+            // Use standard Mercator projection bounds
             maxBounds: [
-                [-90, -180],  // Southwest corner
-                [90, 180]     // Northeast corner
+                [-85.06, -180],  // Southwest corner - precise limit for Mercator projection
+                [85.06, 180]     // Northeast corner
             ],
-            maxBoundsViscosity: 1.0,  // Strict bounds enforcement
+            worldCopyJump: true,  // Enable smoother panning across date line
+            maxBoundsViscosity: 1.0,  // Keep the user within bounds
             tap: true, // Always enable tap handler
             dragging: true, // Enable dragging for all devices
             touchZoom: true, // Enable touch zoom
             tapTolerance: 15, // Increased tap tolerance for mobile
             bounceAtZoomLimits: false // Prevent bounce when hitting zoom limits
-        }).setView([50, 0], isMobile ? 3 : 5); // Adjust initial zoom for mobile
+        }).setView([0, 0], isMobile ? 2 : 2); // Start with a zoomed-out world view
 
-
-        // Update your tile layer to prevent wrapping:
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        
+        // Custom wrapper for OpenStreetMap tiles that handles coordinate wrapping properly
+        const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            noWrap: true,  // Prevent map from wrapping
-            maxZoom: 19
+            subdomains: 'abc',
+            minZoom: 2,
+            maxZoom: 19,
+            noWrap: false,  // Allow wrapping for better UX
+            // Custom tile error handler
+            errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
         }).addTo(map);
 
+        // Add event listener to catch and handle tile loading errors
+        tileLayer.on('tileerror', function(e) {
+            // Prevent console errors for out-of-range tiles
+            debugLog(`Tile error suppressed: z=${e.coords.z}, x=${e.coords.x}, y=${e.coords.y}`);
+            return true; // Suppress error
+        });
+        
         // Global variables
         let photoData = [];
         let filteredData = [];
@@ -467,8 +492,78 @@
                         
                         updateHeatmap(withGPS);
                         if (withGPS.length > 0) {
-                            const bounds = L.latLngBounds(withGPS.map(photo => [photo.latitude, photo.longitude]));
-                            map.fitBounds(bounds);
+                            try {
+                                // Group points by which side of the antimeridian they fall on
+                                const western = [];
+                                const eastern = [];
+                                
+                                withGPS.forEach(photo => {
+                                    // Clamp latitude to Mercator projection limits
+                                    const lat = Math.max(-85.06, Math.min(85.06, photo.latitude));
+                                    // Normalize longitude 
+                                    const lng = ((photo.longitude + 180) % 360) - 180;
+                                    
+                                    // Group points by hemisphere to detect antimeridian crossings
+                                    if (lng < 0) {
+                                        western.push([lat, lng]);
+                                    } else {
+                                        eastern.push([lat, lng]);
+                                    }
+                                });
+                                
+                                // Handle antimeridian crossing (points on both sides of the world)
+                                // If we have significant numbers of points in both hemispheres, zoom out to global view
+                                const hasAntimeridianCrossing = 
+                                    western.length > 5 && eastern.length > 5 && 
+                                    ((western.length / withGPS.length) > 0.1) && 
+                                    ((eastern.length / withGPS.length) > 0.1);
+                                
+                                if (hasAntimeridianCrossing) {
+                                    // If data spans the antimeridian, show world view instead of a wrapped view
+                                    debugLog('Data spans both sides of the world, using global view');
+                                    map.setView([0, 0], 2);
+                                } else {
+                                    // Create bounds normally if no antimeridian issues
+                                    const points = withGPS.map(photo => [
+                                        // Clamp latitude to Mercator projection limits
+                                        Math.max(-85.06, Math.min(85.06, photo.latitude)),
+                                        // Normalize longitude to avoid invalid coordinates
+                                        ((photo.longitude + 180) % 360) - 180
+                                    ]);
+                                    
+                                    // Calculate bounds
+                                    const bounds = L.latLngBounds(points);
+                                    
+                                    // Ensure bounds are valid and not too small
+                                    if (bounds.isValid() && bounds.getNorth() - bounds.getSouth() > 0.01) {
+                                        debugLog(`Fitting map to bounds: ${bounds.toBBoxString()}`);
+                                        // Add safety check for very wide bounds
+                                        const isVeryWide = (bounds.getEast() - bounds.getWest()) > 270;
+                                        
+                                        // If bounds are too wide (nearly global), use a global view
+                                        if (isVeryWide) {
+                                            debugLog('Bounds too wide, using global view');
+                                            map.setView([0, 0], 2);
+                                        } else {
+                                            // Otherwise fit to the calculated bounds
+                                            map.fitBounds(bounds, { 
+                                                padding: [50, 50],
+                                                maxZoom: 12, // Prevent zooming in too far on small clusters
+                                                animate: true,
+                                                duration: 1 // quick animation
+                                            });
+                                        }
+                                    } else {
+                                        // Fallback to default view if bounds are invalid or too small
+                                        debugLog('Invalid or too small bounds, using default view');
+                                        map.setView([0, 0], 2);
+                                    }
+                                }
+                            } catch (e) {
+                                debugLog(`Error fitting bounds: ${e.message}`);
+                                // Fallback to a safe default view
+                                map.setView([0, 0], 2);
+                            }
                         }
                         
                         // Step 2: Add markers (70% progress)
@@ -855,8 +950,10 @@
         });
 
         marker.on('click', function (e) {
-            // Find all photos at exactly the same coordinates - use precise comparison
-            let photosAtSameLocation = filteredPhotos.filter(p =>
+            // Find all photos at exactly the same coordinates using what's available in photoData
+            // rather than depending on the outer scope's filteredPhotos
+            const currentPhotos = filterPhotosByActiveLibraries();
+            let photosAtSameLocation = currentPhotos.filter(p =>
                 p.latitude === photo.latitude && p.longitude === photo.longitude
             );
 
@@ -1616,17 +1713,6 @@
         // Fullscreen functionality removed
         
         // Marker updating functionality is defined elsewhere
-            
-            // Handle marker display based on checkbox
-            if (showMarkersCheckbox.checked) {
-                debugLog(`Showing markers for ${filteredPhotos.length} photos`);
-                updateMarkers(filteredPhotos);
-            } else {
-                debugLog('Hiding markers');
-                if (markerGroup && map.hasLayer(markerGroup)) {
-                    map.removeLayer(markerGroup);
-                }
-            }
         
     </script>
 
