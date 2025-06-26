@@ -31,17 +31,17 @@
                 <label for="radius">Radius: <span id="radiusValue">25</span></label>
                 <input type="range" id="radius" min="5" max="50" value="25">
             </div>
-            <div>
+            <div class="checkbox-container">
                 <input type="checkbox" id="showMarkers" checked>
-                <label for="showMarkers">Photos Markers</label>
+                <label for="showMarkers">Show Markers</label>
             </div>
             <div class="library-filters">
                 <h4>Libraries</h4>
-                <div>
+                <div class="checkbox-container">
                     <input type="checkbox" id="selectAllLibraries" checked>
                     <label for="selectAllLibraries"><strong>All Libraries</strong></label>
                 </div>
-                <div id="libraryFilterContainer">
+                <div id="libraryFilterContainer" style="padding-left: 0; margin-left: 0;">
                     <!-- Library filters will be added here dynamically -->
                 </div>
             </div>
@@ -1485,7 +1485,9 @@
             photo.latitude != null && photo.longitude != null).length;
 
         const div = document.createElement('div');
-        div.className = 'library-checkbox';
+        div.className = 'library-checkbox checkbox-container';
+        div.style.marginLeft = '0';
+        div.style.paddingLeft = '0';
 
         // Create checkbox input
         const checkbox = document.createElement('input');
@@ -1494,6 +1496,8 @@
         checkbox.checked = true;
         checkbox.dataset.libraryId = library.id;
         checkbox.className = 'library-filter';
+        checkbox.style.marginLeft = '0';
+        checkbox.style.marginRight = '5px';
 
         // Create label
         const label = document.createElement('label');

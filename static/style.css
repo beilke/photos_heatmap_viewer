@@ -702,6 +702,8 @@ body {
             max-height: 120px !important; /* Limit height of library list */
             padding-top: 5px !important;
             padding-bottom: 5px !important;
+            padding-left: 0 !important;
+            margin-left: 0 !important;
         }
         
         /* Make buttons more compact */
@@ -720,7 +722,28 @@ body {
             text-align: center !important;
         }
 
-        /* Button group styling for better layout */
+        /* Checkbox container for consistent alignment */
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    margin-top: 10px;
+    margin-left: 0;
+    padding-left: 0;
+}
+
+.checkbox-container input[type="checkbox"] {
+    margin-right: 5px;
+    margin-left: 0;
+    flex-shrink: 0;
+}
+
+.checkbox-container label {
+    margin: 0;
+    padding: 0;
+}
+
+/* Button group styling for better layout */
 .button-group {
     display: flex;
     flex-wrap: wrap;
@@ -729,8 +752,70 @@ body {
     margin: 10px 0;
 }
 
-.button-group button {
-    flex: 0 0 auto;
+/* Fix checkbox and label alignment in controls panel */
+.controls input[type="checkbox"] {
+    vertical-align: middle;
+    margin-right: 5px;
+    margin-top: 0;
+    margin-bottom: 0;
+    position: relative;
+    display: inline-block;
+}
+
+.controls label {
+    display: inline-block;
+    vertical-align: middle;
+    margin-bottom: 0;
+    line-height: normal;
+}
+
+/* Fix specifically for the checkbox for Photos Markers */
+.controls > div input[type="checkbox"] + label {
+    display: inline-block;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+/* Fix for library header spacing */
+.library-filters h4 {
+    margin-top: 15px;
+    margin-bottom: 8px;
+}
+
+/* Library filter container styles */
+#libraryFilterContainer,
+.library-filters {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 8px;
+    padding-left: 0;
+}
+
+#libraryFilterContainer div,
+.library-filters > div {
+    margin-bottom: 8px; /* Spacing between library entries */
+    display: flex;
+    align-items: center;
+    padding-left: 0;
+}
+
+.library-checkbox,
+.library-filters > div.checkbox-container {
+    margin-left: 0;
+    padding-left: 0;
+}
+
+/* Fix for dynamically added library checkboxes */
+#libraryFilterContainer .library-checkbox {
+    margin-left: 0;
+    padding-left: 0;
+    width: 100%;
+}
+
+#libraryFilterContainer input[type="checkbox"],
+.library-filters > div input[type="checkbox"] {
+    flex-shrink: 0;
+    margin-left: 0;
 }
 
 @media (max-width: 480px) {
