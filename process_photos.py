@@ -771,121 +771,48 @@ def process_directory(root_dir, db_path='photo_library.db', max_workers=None, in
                     pass
 
 def export_to_json(db_path='photo_library.db', output_path='photo_heatmap_data.json', include_non_geotagged=False):
-    """Export the database to JSON format for the heatmap visualization"""
+    """
+    [LEGACY FUNCTION] Export the database to JSON format for the heatmap visualization
+    
+    This function is maintained for backward compatibility only.
+    The application now uses the SQLite database directly instead of JSON files.
+    """
+    print("WARNING: JSON export is no longer needed as the application uses SQLite database directly")
+    
     conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row  # This enables column access by name
     cursor = conn.cursor()
     
-    # First check if the database has records
+    # Get database stats for informational purposes
     cursor.execute("SELECT COUNT(*) FROM photos")
-    count = cursor.fetchone()[0]
+    total_photos = cursor.fetchone()[0]
     
-    if count == 0:
-        print("Warning: No photos found in the database. The JSON file will be empty.")
-        # Still create an empty JSON file
-        with open(output_path, 'w') as f:
-            f.write('{"photos": [], "libraries": []}')
-        conn.close()
-        return
+    cursor.execute("SELECT COUNT(*) FROM photos WHERE latitude IS NOT NULL AND longitude IS NOT NULL")
+    geotagged_photos = cursor.fetchone()[0]
     
-    # Get libraries information
-    try:
-        cursor.execute("SELECT id, name, description, source_dirs FROM libraries")
-        library_rows = cursor.fetchall()
-        libraries = []
-        
-        for row in library_rows:
-            lib = dict(row)
-            # Parse source_dirs from JSON string
-            try:
-                lib['source_dirs'] = json.loads(lib['source_dirs']) if lib['source_dirs'] else []
-            except Exception:
-                lib['source_dirs'] = []
-            libraries.append(lib)
-    except sqlite3.Error as e:
-        print(f"Warning: Could not fetch libraries: {e}")
-        libraries = []
+    cursor.execute("SELECT COUNT(*) FROM libraries")
+    total_libraries = cursor.fetchone()[0]
     
-    # Get photos with library information
-    if include_non_geotagged:
-        # Export all photos, even those without GPS data
-        cursor.execute('''
-        SELECT p.id, p.filename, p.latitude, p.longitude, p.datetime, p.path, 
-               p.marker_data, p.library_id, l.name as library_name
-        FROM photos p
-        LEFT JOIN libraries l ON p.library_id = l.id
-        ''')
-    else:
-        # Export only photos with GPS data
-        cursor.execute('''
-        SELECT p.id, p.filename, p.latitude, p.longitude, p.datetime, p.path, 
-               p.marker_data, p.library_id, l.name as library_name
-        FROM photos p
-        LEFT JOIN libraries l ON p.library_id = l.id
-        WHERE p.latitude IS NOT NULL AND p.longitude IS NOT NULL
-        ''')
+    print(f"Database at {db_path} contains:")
+    print(f"- {total_photos} total photos")
+    print(f"- {geotagged_photos} photos with GPS data")
+    print(f"- {total_libraries} libraries")
+    print(f"JSON export skipped - SQLite database is used directly")
     
-    rows = cursor.fetchall()
-    photos = []
-    
-    for row in rows:
-        photo = dict(row)
-        # Parse marker_data from JSON string if available
-        if photo['marker_data']:
-            try:
-                photo['marker_data'] = json.loads(photo['marker_data'])
-            except Exception:
-                photo['marker_data'] = {}
-        else:
-            photo['marker_data'] = {}
-        
-        photos.append(photo)
-    
-    # Create final data structure with libraries and photos
-    result = {
-        "photos": photos,
-        "libraries": libraries
-    }
-    
-    # Get record counts for logging
-    total_count = len(photos)
-    geotagged_count = len([photo for photo in photos if photo['latitude'] and photo['longitude']])
-    
-    # Ensure the directory exists
-    output_dir = os.path.dirname(output_path)
-    if output_dir and not os.path.exists(output_dir):
-        os.makedirs(output_dir)    
-    # Create a temporary file first, then move it to the final destination
-    # This helps prevent truncated files if the process is interrupted
-    temp_output_path = f"{output_path}.tmp"
-    
-    try:
-        with open(temp_output_path, 'w', encoding='utf-8') as f:
-            # Use a more compact format to avoid formatting issues
-            json.dump(result, f, ensure_ascii=False)
-        
-        # Check if the JSON file was written successfully
-        if os.path.exists(temp_output_path):
-            # Get the file size to verify it's not empty
-            file_size = os.path.getsize(temp_output_path)
-            
-            if file_size > 0:
-                # Move the temporary file to the final destination
-                if os.path.exists(output_path):
-                    os.remove(output_path)
-                os.rename(temp_output_path, output_path)
-                print(f"Exported {total_count} records to {output_path} ({geotagged_count} with GPS data, {total_count - geotagged_count} without)")
-                print(f"Included {len(libraries)} libraries")
-                print(f"JSON file size: {file_size / 1024:.2f} KB")
-            else:
-                print(f"Error: Generated JSON file is empty. Please check database contents.")
-        else:
-            print(f"Error: Failed to create JSON file.")
-    except Exception as e:
-        print(f"Error exporting to JSON: {e}")
-        # If there was an error, try to clean up the temporary file
-        if os.path.exists(temp_output_path):
-            os.remove(temp_output_path)
+    # Create a minimal JSON file for compatibility
+    if output_path:
+        try:
+            # Ensure the directory exists
+            output_dir = os.path.dirname(output_path)
+            if output_dir and not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+                
+            # Create a minimal JSON structure with deprecation notice
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write('{"photos":[],"libraries":[],"note":"This file is deprecated. Use SQLite database directly."}')
+                
+            print(f"Created placeholder JSON file at {output_path} for compatibility")
+        except Exception as e:
+            print(f"Error creating placeholder JSON: {e}")
     
     conn.close()
 def photo_exists_in_db(cursor, filename=None, img_hash=None, path=None):

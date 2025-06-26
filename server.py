@@ -240,52 +240,34 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         logger.info("%s - %s" % (self.address_string(), format % args))
     
     def serve_json_with_logging(self):
-        """Serve JSON files with additional logging"""
-        path = self.path[1:]  # Remove leading '/'
-        if os.path.exists(path):
-            try:
-                with open(path, 'r', encoding='utf-8') as f:
-                    json_data = json.load(f)
-                    
-                    # Check if the file uses the new format with photos and libraries
-                    if isinstance(json_data, dict) and 'photos' in json_data:
-                        photos = json_data.get('photos', [])
-                        libraries = json_data.get('libraries', [])
-                        logger.info(f"Serving JSON file: {path} with {len(photos)} photos in {len(libraries)} libraries")
-                        
-                        # Log some data statistics for debugging
-                        if photos:
-                            has_gps = sum(1 for item in photos if item.get('latitude') and item.get('longitude'))
-                            logger.info(f"JSON data stats: {has_gps}/{len(photos)} items have GPS coordinates")
-                            
-                        # Log libraries
-                        if libraries:
-                            logger.info(f"Libraries: {', '.join(lib.get('name', 'Unnamed') for lib in libraries)}")
-                    else:
-                        # Handle old format (just a list of photos)
-                        photo_count = len(json_data) if isinstance(json_data, list) else 0
-                        logger.info(f"Serving JSON file: {path} with {photo_count} entries (old format)")
-                        
-                        # Log some data statistics for debugging
-                        if photo_count > 0:
-                            has_gps = sum(1 for item in json_data if 'latitude' in item and 'longitude' in item)
-                            logger.info(f"JSON data stats: {has_gps}/{photo_count} items have GPS coordinates")
-
-                # Send the file
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                
-                with open(path, 'rb') as f:
-                    self.wfile.write(f.read())
-                    
-            except json.JSONDecodeError as e:
-                logger.error(f"JSON parse error in {path}: {e}")
-                self.send_error(500, f"JSON parse error: {str(e)}")
-            except Exception as e:
-                logger.error(f"Error serving JSON {path}: {e}")
-                self.send_error(500, f"Internal server error: {str(e)}")
+        """
+        Legacy method for serving JSON files - now redirects to database API endpoints
+        """
+        path = self.path
+        
+        # Check if this is a request for the main data file
+        if path == "/photo_heatmap_data.json":
+            # Redirect to the database API endpoint
+            self.send_response(302)  # Found/Redirect
+            self.send_header('Location', '/api/photos')
+            self.end_headers()
+            logger.info(f"Redirected JSON file request '{path}' to database API endpoint")
+            return
+            
+        # If the file exists on disk, serve it with a deprecation warning
+        file_path = path[1:]  # Remove leading '/'
+        if os.path.exists(file_path) and file_path.endswith('.json'):
+            logger.warning(f"Serving legacy JSON file: {file_path} (deprecated)")
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('X-Deprecated', 'This JSON file is deprecated. Use database API endpoints instead.')
+            self.end_headers()
+            
+            with open(file_path, 'rb') as f:
+                self.wfile.write(f.read())
         else:
+            logger.warning(f"JSON file not found: {file_path} - would redirect to API in production")
             self.send_error(404, "File not found")
         
     def do_GET(self):
@@ -673,53 +655,33 @@ def start_server(port=8000, directory='.', debug_mode=False, db_path=None, host=
     # Log server startup
     logger.info(f"Starting server in directory: {os.path.abspath(directory)}")
     
-    # Check for JSON data file
-    json_file = 'photo_heatmap_data.json'
-    if os.path.exists(json_file):
+    # Check if database exists
+    db_path = os.path.join(os.getcwd(), 'data', 'photo_library.db')
+    if not os.path.exists(db_path):
+        db_path = os.path.join(os.getcwd(), 'photo_library.db')
+        
+    if os.path.exists(db_path):
+        logger.info(f"Found database at {db_path}")
         try:
-            file_size = os.path.getsize(json_file)
-            logger.info(f"Found {json_file} with size: {file_size} bytes")
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
             
-            if file_size == 0:
-                logger.error(f"JSON file {json_file} is empty (0 bytes)")
-            else:
-                with open(json_file, 'r', encoding='utf-8') as f:
-                    file_start = f.read(100)  # Read first 100 chars for logging
-                    logger.info(f"JSON file starts with: {file_start}...")
-                    
-                    # Reset file pointer and parse
-                    f.seek(0)
-                    data = json.load(f)
-                    photo_count = len(data) if isinstance(data, list) else 0
-                    logger.info(f"Found {json_file} with {photo_count} entries")
-                    
-                    # In debug mode, analyze JSON data content
-                    if debug_mode and isinstance(data, list) and len(data) > 0:
-                        gps_count = sum(1 for item in data if 'latitude' in item and 'longitude' in item 
-                                    and item['latitude'] is not None and item['longitude'] is not None)
-                        logger.info(f"Items with GPS coordinates: {gps_count}/{photo_count} ({gps_count/photo_count*100:.1f}%)")
-                        
-                        # Log sample data for first entry
-                        if len(data) > 0:
-                            sample = data[0]
-                            logger.info(f"Sample entry: {json.dumps(sample, indent=2)}")
-                    
-        except json.JSONDecodeError as e:
-            logger.error(f"Error parsing {json_file}: {e}")
+            # Get some basic stats
+            cursor.execute("SELECT COUNT(*) FROM photos")
+            photo_count = cursor.fetchone()[0]
             
-            # In debug mode, try to identify where the JSON is malformed
-            if debug_mode:
-                try:
-                    with open(json_file, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                        logger.debug(f"JSON content (first 500 chars): {content[:500]}")
-                except Exception as inner_e:
-                    logger.error(f"Error reading JSON content: {inner_e}")
-                    
+            cursor.execute("SELECT COUNT(*) FROM photos WHERE latitude IS NOT NULL AND longitude IS NOT NULL")
+            gps_count = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM libraries")
+            library_count = cursor.fetchone()[0]
+            
+            logger.info(f"Database contains {photo_count} photos ({gps_count} with GPS data) in {library_count} libraries")
+            conn.close()
         except Exception as e:
-            logger.error(f"Error checking {json_file}: {e}")
+            logger.error(f"Error checking database: {e}")
     else:
-        logger.warning(f"{json_file} not found in {os.path.abspath(directory)}")
+        logger.warning(f"Database not found at {db_path}")
     
     # Define Flask routes for serving static files
     @app.route('/')

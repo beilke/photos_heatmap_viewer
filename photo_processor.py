@@ -359,64 +359,30 @@ def process_directory_incremental(root_dir, db_path='photo_library.db', max_work
         logger.error(f"Error during processing: {e}")
 
 def export_to_json(db_path='photo_library.db', output_path='photo_heatmap_data.json', include_non_geotagged=False):
-    """Export database to JSON"""
-    try:
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        # Get libraries
-        cursor.execute("SELECT * FROM libraries")
-        libraries = [dict(row) for row in cursor.fetchall()]
-        
-        # Get photos
-        if include_non_geotagged:
-            cursor.execute('''
-            SELECT p.id, p.filename, p.latitude, p.longitude, p.datetime, p.path, 
-                   p.marker_data, p.library_id, l.name as library_name
-            FROM photos p
-            LEFT JOIN libraries l ON p.library_id = l.id
-            ''')
-        else:
-            cursor.execute('''
-            SELECT p.id, p.filename, p.latitude, p.longitude, p.datetime, p.path, 
-                   p.marker_data, p.library_id, l.name as library_name
-            FROM photos p
-            LEFT JOIN libraries l ON p.library_id = l.id
-            WHERE p.latitude IS NOT NULL AND p.longitude IS NOT NULL
-            ''')
-        
-        photos = []
-        for row in cursor.fetchall():
-            photo = dict(row)
-            if photo['marker_data']:
-                try:
-                    photo['marker_data'] = json.loads(photo['marker_data'])
-                except:
-                    photo['marker_data'] = {}
-            else:
-                photo['marker_data'] = {}
-            photos.append(photo)
-        
-        result = {
-            "photos": photos,
-            "libraries": libraries
-        }
-        
-        # Create output directory if needed
-        output_dir = os.path.dirname(output_path)
-        if output_dir and not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        
-        # Write JSON
-        with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(result, f, ensure_ascii=False)
-        
-        logger.info(f"Exported {len(photos)} photos to {output_path}")
-        
-        conn.close()
-    except Exception as e:
-        logger.error(f"Error exporting to JSON: {e}")
+    """
+    [LEGACY FUNCTION] Export database to JSON
+    
+    Note: This function is maintained for backward compatibility. 
+    The application now uses SQLite directly instead of JSON files.
+    """
+    logger.warning("JSON export is no longer needed as the application uses SQLite database directly")
+    logger.info(f"Database at {db_path} contains all required data. JSON export skipped.")
+    
+    # Create an empty JSON file to satisfy any legacy code expecting it
+    if output_path:
+        try:
+            # Create output directory if needed
+            output_dir = os.path.dirname(output_path)
+            if output_dir and not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+            
+            # Create a minimal JSON structure
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write('{"photos":[],"libraries":[],"note":"This file is deprecated. Use SQLite database directly."}')
+            
+            logger.info(f"Created placeholder JSON file at {output_path} for compatibility")
+        except Exception as e:
+            logger.error(f"Error creating placeholder JSON: {e}")
 
 def clean_database(db_path='photo_library.db'):
     """Clear the photos table"""

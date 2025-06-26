@@ -6,18 +6,18 @@ A tool to visualize a large photo library (1000+ photos) on a heatmap based on g
 
 - **Multiple Libraries**: Organize photos into named libraries with separate source directories
 - **Library Filtering**: Filter the map to show specific libraries
-- **SQLite Database**: Efficiently stores metadata for tens of thousands of photos  
+- **SQLite Database**: Efficiently stores and serves metadata for tens of thousands of photos  
 - **Parallel Processing**: Multi-threaded photo scanning for faster imports
 - **Heatmap Visualization**: Web-based interactive map showing photo density
 - **Date Filtering**: Filter photos by date range
-- **JSON Export**: Export database to JSON for web visualization
+- **HEIC Support**: View HEIC images with on-the-fly conversion
 - **Duplicate Detection**: Basic hash-based duplicate detection
 - **Incremental Updates**: By default, only adds new photos to the database
 - **Clean Database Option**: Start fresh with a clean database when needed
 - **Photo Viewing**: Show actual photos on the map when zoomed in close enough
 - **Photo Clustering**: Automatically groups nearby photos for better visualization
 - **Enhanced Logging**: Debug utilities for troubleshooting
-- **Path Normalization**: Support for cross-platform file paths
+- **Cross Platform**: Support for Windows, Linux and Docker environments
 
 ## Requirements
 
@@ -81,7 +81,7 @@ The `manage_libraries.ps1` script provides tools for managing multiple photo lib
 # Delete a library and its photos
 .\manage_libraries.ps1 delete "Unwanted Library"
 
-# Export all data to JSON
+# Advanced Processing Options
 .\manage_libraries.ps1 export
 ```
 
@@ -95,13 +95,7 @@ The `manage_libraries.ps1` script provides tools for managing multiple photo lib
 .\quickstart.ps1 "path/to/your/photos" all clean force
 ```
 
-4. Export the data to JSON:
-
-```
-python process_photos.py --export
-```
-
-5. Start the web server:
+4. Start the web server:
 
 ```
 python server.py
@@ -124,14 +118,14 @@ python process_photos.py --help
 Options:
 - `--init`: Initialize the database
 - `--process PATH`: Process images from the specified directory
-- `--export`: Export database to JSON
 - `--db PATH`: Database file path (default: photo_library.db)
-- `--output PATH`: Output JSON file path (default: photo_heatmap_data.json)
 - `--workers N`: Number of worker threads for processing (default: 4)
-- `--include-all`: Include photos without GPS data
-- `--export-all`: Export all photos to JSON, not just those with GPS data
+- `--include-all`: Include photos without GPS data when processing
 - `--clean`: Clean database before processing
 - `--force`: Force import even if photo already exists in database
+- `--export`: [LEGACY] Export database to JSON (no longer needed)
+- `--output PATH`: [LEGACY] Output JSON file path (no longer needed)
+- `--export-all`: [LEGACY] Export all photos to JSON (no longer needed)
 
 ### Web Server
 
@@ -187,14 +181,13 @@ This will:
 3. Optionally fix issues in the JSON file
 4. Start the server in debug mode
 
-### JSON File Inspector
+### Database Inspector
 
-To diagnose issues with your JSON data file:
+To diagnose issues with your photo database:
 
 ```
-python inspect_json.py                    # Just inspect the file
-python inspect_json.py --fix              # Inspect and try to fix issues
-python inspect_json.py --create-empty     # Create a valid empty JSON file
+python debug_server.py                    # Inspect the database structure and content
+python debug_server.py --stats            # Show detailed database statistics
 ```
 
 ### Debug UI
@@ -216,9 +209,9 @@ http://localhost:8000/index.html.debug
 
 ### No Photos Displaying on Map
 
-1. Check if your JSON file has valid data:
+1. Check if your database has valid data:
    ```
-   python inspect_json.py
+   python debug_server.py
    ```
 
 2. Verify that your photos have GPS coordinates:
