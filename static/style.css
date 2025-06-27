@@ -380,8 +380,8 @@ body {
             align-items: center;
             justify-content: center;
             padding: 5px;
-            background-color: #000;
-            /* Dark background for better contrast */
+            background-color: #222;
+            /* Slightly lighter background for better visibility */
             position: relative;
             overflow: hidden;
             min-height: 500px;
@@ -393,13 +393,20 @@ body {
             max-height: 90%;
             object-fit: contain;
             transform-origin: center center;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, opacity 0.3s ease;
             margin: auto;
             /* Center the image */
             display: block;
             /* Remove any inline behavior */
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-            /* Add subtle shadow for better visibility */
+            box-shadow: none !important; /* Remove shadow that might affect contrast */
+            filter: none !important; /* Ensure no filters are applied */
+            opacity: 1 !important; /* Ensure full opacity */
+            /* Add a subtle border to separate image from background */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            /* Add light contrast boost */
+            filter: contrast(1.02) !important;
+            /* Disable any image color manipulation */
+            image-rendering: auto;
         }
 
         .photo-viewer-info {

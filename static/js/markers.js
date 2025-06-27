@@ -85,7 +85,7 @@ function updateMarkers(inputPhotos = []) {
                     
                     // Get accurate count of unique photos
                     const count = uniqueLocations.size;
-                    debugLog(`Cluster has ${count} unique photos out of ${markers.length} markers`);
+                    // debugLog(`Cluster has ${count} unique photos out of ${markers.length} markers`);
                     
                     // Use Leaflet.markercluster's default icon creation with our corrected count
                     const childCount = count;

@@ -14,6 +14,16 @@ function openPhotoViewer(photos, startIndex = 0) {
     }
 
     debugLog(`Opening photo viewer with ${photos.length} photos, starting at index ${startIndex}`);
+    
+    // Reset the photo viewer image to ensure it has proper styling
+    const photoViewerImg = document.getElementById('photoViewerImg');
+    if (photoViewerImg) {
+        // Reset any inline styles that might have persisted
+        photoViewerImg.removeAttribute('style');
+        // Ensure proper display characteristics
+        photoViewerImg.style.filter = 'none';
+        photoViewerImg.style.opacity = '1';
+    }
 
     // Handle large clusters more efficiently
     if (photos.length > 100) {
@@ -159,8 +169,9 @@ function updatePhotoViewerContent() {
     totalPhotos.textContent = currentClusterPhotos.fullDataset ?
         currentClusterPhotos.fullDataset.length : currentClusterPhotos.length;
 
-    // Update photo viewer image
-    photoViewerImg.style.opacity = '0.3'; // Fade out while loading
+    // Reset any existing styles on the photo viewer image
+    photoViewerImg.removeAttribute('style');
+    photoViewerImg.style.opacity = '0.5'; // Higher initial opacity for better visibility
     
     // Store photo filename for reference
     photoViewerImg.dataset.loadingPhotoId = photo.id || photo.filename;
@@ -175,25 +186,30 @@ function updatePhotoViewerContent() {
             showFeedbackToast('Converting HEIC image...', 3000);
         }
         
-        debugLog(`Loading HEIC photo: ${photo.filename}`, 'Converting to JPEG format');
+        // debugLog(`Loading HEIC photo: ${photo.filename}`, 'Converting to JPEG format');
         
         // For HEIC files, load the full resolution converted version directly
-        photoViewerImg.src = `/photos/${encodeURIComponent(photo.filename)}?format=jpeg&quality=90`;
+        photoViewerImg.src = `/photos/${encodeURIComponent(photo.filename)}?format=jpeg&quality=100`;
     } else {
-        // For normal images, load directly
+        // For normal images, load directly with no quality reduction
         photoViewerImg.src = `/photos/${encodeURIComponent(photo.filename)}`;
     }
     
-    // When image loads, fade it in
+    // When image loads, ensure full opacity
     photoViewerImg.onload = function() {
         // Make sure this is still the photo we want to show
         // (user might have clicked next/prev while loading)
         if (photoViewerImg.dataset.loadingPhotoId === (photo.id || photo.filename)) {
+            // Force full opacity - override any previous settings
             photoViewerImg.style.opacity = '1';
+            // Remove any filters or transforms that might affect brightness
+            photoViewerImg.style.filter = 'none';
+            // Set brightness explicitly to normal
+            photoViewerImg.style.filter = 'brightness(100%)';
             
             // For HEIC images, show success message
             if (isHeic) {
-                debugLog(`Successfully loaded HEIC photo: ${photo.filename}`);
+                // debugLog(`Successfully loaded HEIC photo: ${photo.filename}`);
                 if (typeof showFeedbackToast === 'function') {
                     showFeedbackToast('HEIC image displayed successfully', 1500);
                 }
@@ -204,19 +220,25 @@ function updatePhotoViewerContent() {
     // Handle error in loading the image
     photoViewerImg.onerror = function() {
         photoViewerImg.style.opacity = '1';
+        photoViewerImg.style.filter = 'none';
         
         if (isHeic) {
-            debugLog(`Failed to load HEIC photo: ${photo.filename}`, 'Attempting fallback methods');
+            // debugLog(`Failed to load HEIC photo: ${photo.filename}`, 'Attempting fallback methods');
             
             // Try a different approach based on what we've already attempted
-            if (this.src.includes('format=jpeg&quality=90')) {
+            if (this.src.includes('format=jpeg&quality=100')) {
                 // First fallback - try with lower quality
-                debugLog(`Trying lower quality HEIC conversion`);
-                photoViewerImg.src = `/photos/${encodeURIComponent(photo.filename)}?format=jpeg&quality=70`;
+                // debugLog(`Trying lower quality HEIC conversion`);
+                photoViewerImg.src = `/photos/${encodeURIComponent(photo.filename)}?format=jpeg&quality=90`;
                 return;
-            } else if (this.src.includes('format=jpeg&quality=70')) {
-                // Second fallback - try with the convert endpoint specifically
-                debugLog(`Trying dedicated convert endpoint`);
+            } else if (this.src.includes('format=jpeg&quality=90')) {
+                // Second fallback - try with even lower quality
+                // debugLog(`Trying lower quality HEIC conversion`);
+                photoViewerImg.src = `/photos/${encodeURIComponent(photo.filename)}?format=jpeg&quality=80`;
+                return;
+            } else if (this.src.includes('format=jpeg&quality=80')) {
+                // Third fallback - try with the convert endpoint specifically
+                // debugLog(`Trying dedicated convert endpoint`);
                 photoViewerImg.src = `/convert/${encodeURIComponent(photo.filename)}`;
                 
                 if (typeof showFeedbackToast === 'function') {
@@ -309,8 +331,10 @@ function showNextPhoto() {
         
         debugLog(`Moving to next photo: ${currentPhotoIdx + 1}/${totalPhotos}`);
         
-        // Preserve the current image opacity while we load the next one
-        document.getElementById('photoViewerImg').style.opacity = '0.8';
+        // Set a higher temporary opacity during transition for better visibility
+        const photoImg = document.getElementById('photoViewerImg');
+        photoImg.style.opacity = '0.95';
+        photoImg.style.filter = 'none'; // Ensure no filters are applied during transition
         updatePhotoViewerContent();
     }
 }
@@ -358,10 +382,12 @@ function showPreviousPhoto() {
             currentPhotoIdx--;
         }
         
-        debugLog(`Moving to previous photo: ${currentPhotoIdx + 1}/${totalPhotos}`);
+        // debugLog(`Moving to previous photo: ${currentPhotoIdx + 1}/${totalPhotos}`);
 
-        // Preserve the current image opacity while we load the previous one
-        document.getElementById('photoViewerImg').style.opacity = '0.8';
+        // Set a higher temporary opacity during transition for better visibility
+        const photoImg = document.getElementById('photoViewerImg');
+        photoImg.style.opacity = '0.95';
+        photoImg.style.filter = 'none'; // Ensure no filters are applied during transition
         updatePhotoViewerContent();
     }
 }
