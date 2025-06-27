@@ -56,11 +56,6 @@ body {
             padding: 0;
             font-family: Arial, sans-serif;
         }
-        
-        /* Utility class for hidden elements */
-        .hidden {
-            display: none;
-        }
 
         #map {
             width: 100%;
@@ -79,7 +74,6 @@ body {
         }
         
         /* On non-mobile, always show the toggle button */
-        /* Controls Panel Styling */
         .controls-toggle {
             background: rgba(255, 255, 255, 0.9);
             padding: 5px 10px;
@@ -132,6 +126,21 @@ body {
             font-size: 12px;
         }
         
+        .controls-toggle {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px 10px;
+            border-radius: 5px 5px 0 0;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 120px;
+            pointer-events: auto; /* Allow events on the toggle */
+        }
+        
         .controls-toggle:hover {
             background: rgba(240, 240, 240, 0.95);
         }
@@ -173,48 +182,6 @@ body {
 
         .debug-panel-toggle:hover {
             background: rgba(240, 240, 240, 0.95);
-        }
-        
-        .debug-panel pre {
-            margin: 5px 0;
-            max-width: 100%;
-            overflow-x: auto;
-            background: rgba(0, 0, 0, 0.2);
-            padding: 5px;
-            border-radius: 3px;
-        }
-        
-        .debug-panel pre.debug-json {
-            color: #8cdcfe;
-        }
-        
-        .debug-panel pre.debug-text {
-            color: #ce9178;
-        }
-        
-        .debug-panel pre.debug-error {
-            color: #f14c4c;
-        }
-
-        .debug-panel-toggle {
-            background: rgba(30, 30, 30, 0.85);
-            color: #eaeaea;
-            padding: 5px 10px;
-            border-radius: 5px 5px 0 0;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 120px;
-            border: 1px solid #555;
-            border-bottom: none;
-        }
-
-        .debug-panel-toggle:hover {
-            background: rgba(50, 50, 50, 0.95);
         }
 
         .loading {
@@ -435,35 +402,25 @@ body {
             gap: 10px;
         }
 
-        /* Photo Viewer Navigation */
         .photo-viewer-counter {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: white;
+            font-size: 14px;
+            color: #666;
         }
 
         .photo-nav-btn {
-            padding: 8px 20px;
-            background: rgba(0, 0, 0, 0.5);
+            background-color: #4CAF50;
             color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: none;
+            padding: 10px 20px;
             border-radius: 4px;
             cursor: pointer;
-            font-weight: bold;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             min-height: 44px; /* Better touch target */
             min-width: 44px; /* Better touch target */
-            transition: all 0.2s ease;
         }
 
         .photo-nav-btn:disabled {
             background-color: #cccccc;
             cursor: not-allowed;
-            opacity: 0.4;
         }
 
         /* Image controls */
@@ -487,6 +444,29 @@ body {
             display: flex;
             gap: 15px;
         }
+        
+        .photo-viewer-counter {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .photo-nav-btn {
+            padding: 8px 20px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px; /* Better touch target */
+            min-width: 44px; /* Better touch target */
+            transition: all 0.2s ease;
+        }
 
         .photo-nav-btn:hover {
             background: rgba(20, 20, 20, 0.8);
@@ -499,7 +479,6 @@ body {
         }
 
         /* Additional responsive styles */
-        /* Mobile Responsive Styles */
         @media (max-width: 768px) {
             /* Basic layout adjustments */
             body {
@@ -519,35 +498,35 @@ body {
                 left: 0;
                 right: 0;
                 bottom: 0;
-                touch-action: none;
-                z-index: 1;
+                touch-action: none !important;
+                z-index: 1 !important;
             }
             
             /* Ensure all Leaflet-specific elements allow proper touch handling */
             .leaflet-container {
-                touch-action: none;
+                touch-action: none !important;
             }
             
             .leaflet-marker-icon,
             .leaflet-marker-shadow,
             .leaflet-control {
-                touch-action: none;
-                pointer-events: auto;
+                touch-action: none !important;
+                pointer-events: auto !important;
             }
             
             /* Controls container - fixed to bottom */
             .controls-container {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                top: auto; /* Override desktop position */
-                width: 100%;
-                z-index: 1001;
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                top: auto !important; /* Override desktop position */
+                width: 100% !important;
+                z-index: 1001 !important;
                 pointer-events: none; /* Let map events pass through container */
-                display: flex;
-                flex-direction: column-reverse; /* Toggle at bottom, panel above */
-                max-height: 60vh; /* Limit container height */
+                display: flex !important;
+                flex-direction: column-reverse !important; /* Toggle at bottom, panel above */
+                max-height: 60vh !important; /* Limit container height */
             }
             
             /* Toggle button - always visible at bottom */
@@ -743,32 +722,25 @@ body {
             text-align: center !important;
         }
 
-        /* Checkbox and Form Controls - Consolidated */
+        /* Checkbox container for consistent alignment */
 .checkbox-container {
     display: flex;
     align-items: center;
-    margin: 10px 0;
-    padding: 0;
+    margin-bottom: 10px;
+    margin-top: 10px;
+    margin-left: 0;
+    padding-left: 0;
 }
 
-.checkbox-container input[type="checkbox"],
-.controls input[type="checkbox"] {
+.checkbox-container input[type="checkbox"] {
     margin-right: 5px;
     margin-left: 0;
-    margin-top: 0;
-    margin-bottom: 0;
     flex-shrink: 0;
-    vertical-align: middle;
-    position: relative;
 }
 
-.checkbox-container label,
-.controls label {
+.checkbox-container label {
     margin: 0;
     padding: 0;
-    display: inline-block;
-    vertical-align: middle;
-    line-height: normal;
 }
 
 /* Button group styling for better layout */
@@ -780,20 +752,43 @@ body {
     margin: 10px 0;
 }
 
+/* Fix checkbox and label alignment in controls panel */
+.controls input[type="checkbox"] {
+    vertical-align: middle;
+    margin-right: 5px;
+    margin-top: 0;
+    margin-bottom: 0;
+    position: relative;
+    display: inline-block;
+}
+
+.controls label {
+    display: inline-block;
+    vertical-align: middle;
+    margin-bottom: 0;
+    line-height: normal;
+}
+
+/* Fix specifically for the checkbox for Photos Markers */
+.controls > div input[type="checkbox"] + label {
+    display: inline-block;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
 /* Fix for library header spacing */
 .library-filters h4 {
     margin-top: 15px;
     margin-bottom: 8px;
 }
 
-/* Library filter container styles - simplified and consolidated */
+/* Library filter container styles */
 #libraryFilterContainer,
 .library-filters {
     display: flex;
     flex-direction: column;
     margin-bottom: 8px;
     padding-left: 0;
-    margin-left: 0;
 }
 
 #libraryFilterContainer div,
@@ -802,7 +797,6 @@ body {
     display: flex;
     align-items: center;
     padding-left: 0;
-    margin-left: 0;
 }
 
 .library-checkbox,
@@ -819,10 +813,9 @@ body {
 }
 
 #libraryFilterContainer input[type="checkbox"],
-.library-filters input[type="checkbox"] {
+.library-filters > div input[type="checkbox"] {
     flex-shrink: 0;
     margin-left: 0;
-    margin-right: 5px;
 }
 
 @media (max-width: 480px) {
@@ -836,85 +829,97 @@ body {
     }
 }
 
-/* Mobile Photo Viewer Styles - Consolidated and Optimized */
+/* Mobile Photo Viewer Styles */
 @media (max-width: 768px) {
-    /* Photo viewer container elements */
-    .photo-viewer-info,
+    /* Hide info panel on mobile */
+    .photo-viewer-info {
+        display: none !important;
+    }
+    
+    /* Hide path info in footer on mobile */
     .photo-viewer-footer .photo-info-item {
-        display: none;
+        display: none !important;
     }
     
     /* Make photo viewer fullscreen and optimized for touch */
     .photo-viewer-container {
-        width: 100%;
-        height: 100%;
-        max-width: none;
-        max-height: none;
-        border-radius: 0;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: none !important;
+        max-height: none !important;
+        border-radius: 0 !important;
     }
     
-    /* Layout adjustments */
+    /* Ensure image area gets full height */
     .photo-viewer-content {
-        flex-direction: column;
+        flex-direction: column !important;
     }
     
     .photo-viewer-image {
-        flex: 1;
-        height: calc(100vh - 140px); /* Full height minus headers and footers */
+        flex: 1 !important;
+        height: calc(100vh - 140px) !important; /* Full height minus headers and footers */
     }
     
-    /* Navigation controls */
+    /* Move navigation controls to be alongside image controls */
     .photo-viewer-footer {
-        position: absolute;
-        bottom: 10px;
-        right: 10px;
-        width: auto;
-        border: none;
-        background-color: rgba(0, 0, 0, 0.5);
-        padding: 5px;
-        border-radius: 4px;
-        z-index: 10;
+        position: absolute !important;
+        bottom: 10px !important;
+        right: 10px !important;
+        width: auto !important;
+        border: none !important;
+        background-color: rgba(0, 0, 0, 0.5) !important;
+        padding: 5px !important;
+        border-radius: 4px !important;
+        z-index: 10 !important;
     }
     
+    /* Position image navigation in the center */
     .image-navigation {
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: rgba(0, 0, 0, 0.7);
-        padding: 8px 15px;
-        border-radius: 8px;
-        z-index: 100;
+        bottom: 20px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        background-color: rgba(0, 0, 0, 0.7) !important;
+        padding: 8px 15px !important;
+        border-radius: 8px !important;
+        z-index: 100 !important;
     }
     
-    /* Button styling */
     .image-control-btn,
     .photo-nav-btn {
-        background-color: rgba(76, 175, 80, 0.8);
-        min-width: 40px;
-        min-height: 40px;
-        width: 40px;
-        height: 40px;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        border-radius: 50%; /* Circle buttons */
+        background-color: rgba(76, 175, 80, 0.8) !important;
+        min-width: 40px !important;
+        min-height: 40px !important;
+        width: 40px !important;
+        height: 40px !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 18px !important;
     }
     
-    /* Navigation layout */
+    /* Update navigation button styles for mobile */
+    /* Rearrange navigation with counter on top */
     .photo-viewer-nav {
-        flex-direction: column;
-        align-items: center;
+        flex-direction: column !important;
+        align-items: center !important;
     }
     
     .photo-viewer-counter {
-        margin-bottom: 5px;
-        font-weight: bold;
-        color: white;
-        font-size: 16px;
-        order: -1; /* Place counter above buttons */
-        padding: 0 5px;
+        margin-bottom: 5px !important;
+        font-weight: bold !important;
+        color: white !important;
+        font-size: 16px !important;
+        order: -1 !important; /* Place counter above buttons */
+    }
+    
+    /* Make navigation buttons icon-only */
+    .photo-nav-btn {
+        min-width: 40px !important;
+        width: 40px !important;
+        padding: 8px 0 !important;
+        border-radius: 50% !important; /* Circle buttons */
+        font-size: 18px !important;
     }
     
     /* Add a simple container for nav buttons */
@@ -923,5 +928,12 @@ body {
         display: flex;
         flex-direction: row;
         gap: 10px;
+    }
+    
+    /* Make counter more visible */
+    .photo-viewer-counter {
+        padding: 0 5px !important;
+        color: white !important;
+        font-weight: bold !important;
     }
 }

@@ -22,7 +22,7 @@
             <span>Heatmap</span>
             <span class="toggle-icon">▲</span>
         </div>
-        <div class="controls" id="controlsPanel" style="display: none;">
+        <div class="controls hidden" id="controlsPanel">
             <div>
                 <label for="intensity">Intensity: <span id="intensityValue">15</span></label>
                 <input type="range" id="intensity" min="1" max="30" value="15">
@@ -41,7 +41,7 @@
                     <input type="checkbox" id="selectAllLibraries" checked>
                     <label for="selectAllLibraries"><strong>All Libraries</strong></label>
                 </div>
-                <div id="libraryFilterContainer" style="padding-left: 0; margin-left: 0;">
+                <div id="libraryFilterContainer">
                     <!-- Library filters will be added here dynamically -->
                 </div>
             </div>
@@ -111,11 +111,15 @@
             </div>
         </div>
     </div>
-    <script>
-        // Add panel toggle functionality
-        // Mobile detection is already done before map initialization
-        
-        document.addEventListener('DOMContentLoaded', function () {
+    <!-- External JavaScript Files -->
+    <!-- External JavaScript Files - Order matters for dependencies -->
+    <script src="/static/js/debug.js"></script>
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/ui.js"></script>
+    <script src="/static/js/map.js"></script>
+    <script src="/static/js/markers.js"></script>
+    <script src="/static/js/photo-viewer.js"></script>
+    <script src="/static/js/photo-data.js"></script>
             // Set mobile-specific body class
             if (isMobile) {
                 document.body.classList.add('mobile-device');
@@ -774,7 +778,11 @@
         
         // Update markers
         function updateMarkers(inputPhotos = []) {
-    debugLog('Updating markers');
+    // Check if we already logged this - prevents duplicate messages
+    if (!window._markerUpdateInProgress) {
+        window._markerUpdateInProgress = true;
+        debugLog('Updating markers');
+    }
 
     // Deduplicate photos
     const photoMap = new Map();
@@ -792,7 +800,12 @@
     }
 
     const filteredPhotos = uniquePhotos;
-    debugLog(`Loading markers for ${filteredPhotos.length} unique photos...`);
+    
+    // Check if we've already logged this information to avoid duplicates
+    if (!window._markerLoadingLogged) {
+        window._markerLoadingLogged = true;
+        debugLog(`Loading markers for ${filteredPhotos.length} unique photos...`);
+    }
 
     // Update the main loading indicator instead of creating a new one
     const loadingElement = document.getElementById('loading');
@@ -889,7 +902,11 @@
     }
 
     if (filteredPhotos.length > 500) {
-        debugLog(`Using chunked processing for ${filteredPhotos.length} markers`);
+        // Only log the chunked processing message if we haven't already
+        if (!window._chunkedProcessingLogged) {
+            window._chunkedProcessingLogged = true;
+            debugLog(`Using chunked processing for ${filteredPhotos.length} markers`);
+        }
         processChunk();
     } else {
         if (filteredPhotos.length > 0) {
@@ -989,8 +1006,14 @@
         markerGroup.addLayer(marker);
     }
 
+    // Track if finishMarkerLoading has already run to prevent duplicate logging
+    let markerFinishComplete = false;
+    
     function finishMarkerLoading() {
-        map.addLayer(markerGroup);
+        // Only add the layer if it's not already on the map
+        if (markerGroup && !map.hasLayer(markerGroup)) {
+            map.addLayer(markerGroup);
+        }
         
         // Add the cluster click handler here to ensure it's only added once
         // after all markers are processed
@@ -1048,12 +1071,29 @@
         // Update progress only at the very end when markers are actually added to the map
         progressBar.style.width = '100%';
         loadingMessage.textContent = 'Complete!';
-        debugLog('Successfully added markers to map');
         
-        // Clean up library selection flag if it exists
+        // Only log success message if we haven't already done so
+        if (!window._markerSuccessLogged) {
+            debugLog('Successfully added markers to map');
+            window._markerSuccessLogged = true;
+        }
+        
+        // Clean up flags
         if (window._processingLibrarySelection) {
             window._processingLibrarySelection = false;
         }
+        
+        // Reset the marker update tracking flags except success message
+        window._markerUpdateInProgress = false;
+        window._markerLoadingLogged = false;
+        window._chunkedProcessingLogged = false;
+        
+        // Reset the success message flag after a short delay
+        // This ensures we don't get duplicate messages in quick succession
+        // but allows new messages when the user performs a new action
+        setTimeout(() => {
+            window._markerSuccessLogged = false;
+        }, 1000);
         
         // Hide loading screen after a short delay - slightly longer to ensure
         // users see the 100% state before it disappears
@@ -1665,8 +1705,6 @@
             
             // Handle markers differently depending on context
             if (showMarkersCheckbox.checked) {
-                debugLog('Updating markers for complete refresh');
-                
                 // When updating from library selection, we need to recreate markers 
                 // to reflect the new filtered dataset
                 const fromLibrarySelection = 
@@ -1716,54 +1754,8 @@
 
         // Fullscreen functionality removed
         
-        // Marker updating functionality is defined elsewhere
-        
-    </script>
-
-    <script>
-        // Global variable to store library update times
-        window.libraryUpdateTimes = {};
-
-        // Function to fetch library update times
-        function fetchLibraryUpdateTimes() {
-            fetch('/library_updates')
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    }
-                    throw new Error('Network response was not ok');
-                })
-                .then(data => {
-                    if (data && data.updates) {
-                        window.libraryUpdateTimes = data.updates;
-                        console.log('Library update times loaded:', window.libraryUpdateTimes);
-
-                        // Update any existing library labels with tooltips
-                        updateLibraryLabelsWithTooltips();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading library update times:', error);
-                });
-        }
-
-        // Function to update library labels with tooltips
-        function updateLibraryLabelsWithTooltips() {
-            // Find all library labels and update them with tooltip data
-            document.querySelectorAll('.library-label').forEach(label => {
-                const libraryName = label.textContent.trim().split(' ')[0]; // Get just the library name
-                if (window.libraryUpdateTimes[libraryName]) {
-                    label.setAttribute('data-update-time', window.libraryUpdateTimes[libraryName]);                    
-                }
-            });
-        }
-
-        // Call the function when the document is loaded and then periodically
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchLibraryUpdateTimes();
-            setInterval(fetchLibraryUpdateTimes, 60000); // Update every minute
-        });    </script>
     <!-- Library updates are now displayed as tooltips when hovering over library names -->
+    <!-- All JavaScript code has been moved to external files in static/js/ -->
 </body>
 
 </html>

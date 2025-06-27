@@ -4,6 +4,7 @@ import os
 import argparse
 import signal
 import sys
+import traceback
 import time
 import sqlite3
 import urllib.parse
@@ -300,11 +301,28 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         # URL decode the filename
         filename = urllib.parse.unquote(filename)
         
-        logger.info(f"Serving original photo: {filename}")
+        # Check for query parameters
+        if '?' in filename:
+            filename, query = filename.split('?', 1)
+            query_params = urllib.parse.parse_qs(query)
+        else:
+            query_params = {}
+        
+        # Get format and quality parameters
+        requested_format = query_params.get('format', [''])[0].lower()
+        quality = int(query_params.get('quality', ['95'])[0])
+        
+        # Ensure quality is within valid range
+        quality = max(1, min(100, quality))
+        
+        logger.info(f"Serving original photo: {filename} (format: {requested_format or 'original'}, quality: {quality})")
         
         try:
             # Connect to database
-            db_path = os.path.join(os.getcwd(), 'photo_library.db')
+            db_path = os.path.join(os.getcwd(), 'data', 'photo_library.db')
+            if not os.path.exists(db_path):
+                db_path = os.path.join(os.getcwd(), 'photo_library.db')
+                
             if not os.path.exists(db_path):
                 logger.error(f"Database not found: {db_path}")
                 self.send_error(404, "Database not found")
@@ -335,15 +353,37 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
             # Check if this is a HEIC file
             is_heic = filename.lower().endswith('.heic')
+            force_convert = requested_format in ['jpg', 'jpeg'] or (is_heic and not requested_format)
             
-            if is_heic and HEIC_SUPPORT:
+            if (is_heic or force_convert) and HEIC_SUPPORT:
                 # For HEIC files with support, convert to JPEG on the fly
                 try:
-                    logger.debug(f"Converting HEIC file to JPEG: {normalized_path}")
+                    logger.info(f"Converting HEIC file to JPEG: {normalized_path}")
+                    
+                    # Import necessary modules here to ensure they're available
+                    try:
+                        from pillow_heif import register_heif_opener
+                        register_heif_opener()
+                    except ImportError:
+                        logger.error("pillow-heif not found, attempting to use PIL directly")
+                    
+                    # Use pillow-heif through PIL to open the HEIC file
                     with Image.open(normalized_path) as img:
+                        # Get image details for debugging
+                        img_format = img.format
+                        img_mode = img.mode
+                        img_size = img.size
+                        logger.debug(f"Image details: format={img_format}, mode={img_mode}, size={img_size}")
+                        
                         buffer = io.BytesIO()
-                        # Convert to JPEG for browser compatibility
-                        img.save(buffer, format='JPEG', quality=95)
+                        
+                        # Convert to RGB mode if not already (necessary for JPEG)
+                        if img.mode != 'RGB':
+                            logger.debug(f"Converting image mode from {img.mode} to RGB")
+                            img = img.convert('RGB')
+                        
+                        # Save as JPEG with specified quality
+                        img.save(buffer, format='JPEG', quality=quality, optimize=True)
                         buffer.seek(0)
                         
                         content = buffer.getvalue()
@@ -352,13 +392,17 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
                         self.send_response(200)
                         self.send_header('Content-Type', 'image/jpeg')
                         self.send_header('Content-Length', str(content_length))
+                        self.send_header('Cache-Control', 'max-age=3600')  # Cache for an hour
                         self.end_headers()
                         
                         # Send the converted image
                         self.wfile.write(content)
+                        logger.info(f"Successfully converted and served HEIC file as JPEG: {filename} ({content_length} bytes)")
                         return
                 except Exception as e:
                     logger.error(f"Error converting HEIC file: {e}")
+                    traceback_info = sys.exc_info()
+                    logger.error(f"Traceback: {traceback_info}")
                     # Fall back to serving the original file
             
             # For non-HEIC files or if conversion failed, serve the original file
@@ -554,6 +598,7 @@ def convert_photo(filename):
     # Check for additional query parameters (id or path)
     photo_id = request.args.get('id')
     path_hint = request.args.get('path')
+    quality = int(request.args.get('quality', '90'))
     
     try:
         # Connect to database
@@ -610,13 +655,39 @@ def convert_photo(filename):
         if is_heic and HEIC_SUPPORT:
             logger.debug(f"Converting HEIC file to JPEG: {normalized_path}")
             try:
+                # Ensure HEIF opener is registered
+                try:
+                    from pillow_heif import register_heif_opener
+                    register_heif_opener()
+                    logger.debug("HEIF opener registered successfully")
+                except ImportError:
+                    logger.error("pillow-heif not found, attempting to use PIL directly")
+                
                 with Image.open(normalized_path) as img:
+                    # Get image details for debugging
+                    img_format = img.format
+                    img_mode = img.mode
+                    img_size = img.size
+                    logger.info(f"Image details before conversion: format={img_format}, mode={img_mode}, size={img_size}")
+                    
+                    # Convert to RGB mode if needed
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    
                     buffer = io.BytesIO()
-                    # Convert to JPEG at high quality for full resolution
-                    img.save(buffer, format='JPEG', quality=95)
+                    # Convert to JPEG at specified quality for full resolution
+                    img.save(buffer, format='JPEG', quality=quality, optimize=True)
                     buffer.seek(0)
                     
-                    return buffer.getvalue(), 200, {'Content-Type': 'image/jpeg'}
+                    # Log success
+                    content_length = buffer.getbuffer().nbytes
+                    logger.info(f"Successfully converted HEIC to JPEG: size={img_size}, output bytes={content_length}")
+                    
+                    return buffer.getvalue(), 200, {
+                        'Content-Type': 'image/jpeg',
+                        'Content-Length': str(content_length),
+                        'Cache-Control': 'max-age=3600'
+                    }
             except Exception as e:
                 logger.error(f"Error converting HEIC file: {e}")
                 return f"Error converting HEIC file: {str(e)}", 500
