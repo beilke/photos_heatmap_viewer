@@ -60,7 +60,52 @@ function updateMarkers(inputPhotos = []) {
     // Create new marker group
     try {
         markerGroup = typeof L.markerClusterGroup === 'function'
-            ? L.markerClusterGroup()
+            ? L.markerClusterGroup({
+                // Configure cluster group to properly count markers
+                iconCreateFunction: function(cluster) {
+                    // Get all child markers in this cluster
+                    const markers = cluster.getAllChildMarkers();
+                    
+                    // Deduplicate based on unique locations
+                    const uniqueLocations = new Map();
+                    markers.forEach(marker => {
+                        if (marker.photoData) {
+                            const photo = marker.photoData;
+                            const locationKey = `${photo.latitude.toFixed(6)}_${photo.longitude.toFixed(6)}`;
+                            
+                            // Use full path as secondary key if available
+                            const photoKey = photo.path || photo.full_path || 
+                                `${locationKey}_${photo.filename}`;
+                            
+                            if (!uniqueLocations.has(photoKey)) {
+                                uniqueLocations.set(photoKey, true);
+                            }
+                        }
+                    });
+                    
+                    // Get accurate count of unique photos
+                    const count = uniqueLocations.size;
+                    debugLog(`Cluster has ${count} unique photos out of ${markers.length} markers`);
+                    
+                    // Use Leaflet.markercluster's default icon creation with our corrected count
+                    const childCount = count;
+                    
+                    let c = ' marker-cluster-';
+                    if (childCount < 10) {
+                        c += 'small';
+                    } else if (childCount < 100) {
+                        c += 'medium';
+                    } else {
+                        c += 'large';
+                    }
+                    
+                    return new L.DivIcon({
+                        html: '<div><span>' + childCount + '</span></div>',
+                        className: 'marker-cluster' + c,
+                        iconSize: new L.Point(40, 40)
+                    });
+                }
+            })
             : L.layerGroup();
 
         // We don't add the clusterclick handler here anymore
@@ -258,35 +303,50 @@ function updateMarkers(inputPhotos = []) {
                     
                     debugLog(`Cluster clicked: ${clusterCount} markers`);
                     
-                    // Use a Map to deduplicate photos by ID
-                    const photoMap = new Map();
+                    // Collect all photos from all markers in this cluster
+                    let allPhotos = [];
                     
                     // Process only the markers in this specific cluster
                     markers.forEach(marker => {
                         if (marker.photoData) {
                             const photo = marker.photoData;
-                            // Use unique ID or create one from multiple properties for better uniqueness
-                            const photoKey = photo.id || `${photo.filename}_${photo.latitude}_${photo.longitude}`;
                             
-                            // Only add if not already in map
-                            if (!photoMap.has(photoKey)) {
-                                // Ensure all path info is available for verification
-                                if (photo.path && !photo.full_path) {
-                                    photo.full_path = photo.path;
-                                }
-                                
-                                photoMap.set(photoKey, photo);
-                                debugLog(`Cluster photo: ${photo.filename}, lat/long: ${photo.latitude}/${photo.longitude}`);
+                            // Ensure all path info is available for verification
+                            if (photo.path && !photo.full_path) {
+                                photo.full_path = photo.path;
                             }
+                            
+                            // Add this photo to our collection
+                            allPhotos.push(photo);
+                            debugLog(`Cluster photo: ${photo.filename}, lat/long: ${photo.latitude}/${photo.longitude}`);
                         }
                     });
                     
-                    // Convert map to array of unique photos
-                    const uniquePhotos = Array.from(photoMap.values());
+                    // Deduplicate photos using a more robust approach
+                    if (allPhotos.length > 0) {
+                        debugLog(`Deduplicating ${allPhotos.length} photos from cluster...`);
+                        
+                        // Use a Map to deduplicate photos with a more unique key
+                        const photoMap = new Map();
+                        allPhotos.forEach(photo => {
+                            // Create a more robust unique key using filename and path if available
+                            const photoKey = photo.path || photo.full_path || 
+                                            `${photo.filename}_${photo.latitude.toFixed(6)}_${photo.longitude.toFixed(6)}`;
+                            if (!photoMap.has(photoKey)) {
+                                photoMap.set(photoKey, photo);
+                                debugLog(`Added unique photo: ${photo.filename} (key: ${photoKey})`);
+                            } else {
+                                debugLog(`Skipping duplicate: ${photo.filename} (key: ${photoKey})`);
+                            }
+                        });
+                        
+                        allPhotos = Array.from(photoMap.values());
+                        debugLog(`After deduplication: ${allPhotos.length} unique photos`);
+                    }
                     
-                    if (uniquePhotos.length > 0) {
-                        debugLog(`Opening viewer with ${uniquePhotos.length} unique photos from cluster`);
-                        openPhotoViewer(uniquePhotos, 0);
+                    if (allPhotos.length > 0) {
+                        debugLog(`Opening viewer with ${allPhotos.length} unique photos from cluster`);
+                        openPhotoViewer(allPhotos, 0);
                     }
                 } catch (err) {
                     debugLog('Error in cluster click handler: ' + err.message);
