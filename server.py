@@ -277,7 +277,12 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         
         if path.startswith('/photos/'):
             logger.info(f"Full photo request received: {path}")
-            self.serve_original_photo(path[8:])  # Remove '/photos/' prefix
+            logger.info(f"Using modern Flask endpoint for photos - redirecting to /photos/{path[8:]}")
+            # Redirect to the Flask route for photos
+            self.send_response(302)
+            self.send_header('Location', f'/photos/{path[8:]}')
+            self.end_headers()
+            return
         elif path.startswith('/api/markers'):
             logger.info(f"API request received: {path}")
             self.serve_photo_markers()
@@ -291,145 +296,7 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             logger.debug(f"Regular file request: {path}")
             super().do_GET()
             
-    def serve_original_photo(self, filename):
-        """Serve the original photo file without any resizing"""
-        # URL decode the filename
-        filename = urllib.parse.unquote(filename)
-        
-        # Check for query parameters
-        if '?' in filename:
-            filename, query = filename.split('?', 1)
-            query_params = urllib.parse.parse_qs(query)
-        else:
-            query_params = {}
-        
-        # Get format and quality parameters
-        requested_format = query_params.get('format', [''])[0].lower()
-        quality = int(query_params.get('quality', ['95'])[0])
-        
-        # Ensure quality is within valid range
-        quality = max(1, min(100, quality))
-        
-        logger.info(f"Serving original photo: {filename} (format: {requested_format or 'original'}, quality: {quality})")
-        
-        try:
-            # Connect to database
-            db_path = os.path.join(os.getcwd(), 'data', 'photo_library.db')
-            if not os.path.exists(db_path):
-                db_path = os.path.join(os.getcwd(), 'photo_library.db')
-                
-            if not os.path.exists(db_path):
-                logger.error(f"Database not found: {db_path}")
-                self.send_error(404, "Database not found")
-                return
-                
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-            
-            # Look up the photo path
-            cursor.execute("SELECT path FROM photos WHERE filename = ?", (filename,))
-            result = cursor.fetchone()
-            conn.close()
-            
-            if not result:
-                logger.error(f"Photo not found in database: {filename}")
-                self.send_error(404, "Photo not found in database")
-                return
-                
-            photo_path = result[0]
-            logger.debug(f"Found photo path in DB: {photo_path}")
-            
-            normalized_path = normalize_path(photo_path)
-            
-            if not os.path.exists(normalized_path):
-                logger.error(f"Photo file not found at {normalized_path}")
-                self.send_error(404, f"Photo file not found at {normalized_path}")
-                return
-
-            # Check if this is a HEIC file
-            is_heic = filename.lower().endswith('.heic')
-            force_convert = requested_format in ['jpg', 'jpeg'] or (is_heic and not requested_format)
-            
-            if (is_heic or force_convert) and HEIC_SUPPORT:
-                # For HEIC files with support, convert to JPEG on the fly
-                try:
-                    logger.info(f"Converting HEIC file to JPEG: {normalized_path}")
-                    
-                    # Import necessary modules here to ensure they're available
-                    try:
-                        from pillow_heif import register_heif_opener
-                        register_heif_opener()
-                    except ImportError:
-                        logger.error("pillow-heif not found, attempting to use PIL directly")
-                    
-                    # Use pillow-heif through PIL to open the HEIC file
-                    with Image.open(normalized_path) as img:
-                        # Get image details for debugging
-                        img_format = img.format
-                        img_mode = img.mode
-                        img_size = img.size
-                        logger.debug(f"Image details: format={img_format}, mode={img_mode}, size={img_size}")
-                        
-                        buffer = io.BytesIO()
-                        
-                        # Convert to RGB mode if not already (necessary for JPEG)
-                        if img.mode != 'RGB':
-                            logger.debug(f"Converting image mode from {img.mode} to RGB")
-                            img = img.convert('RGB')
-                        
-                        # Save as JPEG with specified quality
-                        img.save(buffer, format='JPEG', quality=quality, optimize=True)
-                        buffer.seek(0)
-                        
-                        content = buffer.getvalue()
-                        content_length = len(content)
-                        
-                        self.send_response(200)
-                        self.send_header('Content-Type', 'image/jpeg')
-                        self.send_header('Content-Length', str(content_length))
-                        self.send_header('Cache-Control', 'max-age=3600')  # Cache for an hour
-                        self.end_headers()
-                        
-                        # Send the converted image
-                        self.wfile.write(content)
-                        logger.info(f"Successfully converted and served HEIC file as JPEG: {filename} ({content_length} bytes)")
-                        return
-                except Exception as e:
-                    logger.error(f"Error converting HEIC file: {e}")
-                    traceback_info = sys.exc_info()
-                    logger.error(f"Traceback: {traceback_info}")
-                    # Fall back to serving the original file
-            
-            # For non-HEIC files or if conversion failed, serve the original file
-            with open(normalized_path, 'rb') as f:
-                fs = os.fstat(f.fileno())
-                content_length = fs[6]
-
-                self.send_response(200)
-                
-                # Determine content type based on file extension
-                content_type = mimetypes.guess_type(normalized_path)[0] or 'application/octet-stream'
-                self.send_header('Content-Type', content_type)
-                self.send_header('Content-Length', str(content_length))
-                self.end_headers()
-                
-                # Send the file in chunks to handle large files
-                chunk_size = 8192
-                while True:
-                    chunk = f.read(chunk_size)
-                    if not chunk:
-                        break
-                    try:
-                        self.wfile.write(chunk)
-                    except ConnectionAbortedError:
-                        logger.warning(f"Client aborted connection while downloading {filename}")
-                        break
-
-                logger.debug(f"Successfully served original photo: {filename}")
-                
-        except Exception as e:
-            logger.exception(f"Error serving original photo: {e}")
-            self.send_error(500, f"Internal server error: {str(e)}")
+    # Legacy serve_original_photo method has been removed
 
     # Thumbnail serving method has been removed
             
