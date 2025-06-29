@@ -275,14 +275,9 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         # Parse URL path
         path = self.path
         
-        # Check if this is a thumbnail request
-        if path.startswith('/thumbnails/'):
-            logger.info(f"Thumbnail request received: {path}")
-            self.serve_thumbnail(path[11:])  # Remove '/thumbnails/' prefix
-        # Check if this is a full photo request
-        elif path.startswith('/photos/'):
+        if path.startswith('/photos/'):
             logger.info(f"Full photo request received: {path}")
-            self.serve_original_photo(path[8:])  # Remove '/photos/' prefix        # Add API endpoint for photo markers
+            self.serve_original_photo(path[8:])  # Remove '/photos/' prefix
         elif path.startswith('/api/markers'):
             logger.info(f"API request received: {path}")
             self.serve_photo_markers()
@@ -436,82 +431,7 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             logger.exception(f"Error serving original photo: {e}")
             self.send_error(500, f"Internal server error: {str(e)}")
 
-    def serve_thumbnail(self, filename):
-        """Serve a thumbnail version of the photo"""
-        # URL decode the filename
-        filename = urllib.parse.unquote(filename)
-        
-        logger.info(f"Serving thumbnail: {filename}")
-        
-        try:
-            # Connect to database
-            db_path = os.path.join(os.getcwd(), 'photo_library.db')
-            if not os.path.exists(db_path):
-                logger.error(f"Database not found: {db_path}")
-                self.send_error(404, "Database not found")
-                return
-                
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-            
-            # Look up the photo path
-            cursor.execute("SELECT path FROM photos WHERE filename = ?", (filename,))
-            result = cursor.fetchone()
-            conn.close()
-            
-            if not result:
-                logger.error(f"Photo not found in database: {filename}")
-                self.send_error(404, "Photo not found in database")
-                return
-                
-            photo_path = result[0]
-            logger.debug(f"Found photo path in DB: {photo_path}")
-            
-            normalized_path = normalize_path(photo_path)
-            
-            if not os.path.exists(normalized_path):
-                logger.error(f"Photo file not found at {normalized_path}")
-                self.send_error(404, f"Photo file not found at {normalized_path}")
-                return            # Generate thumbnail
-            logger.debug(f"Generating thumbnail for: {normalized_path}")
-            try:
-                with Image.open(normalized_path) as img:
-                    # Resize to a thumbnail
-                    img.thumbnail((200, 200))
-                    
-                    # Prepare to send the image
-                    buffer = io.BytesIO()
-                    
-                    # For HEIC files, always convert to JPEG for better browser compatibility
-                    if filename.lower().endswith('.heic'):
-                        img_format = 'JPEG'
-                    else:
-                        img_format = img.format if img.format else 'JPEG'
-                    
-                    # Save with appropriate format and quality
-                    if img_format == 'JPEG':
-                        img.save(buffer, format=img_format, quality=85)
-                    else:
-                        img.save(buffer, format=img_format)
-                        
-                    buffer.seek(0)
-                    
-                    # Send headers
-            except Exception as e:
-                logger.error(f"Error generating thumbnail for {filename}: {e}")
-                self.send_error(500, f"Error generating thumbnail: {str(e)}")
-                return
-                self.send_response(200)
-                self.send_header('Content-type', f'image/{img_format.lower()}')
-                self.send_header('Content-Length', str(buffer.getbuffer().nbytes))
-                self.end_headers()
-                
-                # Send thumbnail data                
-                self.wfile.write(buffer.getvalue())
-                logger.debug(f"Successfully served thumbnail for: {filename}")
-        except Exception as e:
-            logger.exception(f"Error serving thumbnail: {e}")
-            self.send_error(500, f"Internal server error: {str(e)}")
+    # Thumbnail serving method has been removed
             
     def serve_photo_markers(self):
         """Serve photo markers from the database"""
@@ -829,98 +749,7 @@ def start_server(port=8000, directory='.', debug_mode=False, db_path=None, host=
             logger.exception(f"Error serving original photo: {e}")
             return f"Internal server error: {str(e)}", 500
     
-    # Endpoint for serving thumbnails
-    @app.route('/thumbnails/<path:filename>')
-    def serve_thumbnail(filename):
-        """Serve a thumbnail version of the photo"""
-        filename = urllib.parse.unquote(filename)
-        logger.info(f"Serving thumbnail: {filename}")
-        
-        # Check for additional query parameters (id or path)
-        photo_id = request.args.get('id')
-        path_hint = request.args.get('path')
-        
-        try:
-            # Connect to database
-            db_path = os.path.join(os.getcwd(), 'data', 'photo_library.db')
-            if not os.path.exists(db_path):
-                logger.error(f"Database not found: {db_path}")
-                return "Database not found", 404
-                
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-            
-            # Try different lookup strategies in order of specificity
-            if photo_id is not None:
-                logger.debug(f"Looking up photo by ID: {photo_id}")
-                cursor.execute("SELECT path FROM photos WHERE id = ?", (photo_id,))
-                result = cursor.fetchone()
-                if result:
-                    logger.debug(f"Found photo by ID: {photo_id}")
-            else:
-                result = None
-                
-            # If ID lookup failed or wasn't provided, try path hint if available
-            if not result and path_hint:
-                logger.debug(f"Looking up photo by path hint: {path_hint}")
-                cursor.execute("SELECT path FROM photos WHERE path = ?", (path_hint,))
-                result = cursor.fetchone()
-                if result:
-                    logger.debug(f"Found photo by path hint: {path_hint}")
-            
-            # If both ID and path lookup failed or weren't provided, fall back to filename
-            if not result:
-                logger.debug(f"Looking up photo by filename: {filename}")
-                cursor.execute("SELECT path FROM photos WHERE filename = ?", (filename,))
-                result = cursor.fetchone()
-                
-            conn.close()
-            
-            if not result:
-                logger.error(f"Photo not found in database: {filename}")
-                return "Photo not found in database", 404
-                
-            photo_path = result[0]
-            logger.debug(f"Found photo path in DB: {photo_path}")
-            
-            normalized_path = normalize_path(photo_path)
-            
-            if not os.path.exists(normalized_path):
-                logger.error(f"Photo file not found at {normalized_path}")
-                return f"Photo file not found at {normalized_path}", 404
-                
-            # Generate thumbnail
-            logger.debug(f"Generating thumbnail for: {normalized_path}")
-            try:
-                with Image.open(normalized_path) as img:
-                    # Resize to a thumbnail
-                    img.thumbnail((200, 200))
-                    
-                    # Prepare to send the image
-                    buffer = io.BytesIO()
-                    
-                    # For HEIC files, always convert to JPEG for better browser compatibility
-                    if filename.lower().endswith('.heic'):
-                        img_format = 'JPEG'
-                    else:
-                        img_format = img.format if img.format else 'JPEG'
-                    
-                    # Save with appropriate format and quality
-                    if img_format == 'JPEG':
-                        img.save(buffer, format=img_format, quality=85)
-                    else:
-                        img.save(buffer, format=img_format)
-                        
-                    buffer.seek(0)
-                    
-                    return buffer.getvalue(), 200, {'Content-Type': f'image/{img_format.lower()}'}
-            except Exception as e:
-                logger.error(f"Error generating thumbnail for {filename}: {e}")
-                return f"Error generating thumbnail: {str(e)}", 500
-                
-        except Exception as e:
-            logger.exception(f"Error serving thumbnail: {e}")
-            return f"Internal server error: {str(e)}", 500
+    # Endpoint for serving thumbnails has been removed
     
     @app.route('/<path:path>')
     def serve_static(path):
