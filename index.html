@@ -977,20 +977,13 @@
             // Log the found photos for verification
             debugLog(`Found ${photosAtSameLocation.length} photos at location ${photo.latitude},${photo.longitude}`);
             
-            const locationMap = new Map();
+            // No deduplication - just ensure path information is available
             photosAtSameLocation.forEach(p => {
-                // Create a more precise unique key including coordinates
-                const key = p.id || `${p.filename}_${p.latitude}_${p.longitude}`;
-                if (!locationMap.has(key)) {
-                    // Ensure all path info is available
-                    if (p.path && !p.full_path) {
-                        p.full_path = p.path;
-                    }
-                    locationMap.set(key, p);
-                    debugLog(`Location photo: ${p.filename}`);
+                // Ensure all path info is available
+                if (p.path && !p.full_path) {
+                    p.full_path = p.path;
                 }
             });
-            photosAtSameLocation = Array.from(locationMap.values());
 
             debugLog(`Marker clicked: ${photo.filename} (${photosAtSameLocation.length} unique photos at this location)`);
 
@@ -1032,35 +1025,27 @@
                     
                     debugLog(`Cluster clicked: ${clusterCount} markers`);
                     
-                    // Use a Map to deduplicate photos by ID
-                    const photoMap = new Map();
+                    // Collect all photos from markers without deduplication
+                    const photos = [];
                     
-                    // Process only the markers in this specific cluster
+                    // Process all markers in this specific cluster
                     markers.forEach(marker => {
                         if (marker.photoData) {
                             const photo = marker.photoData;
-                            // Use unique ID or create one from multiple properties for better uniqueness
-                            const photoKey = photo.id || `${photo.filename}_${photo.latitude}_${photo.longitude}`;
                             
-                            // Only add if not already in map
-                            if (!photoMap.has(photoKey)) {
-                                // Ensure all path info is available for verification
-                                if (photo.path && !photo.full_path) {
-                                    photo.full_path = photo.path;
-                                }
-                                
-                                photoMap.set(photoKey, photo);
-                                debugLog(`Cluster photo: ${photo.filename}, lat/long: ${photo.latitude}/${photo.longitude}`);
+                            // Ensure all path info is available
+                            if (photo.path && !photo.full_path) {
+                                photo.full_path = photo.path;
                             }
+                            
+                            photos.push(photo);
+                            debugLog(`Cluster photo: ${photo.filename}, ID: ${photo.id}`);
                         }
                     });
                     
-                    // Convert map to array of unique photos
-                    const uniquePhotos = Array.from(photoMap.values());
-                    
-                    if (uniquePhotos.length > 0) {
-                        debugLog(`Opening viewer with ${uniquePhotos.length} unique photos from cluster`);
-                        openPhotoViewer(uniquePhotos, 0);
+                    if (photos.length > 0) {
+                        debugLog(`Opening viewer with ${photos.length} photos from cluster`);
+                        openPhotoViewer(photos, 0);
                     }
                 } catch (err) {
                     debugLog('Error in cluster click handler: ' + err.message);

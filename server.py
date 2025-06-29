@@ -376,14 +376,14 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(500, f"Internal server error: {str(e)}")
 
 # New endpoint for converting HEIC to JPEG at full resolution
-@app.route('/convert/<path:filename>')
-def convert_photo(filename):
+@app.route('/convert/<path:id_or_filename>')
+def convert_photo(id_or_filename):
     """Serve a photo file with conversion to JPEG for HEIC files"""
-    filename = urllib.parse.unquote(filename)
-    logger.info(f"Converting and serving photo: {filename}")
+    id_or_filename = urllib.parse.unquote(id_or_filename)
+    logger.info(f"Converting and serving photo with ID or filename: {id_or_filename}")
     
-    # Check for additional query parameters (id or path)
-    photo_id = request.args.get('id')
+    # Check for additional query parameters (path)
+    photo_id = id_or_filename  # Now using path parameter as ID first
     path_hint = request.args.get('path')
     quality = int(request.args.get('quality', '90'))
     
@@ -415,8 +415,9 @@ def convert_photo(filename):
             if result:
                 logger.debug(f"Found photo by path hint: {path_hint}")
         
-        # If both ID and path lookup failed or weren't provided, fall back to filename
+        # If both ID and path lookup failed or weren't provided, fall back to treating parameter as filename
         if not result:
+            filename = id_or_filename  # Use path parameter as filename
             logger.debug(f"Looking up photo by filename: {filename}")
             cursor.execute("SELECT path FROM photos WHERE filename = ?", (filename,))
             result = cursor.fetchone()
@@ -424,7 +425,7 @@ def convert_photo(filename):
         conn.close()
         
         if not result:
-            logger.error(f"Photo not found in database: {filename}")
+            logger.error(f"Photo not found in database: {id_or_filename}")
             return "Photo not found in database", 404
             
         photo_path = result[0]
@@ -437,7 +438,9 @@ def convert_photo(filename):
             return f"Photo file not found at {normalized_path}", 404
         
         # Check if this is a HEIC file that we should convert
-        is_heic = filename.lower().endswith('.heic')
+        # Get filename from path to check extension
+        original_filename = os.path.basename(normalized_path)
+        is_heic = original_filename.lower().endswith('.heic')
         
         if is_heic and HEIC_SUPPORT:
             logger.debug(f"Converting HEIC file to JPEG: {normalized_path}")
@@ -547,14 +550,14 @@ def start_server(port=8000, directory='.', debug_mode=False, db_path=None, host=
         return send_from_directory(os.path.abspath(directory), 'index.html')
     
     # Endpoint for serving original photos
-    @app.route('/photos/<path:filename>')
-    def serve_original_photo(filename):
-        """Serve the original photo file"""
-        filename = urllib.parse.unquote(filename)
-        logger.info(f"Serving original photo: {filename}")
+    @app.route('/photos/<path:id_or_filename>')
+    def serve_original_photo(id_or_filename):
+        """Serve the original photo file by ID or filename"""
+        id_or_filename = urllib.parse.unquote(id_or_filename)
+        logger.info(f"Serving original photo with ID or filename: {id_or_filename}")
         
-        # Check for additional query parameters (id or path)
-        photo_id = request.args.get('id')
+        # Check for additional query parameters (path)
+        photo_id = id_or_filename  # Now using path parameter as ID first
         path_hint = request.args.get('path')
         
         try:
@@ -585,8 +588,9 @@ def start_server(port=8000, directory='.', debug_mode=False, db_path=None, host=
                 if result:
                     logger.debug(f"Found photo by path hint: {path_hint}")
             
-            # If both ID and path lookup failed or weren't provided, fall back to filename
+            # If both ID and path lookup failed or weren't provided, fall back to treating the parameter as filename
             if not result:
+                filename = id_or_filename  # Use the path parameter as filename
                 logger.debug(f"Looking up photo by filename: {filename}")
                 cursor.execute("SELECT path FROM photos WHERE filename = ?", (filename,))
                 result = cursor.fetchone()
@@ -594,7 +598,7 @@ def start_server(port=8000, directory='.', debug_mode=False, db_path=None, host=
             conn.close()
             
             if not result:
-                logger.error(f"Photo not found in database: {filename}")
+                logger.error(f"Photo not found in database: {id_or_filename}")
                 return "Photo not found in database", 404
                 
             photo_path = result[0]

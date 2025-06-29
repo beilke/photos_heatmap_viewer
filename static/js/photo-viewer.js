@@ -173,7 +173,7 @@ function updatePhotoViewerContent() {
     photoViewerImg.removeAttribute('style');
     photoViewerImg.style.opacity = '0.5'; // Higher initial opacity for better visibility
     
-    // Store photo filename for reference
+    // Store photo ID for reference (preferred) or fallback to filename
     photoViewerImg.dataset.loadingPhotoId = photo.id || photo.filename;
     
     // Check if this is a HEIC file - they need special handling
@@ -188,11 +188,11 @@ function updatePhotoViewerContent() {
         
         // debugLog(`Loading HEIC photo: ${photo.filename}`, 'Converting to JPEG format');
         
-        // For HEIC files, load the full resolution converted version directly
-        photoViewerImg.src = `/photos/${encodeURIComponent(photo.filename)}?format=jpeg&quality=100`;
+        // For HEIC files, load the full resolution converted version directly using ID
+        photoViewerImg.src = `/photos/${encodeURIComponent(photo.id)}?format=jpeg&quality=100`;
     } else {
-        // For normal images, load directly with no quality reduction
-        photoViewerImg.src = `/photos/${encodeURIComponent(photo.filename)}`;
+        // For normal images, load directly with no quality reduction using ID
+        photoViewerImg.src = `/photos/${encodeURIComponent(photo.id)}`;
     }
     
     // When image loads, ensure full opacity
@@ -229,17 +229,17 @@ function updatePhotoViewerContent() {
             if (this.src.includes('format=jpeg&quality=100')) {
                 // First fallback - try with lower quality
                 // debugLog(`Trying lower quality HEIC conversion`);
-                photoViewerImg.src = `/photos/${encodeURIComponent(photo.filename)}?format=jpeg&quality=90`;
+                photoViewerImg.src = `/photos/${encodeURIComponent(photo.id)}?format=jpeg&quality=90`;
                 return;
             } else if (this.src.includes('format=jpeg&quality=90')) {
                 // Second fallback - try with even lower quality
                 // debugLog(`Trying lower quality HEIC conversion`);
-                photoViewerImg.src = `/photos/${encodeURIComponent(photo.filename)}?format=jpeg&quality=80`;
+                photoViewerImg.src = `/photos/${encodeURIComponent(photo.id)}?format=jpeg&quality=80`;
                 return;
             } else if (this.src.includes('format=jpeg&quality=80')) {
                 // Third fallback - try with the convert endpoint specifically
                 // debugLog(`Trying dedicated convert endpoint`);
-                photoViewerImg.src = `/convert/${encodeURIComponent(photo.filename)}`;
+                photoViewerImg.src = `/convert/${encodeURIComponent(photo.id)}`;
                 
                 if (typeof showFeedbackToast === 'function') {
                     showFeedbackToast('Trying alternative conversion method...', 2000);
@@ -308,12 +308,9 @@ function showNextPhoto() {
         if (currentClusterPhotos.fullDataset) {
             // In virtual scrolling mode, we need to find the next photo in our loaded subset
             const nextPhoto = currentClusterPhotos.fullDataset[actualIdx + 1];
-            // Find this photo in our loaded subset
+            // Find this photo in our loaded subset - prefer ID matching
             const loadedIdx = currentClusterPhotos.findIndex(p => 
-                p.id === nextPhoto.id || 
-                (p.filename === nextPhoto.filename && 
-                 p.latitude === nextPhoto.latitude && 
-                 p.longitude === nextPhoto.longitude)
+                p.id === nextPhoto.id
             );
             
             // If found in loaded subset, use that index
@@ -360,12 +357,9 @@ function showPreviousPhoto() {
         if (currentClusterPhotos.fullDataset) {
             // In virtual scrolling mode, we need to find the previous photo in our loaded subset
             const prevPhoto = currentClusterPhotos.fullDataset[actualIdx - 1];
-            // Find this photo in our loaded subset
+            // Find this photo in our loaded subset - prefer ID matching
             const loadedIdx = currentClusterPhotos.findIndex(p => 
-                p.id === prevPhoto.id || 
-                (p.filename === prevPhoto.filename && 
-                 p.latitude === prevPhoto.latitude && 
-                 p.longitude === prevPhoto.longitude)
+                p.id === prevPhoto.id
             );
             
             // If found in loaded subset, use that index
