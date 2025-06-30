@@ -215,6 +215,9 @@ function updatePhotoViewerContent() {
     // Check if this is a HEIC file - they need special handling
     const isHeic = photo.filename.toLowerCase().endsWith('.heic');
     
+    // Track image load attempts to prevent multiple requests
+    photoViewerImg.dataset.loadAttempts = "0";
+    
     // Show loading message for HEIC files
     if (isHeic) {
         // Show a loading toast for HEIC images (they take longer)
@@ -222,13 +225,14 @@ function updatePhotoViewerContent() {
             showFeedbackToast('Converting HEIC image...', 3000);
         }
         
-        // debugLog(`Loading HEIC photo: ${photo.filename}`, 'Converting to JPEG format');
+        debugLog(`Loading HEIC photo: ${photo.filename} (ID: ${photo.id})`);
         
-        // For HEIC files, load the full resolution converted version directly using ID
-        photoViewerImg.src = `/photos/${encodeURIComponent(photo.id)}?format=jpeg&quality=100`;
+        // For HEIC files, always use dedicated convert endpoint
+        photoViewerImg.src = `/convert/${encodeURIComponent(photo.id)}`;
     } else {
-        // For normal images, load directly with no quality reduction using ID
-        photoViewerImg.src = `/photos/${encodeURIComponent(photo.id)}`;
+        // For normal images, load directly with a fixed quality setting (80) with no fallbacks
+        debugLog(`Loading regular photo: ${photo.filename} (ID: ${photo.id})`);
+        photoViewerImg.src = `/photos/${encodeURIComponent(photo.id)}?format=jpeg&quality=80`;
     }
     
     // When image loads, ensure full opacity
@@ -258,39 +262,41 @@ function updatePhotoViewerContent() {
         photoViewerImg.style.opacity = '1';
         photoViewerImg.style.filter = 'none';
         
-        if (isHeic) {
-            // debugLog(`Failed to load HEIC photo: ${photo.filename}`, 'Attempting fallback methods');
+        // Get current attempts count
+        const attempts = parseInt(photoViewerImg.dataset.loadAttempts || "0", 10);
+        
+        // Only try alternative method for HEIC files, no quality fallbacks for regular images
+        if (attempts < 1) {
+            photoViewerImg.dataset.loadAttempts = (attempts + 1).toString();
             
-            // Try a different approach based on what we've already attempted
-            if (this.src.includes('format=jpeg&quality=100')) {
-                // First fallback - try with lower quality
-                // debugLog(`Trying lower quality HEIC conversion`);
-                photoViewerImg.src = `/photos/${encodeURIComponent(photo.id)}?format=jpeg&quality=90`;
-                return;
-            } else if (this.src.includes('format=jpeg&quality=90')) {
-                // Second fallback - try with even lower quality
-                // debugLog(`Trying lower quality HEIC conversion`);
-                photoViewerImg.src = `/photos/${encodeURIComponent(photo.id)}?format=jpeg&quality=80`;
-                return;
-            } else if (this.src.includes('format=jpeg&quality=80')) {
-                // Third fallback - try with the convert endpoint specifically
-                // debugLog(`Trying dedicated convert endpoint`);
-                photoViewerImg.src = `/convert/${encodeURIComponent(photo.id)}`;
+            if (isHeic) {
+                debugLog(`Failed to load HEIC photo: ${photo.filename} (ID: ${photo.id}), attempt ${attempts + 1}`);
                 
-                if (typeof showFeedbackToast === 'function') {
-                    showFeedbackToast('Trying alternative conversion method...', 2000);
+                // Try alternative method only once
+                if (this.src.includes('/convert/')) {
+                    // If convert endpoint failed, try standard photo endpoint
+                    debugLog(`Convert endpoint failed, trying standard photo endpoint`);
+                    photoViewerImg.src = `/photos/${encodeURIComponent(photo.id)}`;
+                    
+                    if (typeof showFeedbackToast === 'function') {
+                        showFeedbackToast('Trying alternative method...', 2000);
+                    }
+                    return;
                 }
-                return;
             }
-            
-            // If all conversion attempts failed, show error graphic
-            if (typeof showFeedbackToast === 'function') {
-                showFeedbackToast('HEIC conversion failed', 3000, true);
-            }
-            
+            // No quality fallback for regular images - using consistent quality=80
+        }
+        
+        // If we've exhausted our attempts or hit other failure conditions, show error graphic
+        debugLog(`All load attempts failed for photo: ${photo.filename} (ID: ${photo.id})`);
+        
+        if (typeof showFeedbackToast === 'function') {
+            showFeedbackToast('Failed to load image', 3000, true);
+        }
+        
+        if (isHeic) {
             photoViewerImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f0f0f0"/><text x="50%" y="50%" font-family="Arial" font-size="14" text-anchor="middle" dominant-baseline="middle" fill="%23666">HEIC image not supported</text><text x="50%" y="70%" font-family="Arial" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="%23888">Try enabling pillow-heif</text></svg>';
         } else {
-            debugLog(`Failed to load photo: ${photo.filename}`);
             photoViewerImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f0f0f0"/><text x="50%" y="50%" font-family="Arial" font-size="14" text-anchor="middle" dominant-baseline="middle" fill="%23666">Image not available</text></svg>';
         }
     };

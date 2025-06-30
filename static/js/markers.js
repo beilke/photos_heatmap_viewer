@@ -52,12 +52,22 @@ function updateMarkers(inputPhotos = []) {
                     // Get all child markers in this cluster
                     const markers = cluster.getAllChildMarkers();
                     
-                    // Count all markers without deduplication
-                    const count = markers.length;
-                    // debugLog(`Cluster has ${count} photos`);
+                    // Deduplicate by filename before counting
+                    const uniqueFilenames = new Set();
+                    let uniqueCount = 0;
                     
-                    // Use Leaflet.markercluster's default icon creation with our corrected count
-                    const childCount = count;
+                    markers.forEach(marker => {
+                        if (marker.photoData && marker.photoData.filename) {
+                            if (!uniqueFilenames.has(marker.photoData.filename)) {
+                                uniqueFilenames.add(marker.photoData.filename);
+                                uniqueCount++;
+                            }
+                        }
+                    });
+                    
+                    // Use Leaflet.markercluster's default icon creation with our deduplicated count
+                    const childCount = uniqueCount;
+                    // debugLog(`Cluster has ${markers.length} total photos, ${childCount} unique`);
                     
                     let c = ' marker-cluster-';
                     if (childCount < 10) {
@@ -210,6 +220,8 @@ function updateMarkers(inputPhotos = []) {
             // Find all photos at exactly the same coordinates using what's available in photoData
             // rather than depending on the outer scope's filteredPhotos
             const currentPhotos = filterPhotosByActiveLibraries();
+            
+            // Filter photos by exact coordinates
             let photosAtSameLocation = currentPhotos.filter(p =>
                 p.latitude === photo.latitude && p.longitude === photo.longitude
             );
@@ -217,20 +229,32 @@ function updateMarkers(inputPhotos = []) {
             // Log the found photos for verification
             debugLog(`Found ${photosAtSameLocation.length} photos at location ${photo.latitude},${photo.longitude}`);
             
-            // No deduplication - just ensure path information is available
+            // Deduplicate by filename
+            const uniqueFilenames = new Set();
+            const uniquePhotos = [];
+            
+            // Ensure path information is available and deduplicate
             photosAtSameLocation.forEach(p => {
                 // Ensure all path info is available
                 if (p.path && !p.full_path) {
                     p.full_path = p.path;
                 }
-                debugLog(`Location photo: ${p.filename}, ID: ${p.id}`);
+                
+                // Only include photos with unique filenames
+                if (!uniqueFilenames.has(p.filename)) {
+                    uniqueFilenames.add(p.filename);
+                    uniquePhotos.push(p);
+                    debugLog(`Location photo: ${p.filename}, ID: ${p.id}, Library: ${p.library_id}`);
+                } else {
+                    debugLog(`Skipping duplicate filename at location: ${p.filename}, ID: ${p.id}`);
+                }
             });
 
-            debugLog(`Marker clicked: ${photo.filename} (${photosAtSameLocation.length} photos at this location)`);
+            debugLog(`Marker clicked: ${photo.filename} (${uniquePhotos.length} unique photos at this location after deduplication)`);
 
-            const index = photosAtSameLocation.findIndex(p => p.id === photo.id);
+            const index = uniquePhotos.findIndex(p => p.id === photo.id);
 
-            openPhotoViewer(photosAtSameLocation, index >= 0 ? index : 0);
+            openPhotoViewer(uniquePhotos, index >= 0 ? index : 0);
             e.originalEvent?.stopPropagation();
             L.DomEvent.stopPropagation(e);
         });
@@ -264,8 +288,9 @@ function updateMarkers(inputPhotos = []) {
                     
                     debugLog(`Cluster clicked: ${clusterCount} markers`);
                     
-                    // Collect all photos from all markers in this cluster
+                    // Collect all photos from all markers in this cluster with filename deduplication
                     let allPhotos = [];
+                    const uniqueFilenames = new Set(); // Track unique filenames to prevent duplicates
                     
                     // Process only the markers in this specific cluster
                     markers.forEach(marker => {
@@ -277,16 +302,26 @@ function updateMarkers(inputPhotos = []) {
                                 photo.full_path = photo.path;
                             }
                             
-                            // Add this photo to our collection
-                            allPhotos.push(photo);
-                            debugLog(`Cluster photo: ${photo.filename}, lat/long: ${photo.latitude}/${photo.longitude}`);
+                            // Only add this photo if we haven't seen this filename yet
+                            if (!uniqueFilenames.has(photo.filename)) {
+                                uniqueFilenames.add(photo.filename);
+                                allPhotos.push(photo);
+                                debugLog(`Cluster photo: ${photo.filename}, ID: ${photo.id}, Library: ${photo.library_id}, lat/long: ${photo.latitude}/${photo.longitude}`);
+                            } else {
+                                debugLog(`Skipping duplicate filename in cluster: ${photo.filename}, ID: ${photo.id}`);
+                            }
                         }
                     });
                     
                     // Simple logging without any processing
                     if (allPhotos.length > 0) {
-                        debugLog(`Found ${allPhotos.length} photos in cluster`);
+                        debugLog(`Found ${allPhotos.length} unique photos in cluster (filtered from ${markers.length} total markers)`);
                     }
+                    
+                    // Log all photos for debugging
+                    allPhotos.forEach(photo => {
+                        debugLog(`Cluster photo: ${photo.filename}, ID: ${photo.id}, Library: ${photo.library_id}`);
+                    });
                     
                     if (allPhotos.length > 0) {
                         debugLog(`Opening viewer with ${allPhotos.length} photos from cluster`);
