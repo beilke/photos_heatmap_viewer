@@ -26,7 +26,7 @@ function openPhotoViewer(photos, startIndex = 0) {
     }
 
     // Handle large clusters more efficiently
-    if (photos.length > 100) {
+    if (photos.length > MAX_LOADED_PHOTOS) {
         debugLog(`Large cluster detected (${photos.length} photos). Using optimized handling.`);
         
         // For large clusters, only load a subset initially and then load more as needed
@@ -37,7 +37,11 @@ function openPhotoViewer(photos, startIndex = 0) {
         currentClusterPhotos.fullDataset = photos;
         debugLog(`Initially loaded ${initialBatch.length}/${photos.length} photos`);
     } else {
+        // For smaller clusters, just use all photos directly - no virtual scrolling needed
+        debugLog(`Normal sized cluster (${photos.length} photos). Loading all at once.`);
         currentClusterPhotos = photos;
+        // Make sure we don't have a fullDataset reference for these
+        delete currentClusterPhotos.fullDataset;
     }
 
     currentPhotoIdx = Math.min(startIndex, photos.length - 1);
@@ -100,7 +104,13 @@ function openPhotoViewer(photos, startIndex = 0) {
 function updatePhotoViewerContent() {
     const photo = currentClusterPhotos[currentPhotoIdx];
     if (!photo) {
-        debugLog('Cannot update photo viewer: No photo at current index');
+        debugLog(`Cannot update photo viewer: No photo at current index ${currentPhotoIdx}`);
+        // Try to recover by resetting to a valid index if possible
+        if (currentClusterPhotos.length > 0) {
+            currentPhotoIdx = 0;
+            debugLog(`Resetting to first photo in cluster`);
+            updatePhotoViewerContent();
+        }
         return;
     }
     
@@ -163,10 +173,36 @@ function updatePhotoViewerContent() {
     const currentPhotoIndex = document.getElementById('currentPhotoIndex');
     const totalPhotos = document.getElementById('totalPhotos');
     
+    // Track if we're in virtual scrolling mode
+    const usingVirtualScroll = !!currentClusterPhotos.fullDataset;
+    
     // Need to add 1 for human-readable index (1-based instead of 0-based)
-    currentPhotoIndex.textContent = (currentClusterPhotos.fullDataset ? 
-        currentClusterPhotos.fullDataset.indexOf(photo) + 1 : currentPhotoIdx + 1);
-    totalPhotos.textContent = currentClusterPhotos.fullDataset ?
+    // First try to find by ID, then fall back to object reference
+    let photoIndex = currentPhotoIdx + 1;
+    if (usingVirtualScroll) {
+        // Try to find by ID first (more reliable)
+        const indexById = currentClusterPhotos.fullDataset.findIndex(p => 
+            p.id === photo.id
+        );
+        
+        if (indexById >= 0) {
+            // Found by ID
+            photoIndex = indexById + 1;
+            debugLog(`Photo ${photo.id} is #${photoIndex} in full dataset`);
+        } else {
+            // Fall back to object equality
+            const indexByRef = currentClusterPhotos.fullDataset.indexOf(photo);
+            if (indexByRef >= 0) {
+                photoIndex = indexByRef + 1;
+                debugLog(`Photo found by reference at position ${photoIndex}`);
+            } else {
+                debugLog(`Warning: Could not find photo in full dataset`);
+            }
+        }
+    }
+    
+    currentPhotoIndex.textContent = photoIndex;
+    totalPhotos.textContent = usingVirtualScroll ?
         currentClusterPhotos.fullDataset.length : currentClusterPhotos.length;
 
     // Reset any existing styles on the photo viewer image
@@ -296,19 +332,51 @@ function showNextPhoto() {
         currentClusterPhotos.fullDataset.length : 
         currentClusterPhotos.length;
     
+    // Track if we're in virtual scrolling mode
+    const usingVirtualScroll = !!currentClusterPhotos.fullDataset;
+    
     // If using fullDataset, calculate current photo's actual index in the full set
     let actualIdx = currentPhotoIdx;
-    if (currentClusterPhotos.fullDataset) {
+    let displayIdx = currentPhotoIdx + 1; // 1-based index for display
+    
+    if (usingVirtualScroll) {
         const currentPhoto = currentClusterPhotos[currentPhotoIdx];
-        actualIdx = currentClusterPhotos.fullDataset.indexOf(currentPhoto);
+        if (!currentPhoto) {
+            debugLog(`Error: Current photo is undefined at index ${currentPhotoIdx}`);
+            return;
+        }
+        
+        // Find the current photo in the full dataset by comparing IDs
+        actualIdx = currentClusterPhotos.fullDataset.findIndex(p => 
+            p.id === currentPhoto.id
+        );
+        
+        // If not found by ID (which should be rare), fall back to object equality
+        if (actualIdx < 0) {
+            actualIdx = currentClusterPhotos.fullDataset.indexOf(currentPhoto);
+            if (actualIdx < 0) {
+                debugLog(`Error: Could not find current photo in full dataset`);
+                return;
+            }
+        }
+        
+        // Use the actual index in the full dataset + 1 for display (1-based)
+        displayIdx = actualIdx + 1;
     }
     
     // Only increment if we're not at the end
-    if (actualIdx < totalPhotos - 1) {
-        if (currentClusterPhotos.fullDataset) {
+    if ((usingVirtualScroll && actualIdx < totalPhotos - 1) || 
+        (!usingVirtualScroll && currentPhotoIdx < totalPhotos - 1)) {
+        
+        if (usingVirtualScroll) {
             // In virtual scrolling mode, we need to find the next photo in our loaded subset
             const nextPhoto = currentClusterPhotos.fullDataset[actualIdx + 1];
-            // Find this photo in our loaded subset - prefer ID matching
+            if (!nextPhoto) {
+                debugLog(`Error: Next photo not found in dataset at index ${actualIdx + 1}`);
+                return;
+            }
+            
+            // Find this photo in our loaded subset by ID (most reliable)
             const loadedIdx = currentClusterPhotos.findIndex(p => 
                 p.id === nextPhoto.id
             );
@@ -316,23 +384,29 @@ function showNextPhoto() {
             // If found in loaded subset, use that index
             if (loadedIdx >= 0) {
                 currentPhotoIdx = loadedIdx;
+                debugLog(`Found next photo at loaded index ${loadedIdx}`);
             } else {
                 // Otherwise, we need to add it to our loaded subset
                 currentClusterPhotos.push(nextPhoto);
                 currentPhotoIdx = currentClusterPhotos.length - 1;
+                debugLog(`Added photo to loaded subset: ${nextPhoto.id || nextPhoto.filename}`);
             }
+            
+            // Display is based on the position in the full dataset
+            debugLog(`Moving to next photo: ${actualIdx + 2}/${totalPhotos}`);
         } else {
             // Simple case, just increment our index
             currentPhotoIdx++;
+            debugLog(`Moving to next photo: ${currentPhotoIdx + 1}/${totalPhotos}`);
         }
-        
-        debugLog(`Moving to next photo: ${currentPhotoIdx + 1}/${totalPhotos}`);
         
         // Set a higher temporary opacity during transition for better visibility
         const photoImg = document.getElementById('photoViewerImg');
         photoImg.style.opacity = '0.95';
         photoImg.style.filter = 'none'; // Ensure no filters are applied during transition
         updatePhotoViewerContent();
+    } else {
+        debugLog(`Already at the last photo (${displayIdx}/${totalPhotos})`);
     }
 }
 
@@ -345,19 +419,51 @@ function showPreviousPhoto() {
         currentClusterPhotos.fullDataset.length : 
         currentClusterPhotos.length;
     
+    // Track if we're in virtual scrolling mode
+    const usingVirtualScroll = !!currentClusterPhotos.fullDataset;
+    
     // If using fullDataset, calculate current photo's actual index in the full set
     let actualIdx = currentPhotoIdx;
-    if (currentClusterPhotos.fullDataset) {
+    let displayIdx = currentPhotoIdx + 1; // 1-based index for display
+    
+    if (usingVirtualScroll) {
         const currentPhoto = currentClusterPhotos[currentPhotoIdx];
-        actualIdx = currentClusterPhotos.fullDataset.indexOf(currentPhoto);
+        if (!currentPhoto) {
+            debugLog(`Error: Current photo is undefined at index ${currentPhotoIdx}`);
+            return;
+        }
+        
+        // Find the current photo in the full dataset by comparing IDs
+        actualIdx = currentClusterPhotos.fullDataset.findIndex(p => 
+            p.id === currentPhoto.id
+        );
+        
+        // If not found by ID (which should be rare), fall back to object equality
+        if (actualIdx < 0) {
+            actualIdx = currentClusterPhotos.fullDataset.indexOf(currentPhoto);
+            if (actualIdx < 0) {
+                debugLog(`Error: Could not find current photo in full dataset`);
+                return;
+            }
+        }
+        
+        // Use the actual index in the full dataset + 1 for display (1-based)
+        displayIdx = actualIdx + 1;
     }
     
     // Only decrement if we're not at the beginning
-    if (actualIdx > 0) {
-        if (currentClusterPhotos.fullDataset) {
+    if ((usingVirtualScroll && actualIdx > 0) || 
+        (!usingVirtualScroll && currentPhotoIdx > 0)) {
+        
+        if (usingVirtualScroll) {
             // In virtual scrolling mode, we need to find the previous photo in our loaded subset
             const prevPhoto = currentClusterPhotos.fullDataset[actualIdx - 1];
-            // Find this photo in our loaded subset - prefer ID matching
+            if (!prevPhoto) {
+                debugLog(`Error: Previous photo not found in dataset at index ${actualIdx - 1}`);
+                return;
+            }
+            
+            // Find this photo in our loaded subset by ID (most reliable)
             const loadedIdx = currentClusterPhotos.findIndex(p => 
                 p.id === prevPhoto.id
             );
@@ -365,23 +471,29 @@ function showPreviousPhoto() {
             // If found in loaded subset, use that index
             if (loadedIdx >= 0) {
                 currentPhotoIdx = loadedIdx;
+                debugLog(`Found previous photo at loaded index ${loadedIdx}`);
             } else {
                 // Otherwise, we need to add it to our loaded subset
                 // For previous, add at the beginning
                 currentClusterPhotos.unshift(prevPhoto);
                 currentPhotoIdx = 0;
+                debugLog(`Added photo to loaded subset: ${prevPhoto.id || prevPhoto.filename}`);
             }
+            
+            // Display is based on the position in the full dataset
+            debugLog(`Moving to previous photo: ${actualIdx}/${totalPhotos}`);
         } else {
             // Simple case, just decrement our index
             currentPhotoIdx--;
+            debugLog(`Moving to previous photo: ${currentPhotoIdx + 1}/${totalPhotos}`);
         }
-        
-        // debugLog(`Moving to previous photo: ${currentPhotoIdx + 1}/${totalPhotos}`);
 
         // Set a higher temporary opacity during transition for better visibility
         const photoImg = document.getElementById('photoViewerImg');
         photoImg.style.opacity = '0.95';
         photoImg.style.filter = 'none'; // Ensure no filters are applied during transition
         updatePhotoViewerContent();
+    } else {
+        debugLog(`Already at the first photo (${displayIdx}/${totalPhotos})`);
     }
 }
