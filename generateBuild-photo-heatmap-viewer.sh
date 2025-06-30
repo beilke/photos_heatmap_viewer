@@ -144,6 +144,17 @@ echo "Stopping and removing any existing containers..."
 docker ps -aqf "name=photo-heatmap" | xargs -r docker kill 2>/dev/null || true
 docker ps -aqf "name=photo-heatmap" | xargs -r docker rm 2>/dev/null || true
 
+# Verify static files before build
+echo "Verifying static files before build..."
+if [ -d "static/js" ]; then
+  JS_COUNT=$(find static/js -name "*.js" | wc -l)
+  echo "Found $JS_COUNT JavaScript files in static/js directory"
+  echo "JavaScript files: $(find static/js -name "*.js" -exec basename {} \; | tr '\n' ' ')"
+else
+  echo "Warning: static/js directory not found!"
+  mkdir -p static/js
+fi
+
 # Build the image
 echo "Building Docker image..."
 docker build --no-cache -t photo-heatmap .
@@ -158,6 +169,26 @@ docker run -d \
   -v /volume1/homes/shizue/Photos:/photos/shizue:ro \
   --name photo-heatmap \
   photo-heatmap:latest
+
+# Verify that JS files were included in the container
+echo "Verifying container setup..."
+CONTAINER_ID=$(docker ps -q -f "name=photo-heatmap")
+if [ -n "$CONTAINER_ID" ]; then
+  echo "Container is running with ID: $CONTAINER_ID"
+  
+  # Check if static/js files are included in the container
+  JS_FILES_IN_CONTAINER=$(docker exec $CONTAINER_ID ls -la /app/static/js 2>/dev/null | grep -c "\.js")
+  if [ "$JS_FILES_IN_CONTAINER" -gt 0 ]; then
+    echo "✅ JavaScript files were successfully included in the container"
+    echo "Found files: $(docker exec $CONTAINER_ID ls -la /app/static/js | grep "\.js" | awk '{print $NF}' | tr '\n' ' ')"
+  else
+    echo "❌ ERROR: JavaScript files were not found in the container!"
+    echo "Container directory structure:"
+    docker exec $CONTAINER_ID find /app/static -type f | sort
+  fi
+else
+  echo "❌ ERROR: Container not running!"
+fi
 
 echo "Done! Your photo-heatmap service is running at http://localhost:8088"
 echo "To view logs: docker logs photo-heatmap"

@@ -21,7 +21,11 @@ RUN mkdir -p /app/logs /app/data /app/templates /app/static
 # Copy application files
 COPY *.py ./
 COPY *.html ./
-COPY ./static/*.css ./static/
+# Docker COPY syntax for directories - no trailing slash on source
+COPY ./static ./static
+# Verify static files were copied correctly
+RUN echo "Verifying static files:" && \
+    find /app/static -type f | sort
 # Database files are mounted via volume at runtime
 
 # Configure logrotate to keep logs for one week
