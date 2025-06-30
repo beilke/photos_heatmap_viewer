@@ -52,14 +52,16 @@ function updateMarkers(inputPhotos = []) {
                     // Get all child markers in this cluster
                     const markers = cluster.getAllChildMarkers();
                     
-                    // Deduplicate by filename before counting
-                    const uniqueFilenames = new Set();
+                    // Deduplicate by ID if available, otherwise fall back to filename
+                    const uniqueIds = new Set();
                     let uniqueCount = 0;
                     
                     markers.forEach(marker => {
-                        if (marker.photoData && marker.photoData.filename) {
-                            if (!uniqueFilenames.has(marker.photoData.filename)) {
-                                uniqueFilenames.add(marker.photoData.filename);
+                        if (marker.photoData) {
+                            // Use ID for deduplication if available, otherwise use filename
+                            const uniqueKey = marker.photoData.id || marker.photoData.filename;
+                            if (uniqueKey && !uniqueIds.has(uniqueKey)) {
+                                uniqueIds.add(uniqueKey);
                                 uniqueCount++;
                             }
                         }
@@ -212,7 +214,14 @@ function updateMarkers(inputPhotos = []) {
                     debugLog(`Failed to load popup image for ${photo.filename}`);
                 };
 
-                img.src = `/photos/${encodeURIComponent(photo.filename)}`;
+                // Use only ID without fallback
+                if (photo.id) {
+                    img.src = `/photos/${encodeURIComponent(photo.id)}`;
+                } else {
+                    // If no ID is available (shouldn't happen in normal operation), log a warning and use filename
+                    debugLog(`Warning: No ID available for popup image: ${photo.filename}`);
+                    img.src = `/photos/${encodeURIComponent(photo.filename)}`;
+                }
             }
         });
 
@@ -229,24 +238,27 @@ function updateMarkers(inputPhotos = []) {
             // Log the found photos for verification
             debugLog(`Found ${photosAtSameLocation.length} photos at location ${photo.latitude},${photo.longitude}`);
             
-            // Deduplicate by filename
-            const uniqueFilenames = new Set();
+            // Deduplicate by ID if available, otherwise fall back to filename
+            const uniqueIds = new Set();
             const uniquePhotos = [];
             
             // Ensure path information is available and deduplicate
             photosAtSameLocation.forEach(p => {
-                // Ensure all path info is available
-                if (p.path && !p.full_path) {
-                    p.full_path = p.path;
+                // Always ensure full path is available
+                if (!p.full_path) {
+                    p.full_path = p.path || '';
                 }
                 
-                // Only include photos with unique filenames
-                if (!uniqueFilenames.has(p.filename)) {
-                    uniqueFilenames.add(p.filename);
+                // Use photo ID for deduplication if available, otherwise use filename
+                const uniqueKey = p.id || p.filename;
+                
+                // Only include photos with unique IDs (or filenames if ID not available)
+                if (!uniqueIds.has(uniqueKey)) {
+                    uniqueIds.add(uniqueKey);
                     uniquePhotos.push(p);
-                    debugLog(`Location photo: ${p.filename}, ID: ${p.id}, Library: ${p.library_id}`);
+                    debugLog(`Location photo: ${p.filename}, ID: ${p.id || 'unknown'}, Path: ${p.full_path}, Library: ${p.library_id}`);
                 } else {
-                    debugLog(`Skipping duplicate filename at location: ${p.filename}, ID: ${p.id}`);
+                    debugLog(`Skipping duplicate photo at location: ${p.filename}, ID: ${p.id || 'unknown'}`);
                 }
             });
 
@@ -288,27 +300,30 @@ function updateMarkers(inputPhotos = []) {
                     
                     debugLog(`Cluster clicked: ${clusterCount} markers`);
                     
-                    // Collect all photos from all markers in this cluster with filename deduplication
+                    // Collect all photos from all markers in this cluster with ID/filename deduplication
                     let allPhotos = [];
-                    const uniqueFilenames = new Set(); // Track unique filenames to prevent duplicates
+                    const uniqueIds = new Set(); // Track unique IDs (or filenames) to prevent duplicates
                     
                     // Process only the markers in this specific cluster
                     markers.forEach(marker => {
                         if (marker.photoData) {
                             const photo = marker.photoData;
                             
-                            // Ensure all path info is available for verification
-                            if (photo.path && !photo.full_path) {
-                                photo.full_path = photo.path;
+                            // Always ensure full path is available
+                            if (!photo.full_path) {
+                                photo.full_path = photo.path || '';
                             }
                             
-                            // Only add this photo if we haven't seen this filename yet
-                            if (!uniqueFilenames.has(photo.filename)) {
-                                uniqueFilenames.add(photo.filename);
+                            // Use photo ID for deduplication if available, otherwise use filename
+                            const uniqueKey = photo.id || photo.filename;
+                            
+                            // Only add this photo if we haven't seen this ID/filename yet
+                            if (!uniqueIds.has(uniqueKey)) {
+                                uniqueIds.add(uniqueKey);
                                 allPhotos.push(photo);
-                                debugLog(`Cluster photo: ${photo.filename}, ID: ${photo.id}, Library: ${photo.library_id}, lat/long: ${photo.latitude}/${photo.longitude}`);
+                                debugLog(`Cluster photo: ${photo.filename}, ID: ${photo.id || 'unknown'}, Path: ${photo.full_path}, Library: ${photo.library_id}`);
                             } else {
-                                debugLog(`Skipping duplicate filename in cluster: ${photo.filename}, ID: ${photo.id}`);
+                                debugLog(`Skipping duplicate photo in cluster: ${photo.filename}, ID: ${photo.id || 'unknown'}`);
                             }
                         }
                     });

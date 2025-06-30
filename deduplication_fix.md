@@ -48,45 +48,82 @@ This approach:
 
 Additionally, we modified the client-side JavaScript code to ensure clusters accurately represent unique photos:
 
-1. In `markers.js`, we added filename-based deduplication for the cluster display counts:
+1. In `markers.js`, we added ID-based deduplication (with filename fallback) for the cluster display counts:
 ```javascript
-// Deduplicate by filename before counting
-const uniqueFilenames = new Set();
+// Deduplicate by ID if available, otherwise fall back to filename
+const uniqueIds = new Set();
 let uniqueCount = 0;
 
 markers.forEach(marker => {
-    if (marker.photoData && marker.photoData.filename) {
-        if (!uniqueFilenames.has(marker.photoData.filename)) {
-            uniqueFilenames.add(marker.photoData.filename);
+    if (marker.photoData) {
+        // Use ID for deduplication if available, otherwise use filename
+        const uniqueKey = marker.photoData.id || marker.photoData.filename;
+        if (uniqueKey && !uniqueIds.has(uniqueKey)) {
+            uniqueIds.add(uniqueKey);
             uniqueCount++;
         }
     }
 });
 ```
 
-2. We added filename-based deduplication for marker clusters when viewing photos:
+2. We added ID-based deduplication (with filename fallback) for marker clusters when viewing photos:
 ```javascript
-// Collect all photos from all markers in this cluster with filename deduplication
+// Collect all photos from all markers in this cluster with ID/filename deduplication
 let allPhotos = [];
-const uniqueFilenames = new Set(); // Track unique filenames to prevent duplicates
+const uniqueIds = new Set(); // Track unique IDs (or filenames) to prevent duplicates
 
 // Process only the markers in this specific cluster
 markers.forEach(marker => {
     if (marker.photoData) {
         const photo = marker.photoData;
         
-        // Only add this photo if we haven't seen this filename yet
-        if (!uniqueFilenames.has(photo.filename)) {
-            uniqueFilenames.add(photo.filename);
+        // Always ensure full path is available
+        if (!photo.full_path) {
+            photo.full_path = photo.path || '';
+        }
+        
+        // Use photo ID for deduplication if available, otherwise use filename
+        const uniqueKey = photo.id || photo.filename;
+        
+        // Only add this photo if we haven't seen this ID/filename yet
+        if (!uniqueIds.has(uniqueKey)) {
+            uniqueIds.add(uniqueKey);
             allPhotos.push(photo);
         } else {
-            debugLog(`Skipping duplicate filename in cluster: ${photo.filename}`);
+            debugLog(`Skipping duplicate photo in cluster`);
         }
     }
 });
 ```
 
-3. We also implemented the same deduplication logic for the single marker click handler to ensure that even at the same coordinates, photos with the same filename are only shown once.
+3. We implemented the same deduplication logic for the single marker click handler:
+```javascript
+// Deduplicate by ID if available, otherwise fall back to filename
+const uniqueIds = new Set();
+const uniquePhotos = [];
+
+photosAtSameLocation.forEach(p => {
+    // Always ensure full path is available
+    if (!p.full_path) {
+        p.full_path = p.path || '';
+    }
+    
+    // Use photo ID for deduplication if available, otherwise use filename
+    const uniqueKey = p.id || p.filename;
+    
+    // Only include photos with unique IDs (or filenames if ID not available)
+    if (!uniqueIds.has(uniqueKey)) {
+        uniqueIds.add(uniqueKey);
+        uniquePhotos.push(p);
+    }
+});
+```
+
+4. We updated image loading to prefer photo IDs over filenames:
+```javascript
+// Always use photo ID if available, fall back to filename only if needed
+img.src = `/photos/${encodeURIComponent(photo.id || photo.filename)}`;
+```
 
 ## Examples
 

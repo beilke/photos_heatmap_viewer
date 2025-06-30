@@ -2,6 +2,86 @@
  * Photo viewer functionality for Photo Heatmap Viewer
  */
 
+// Format a date as DD.MM.YYYY HH:MM:SS (24h format)
+function formatDateTime(dateStr) {
+    try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) {
+            return 'Invalid date';
+        }
+        
+        // Format as DD.MM.YYYY HH:MM:SS
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Month is 0-indexed
+        const year = date.getFullYear();
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const seconds = date.getSeconds().toString().padStart(2, '0');
+        
+        return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+    } catch (e) {
+        console.error('Error formatting date:', e);
+        return 'Date format error';
+    }
+}
+
+// Get location name from coordinates using reverse geocoding
+function getLocationNameFromCoordinates(lat, lng) {
+    return new Promise((resolve, reject) => {
+        try {
+            // Check if we have cached this location
+            const cacheKey = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+            const cachedLocation = sessionStorage.getItem(`location_${cacheKey}`);
+            if (cachedLocation) {
+                return resolve(cachedLocation);
+            }
+            
+            // Use Nominatim for reverse geocoding
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    let locationName = 'Unknown';
+                    
+                    if (data && data.address) {
+                        const parts = [];
+                        
+                        // Build location string from city, state, country
+                        if (data.address.city || data.address.town || data.address.village) {
+                            parts.push(data.address.city || data.address.town || data.address.village);
+                        }
+                        
+                        if (data.address.state) {
+                            parts.push(data.address.state);
+                        }
+                        
+                        if (data.address.country) {
+                            parts.push(data.address.country);
+                        }
+                        
+                        locationName = parts.join(', ');
+                        
+                        // Cache this result
+                        sessionStorage.setItem(`location_${cacheKey}`, locationName);
+                    }
+                    
+                    resolve(locationName || 'Location not available');
+                })
+                .catch(err => {
+                    console.error('Error in fetch:', err);
+                    resolve('Location lookup failed');
+                });
+        } catch (e) {
+            console.error('Error getting location name:', e);
+            resolve('Location lookup failed');
+        }
+    });
+}
+
 // Constants for photo viewer
 const PRELOAD_BATCH_SIZE = 50;
 const MAX_LOADED_PHOTOS = 200;
@@ -88,6 +168,10 @@ function openPhotoViewer(photos, startIndex = 0) {
         <div class="photo-info-item">
             <div class="photo-info-label">Date:</div>
             <div id="photoInfoDate"></div>
+        </div>
+        <div class="photo-info-item">
+            <div class="photo-info-label">GPS Coordinates:</div>
+            <div id="photoInfoCoordinates"></div>
         </div>
         <div class="photo-info-item">
             <div class="photo-info-label">Location:</div>
@@ -227,12 +311,24 @@ function updatePhotoViewerContent() {
         
         debugLog(`Loading HEIC photo: ${photo.filename} (ID: ${photo.id})`);
         
-        // For HEIC files, always use dedicated convert endpoint
-        photoViewerImg.src = `/convert/${encodeURIComponent(photo.id)}`;
+        // For HEIC files, use only ID without fallback
+        if (photo.id) {
+            photoViewerImg.src = `/convert/${encodeURIComponent(photo.id)}`;
+        } else {
+            // If no ID is available (shouldn't happen in normal operation), log a warning and use filename
+            debugLog(`Warning: No ID available for HEIC photo: ${photo.filename}`);
+            photoViewerImg.src = `/convert/${encodeURIComponent(photo.filename)}`;
+        }
     } else {
-        // For normal images, load directly with a fixed quality setting (80) with no fallbacks
-        debugLog(`Loading regular photo: ${photo.filename} (ID: ${photo.id})`);
-        photoViewerImg.src = `/photos/${encodeURIComponent(photo.id)}?format=jpeg&quality=80`;
+        // For normal images, use only ID without fallback
+        if (photo.id) {
+            debugLog(`Loading photo ID: ${photo.id} (${photo.filename})`);
+            photoViewerImg.src = `/photos/${encodeURIComponent(photo.id)}?format=jpeg&quality=80`;
+        } else {
+            // If no ID is available (shouldn't happen in normal operation), log a warning and use filename
+            debugLog(`Warning: No ID available for photo: ${photo.filename}`);
+            photoViewerImg.src = `/photos/${encodeURIComponent(photo.filename)}?format=jpeg&quality=80`;
+        }
     }
     
     // When image loads, ensure full opacity
@@ -246,72 +342,55 @@ function updatePhotoViewerContent() {
             photoViewerImg.style.filter = 'none';
             // Set brightness explicitly to normal
             photoViewerImg.style.filter = 'brightness(100%)';
-            
-            // For HEIC images, show success message
-            if (isHeic) {
-                // debugLog(`Successfully loaded HEIC photo: ${photo.filename}`);
-                if (typeof showFeedbackToast === 'function') {
-                    showFeedbackToast('HEIC image displayed successfully', 1500);
-                }
-            }
         }
     };
     
-    // Handle error in loading the image
-    photoViewerImg.onerror = function() {
-        photoViewerImg.style.opacity = '1';
-        photoViewerImg.style.filter = 'none';
-        
-        // Get current attempts count
-        const attempts = parseInt(photoViewerImg.dataset.loadAttempts || "0", 10);
-        
-        // Only try alternative method for HEIC files, no quality fallbacks for regular images
-        if (attempts < 1) {
-            photoViewerImg.dataset.loadAttempts = (attempts + 1).toString();
-            
-            if (isHeic) {
-                debugLog(`Failed to load HEIC photo: ${photo.filename} (ID: ${photo.id}), attempt ${attempts + 1}`);
-                
-                // Try alternative method only once
-                if (this.src.includes('/convert/')) {
-                    // If convert endpoint failed, try standard photo endpoint
-                    debugLog(`Convert endpoint failed, trying standard photo endpoint`);
-                    photoViewerImg.src = `/photos/${encodeURIComponent(photo.id)}`;
-                    
-                    if (typeof showFeedbackToast === 'function') {
-                        showFeedbackToast('Trying alternative method...', 2000);
-                    }
-                    return;
-                }
-            }
-            // No quality fallback for regular images - using consistent quality=80
-        }
-        
-        // If we've exhausted our attempts or hit other failure conditions, show error graphic
-        debugLog(`All load attempts failed for photo: ${photo.filename} (ID: ${photo.id})`);
-        
-        if (typeof showFeedbackToast === 'function') {
-            showFeedbackToast('Failed to load image', 3000, true);
-        }
-        
-        if (isHeic) {
-            photoViewerImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f0f0f0"/><text x="50%" y="50%" font-family="Arial" font-size="14" text-anchor="middle" dominant-baseline="middle" fill="%23666">HEIC image not supported</text><text x="50%" y="70%" font-family="Arial" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="%23888">Try enabling pillow-heif</text></svg>';
-        } else {
-            photoViewerImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f0f0f0"/><text x="50%" y="50%" font-family="Arial" font-size="14" text-anchor="middle" dominant-baseline="middle" fill="%23666">Image not available</text></svg>';
-        }
-    };
-
-    // Update image info
+    // Update photo info fields
     const photoInfoFilename = document.getElementById('photoInfoFilename');
     const photoInfoDate = document.getElementById('photoInfoDate');
+    const photoInfoCoordinates = document.getElementById('photoInfoCoordinates');
     const photoInfoLocation = document.getElementById('photoInfoLocation');
     const photoInfoPath = document.getElementById('photoInfoPath');
     
-    photoInfoFilename.textContent = photo.filename || 'Unknown';
-    photoInfoDate.textContent = photo.datetime ?
-        new Date(photo.datetime).toLocaleString() : 'No date available';
-    photoInfoLocation.innerHTML = `${photo.latitude.toFixed(6)}, ${photo.longitude.toFixed(6)}`;
-    photoInfoPath.textContent = photo.full_path || photo.path || 'Path not available';
+    if (photoInfoFilename) {
+        photoInfoFilename.textContent = photo.filename || 'Unknown filename';
+    }
+    
+    if (photoInfoDate) {
+        photoInfoDate.textContent = photo.datetime ? 
+            formatDateTime(photo.datetime) : 
+            (photo.date_taken ? formatDateTime(photo.date_taken) : 'Unknown date');
+    }
+    
+    if (photoInfoCoordinates) {
+        if (photo.latitude != null && photo.longitude != null) {
+            photoInfoCoordinates.textContent = `${photo.latitude.toFixed(6)}, ${photo.longitude.toFixed(6)}`;
+        } else {
+            photoInfoCoordinates.textContent = 'GPS coordinates unavailable';
+        }
+    }
+    
+    // Display location name from coordinates (city, state, country)
+    if (photo.latitude != null && photo.longitude != null) {
+        getLocationNameFromCoordinates(photo.latitude, photo.longitude)
+            .then(locationName => {
+                if (photoInfoLocation) {
+                    photoInfoLocation.textContent = locationName;
+                }
+            })
+            .catch(err => {
+                if (photoInfoLocation) {
+                    photoInfoLocation.textContent = 'Location not available';
+                }
+                console.error('Error getting location name:', err);
+            });
+    } else if (photoInfoLocation) {
+        photoInfoLocation.textContent = 'Location not available';
+    }
+        
+    if (photoInfoPath) {
+        photoInfoPath.textContent = photo.full_path || photo.path || 'Path not available';
+    }
 }
 
 // Close the photo viewer

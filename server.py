@@ -450,9 +450,10 @@ def convert_photo(id_or_filename):
             if result:
                 logger.debug(f"Found photo by path hint: {path_hint}")
         
-        # If both ID and path lookup failed or weren't provided, fall back to treating parameter as filename
-        if not result:
-            filename = id_or_filename  # Use path parameter as filename
+        # No longer fall back to filename lookup when using ID - only use hint if explicitly provided
+        if not result and not photo_id.isdigit():
+            # Only do a filename lookup if the provided parameter doesn't look like a numeric ID
+            filename = id_or_filename
             logger.debug(f"Looking up photo by filename: {filename}")
             cursor.execute("SELECT path FROM photos WHERE filename = ?", (filename,))
             result = cursor.fetchone()
@@ -623,9 +624,10 @@ def start_server(port=8000, directory='.', debug_mode=False, db_path=None, host=
                 if result:
                     logger.debug(f"Found photo by path hint: {path_hint}")
             
-            # If both ID and path lookup failed or weren't provided, fall back to treating the parameter as filename
-            if not result:
-                filename = id_or_filename  # Use the path parameter as filename
+            # No longer fall back to filename lookup when using ID - only use hint if explicitly provided
+            if not result and not photo_id.isdigit():
+                # Only do a filename lookup if the provided parameter doesn't look like a numeric ID
+                filename = id_or_filename
                 logger.debug(f"Looking up photo by filename: {filename}")
                 cursor.execute("SELECT path FROM photos WHERE filename = ?", (filename,))
                 result = cursor.fetchone()
