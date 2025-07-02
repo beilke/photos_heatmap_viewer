@@ -50,7 +50,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('server.log')
+        logging.FileHandler('logs/server.log')
     ]
 )
 logger = logging.getLogger(__name__)

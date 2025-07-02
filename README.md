@@ -16,6 +16,7 @@ A tool to visualize a large photo library (1000+ photos) on a heatmap based on g
 - **Clean Database Option**: Start fresh with a clean database when needed
 - **Photo Viewing**: Show actual photos on the map when zoomed in close enough
 - **Photo Clustering**: Automatically groups nearby photos for better visualization
+- **Deduplication**: Prevents duplicate photos from appearing in clusters with both server-side SQL filtering and client-side JavaScript deduplication
 - **Enhanced Logging**: Debug utilities for troubleshooting
 - **Cross Platform**: Support for Windows, Linux and Docker environments
 
@@ -30,7 +31,7 @@ A tool to visualize a large photo library (1000+ photos) on a heatmap based on g
 1. Install the required Python packages:
 
 ```
-pip install pillow
+pip install -r requirements.txt
 ```
 
 2. Initialize the database:
@@ -39,69 +40,54 @@ pip install pillow
 python process_photos.py --init
 ```
 
-3. Create a new library and import photos:
+3. Process your photos to add them to the database:
 
 ```
-# Using the library management script
-.\manage_libraries.ps1 create "Vacation 2023" "D:\Photos\Vacation"
-```
-
-   Or use the quickstart script (for a single library):
-
-```
-# Process only photos with GPS coordinates
-.\quickstart.ps1 "path/to/your/photos"
+python process_photos.py --process "path/to/your/photos"
 ```
 
 4. Run the web server:
 
 ```
 python server.py
+# or use PowerShell script
+.\start_server.ps1
 ```
 
 5. Open your browser at `http://localhost:8000`
 
 ## Library Management
 
-The `manage_libraries.ps1` script provides tools for managing multiple photo libraries:
+Libraries can be managed directly through process_photos.py:
 
 ```
-# List all libraries
-.\manage_libraries.ps1 list
+# Create a new library and process photos
+python process_photos.py --create-library "Vacation 2023" --description "Summer vacation photos" --process "D:\Photos\Vacation"
 
-# Create a new library
-.\manage_libraries.ps1 create "Family Photos" "D:\Photos\Family" -description "Family events"
+# Add more photos to existing library
+python process_photos.py --library "Vacation 2023" --process "E:\More Photos\Vacation2023"
 
-# Import more photos into an existing library
-.\manage_libraries.ps1 import "Family Photos" "E:\More Photos\Family2023"
-
-# Rename a library 
-.\manage_libraries.ps1 rename "Family Photos" "Family Collection"
-
-# Delete a library and its photos
-.\manage_libraries.ps1 delete "Unwanted Library"
-
-# Advanced Processing Options
-.\manage_libraries.ps1 export
+# Process with advanced options
+python process_photos.py --process "path/to/your/photos" --include-all --clean --force
 ```
 
-# Process all photos, including those without GPS coordinates
-.\quickstart.ps1 "path/to/your/photos" all
-
-# Clean the database before processing
-.\quickstart.ps1 "path/to/your/photos" clean
-
-# Multiple options
-.\quickstart.ps1 "path/to/your/photos" all clean force
-```
-
-4. Start the web server:
+## Starting the Server
 
 ```
+# Basic server startup
 python server.py
+
+# Using PowerShell script (recommended)
+.\start_server.ps1
+
+# With debug mode enabled
+python server.py --debug
+
+# With custom port
+python server.py --port 8080
 ```
 
-6. Open a web browser and navigate to:
+Once the server is running, open a web browser and navigate to:
 
 ```
 http://localhost:8000
@@ -166,28 +152,27 @@ python server.py --debug
 
 This will generate logs in both the console and a `server.log` file.
 
-### Debug Startup Script
+### Using Debug Mode
 
-Use the debug startup script for automated troubleshooting:
-
-```
-.\debug_start.ps1   # PowerShell version
-debug_start.bat     # Batch file version
-```
-
-This will:
-1. Check if the server is already running
-2. Inspect your JSON data file for issues
-3. Optionally fix issues in the JSON file
-4. Start the server in debug mode
-
-### Database Inspector
-
-To diagnose issues with your photo database:
+Start the server with debug mode enabled for more detailed logging:
 
 ```
-python debug_server.py                    # Inspect the database structure and content
-python debug_server.py --stats            # Show detailed database statistics
+# Using server.py directly with debug flag
+python server.py --debug
+
+# Using PowerShell script with debug parameter
+.\start_server.ps1 -debug
+```
+
+This will generate logs in both the console and the logs/server.log file.
+
+### Database Diagnostics
+
+To diagnose issues with your photo database, you can use the tools in the tools directory:
+
+```
+python tools/check_db.py                  # Basic database validation
+python tools/check_sql.py                 # Verify SQL queries are working correctly
 ```
 
 ### Debug UI
@@ -211,7 +196,7 @@ http://localhost:8000/index.html.debug
 
 1. Check if your database has valid data:
    ```
-   python debug_server.py
+   python tools/check_db.py
    ```
 
 2. Verify that your photos have GPS coordinates:
@@ -220,6 +205,28 @@ http://localhost:8000/index.html.debug
    ```
 
 3. Try using the debug UI to see detailed error messages.
+
+### Diagnostic Tools
+
+The project includes several diagnostic scripts in the `tools` directory to help troubleshoot database and photo issues:
+
+- **check_cluster.py**: Examines photos within specific geographic clusters to identify duplicates
+- **check_db.py**: Performs basic database validation and checks for duplicate filenames
+- **check_duplicates.py**: Finds duplicate photos in the database by filename and path
+- **check_near_duplicates.py**: Identifies photos with same filename but slightly different coordinates
+- **check_photo.py**: Examines details of a specific photo by ID
+- **check_specific_photos.py**: Tests deduplication for specific photos across libraries
+- **check_sql.py**: Validates SQL deduplication queries are working correctly
+
+Example usage:
+```
+python tools/check_db.py                         # Check database health
+python tools/check_duplicates.py                 # Find duplicates in database
+python tools/check_cluster.py 40.7128 -74.0060   # Check photos near specific coordinates
+python tools/check_photo.py 12345                # Get details about photo with ID 12345
+```
+
+For more information about the diagnostic tools, see the [tools/README.md](tools/README.md) file.
 
 ### Server Won't Start
 
@@ -240,13 +247,14 @@ http://localhost:8000/index.html.debug
 3. If using Windows, drive letter normalization should handle path differences
 ## Project Structure
 
-- `init_db.py` - Initialize the SQLite database
 - `process_photos.py` - Process photos and extract metadata
 - `server.py` - Web server for the heatmap viewer
+- `start_server.ps1` - PowerShell script to start the server
 - `index.html` - Web interface for the heatmap
-- `manage_libraries.ps1` - Library management script
-- `quickstart.ps1` - Quick setup for single-library usage
-- `demo_multi_library.ps1` - Demo script showing multiple library setup
+- `static/` - CSS and JavaScript files for the web interface
+- `tools/` - Diagnostic and troubleshooting utilities
+- `data/` - Database and image cache storage
+- `logs/` - Server log files
 
 ## Implementation Details
 

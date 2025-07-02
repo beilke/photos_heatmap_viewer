@@ -20,7 +20,8 @@ htmlcov/
 .env
 .venv
 env/
-venv/
+.venv/
+.venv-py39/
 ENV/
 env.bak/
 venv.bak/
