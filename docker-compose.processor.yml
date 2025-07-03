@@ -34,48 +34,60 @@ services:
       - LIBRARIES=${LIBRARIES:-library1:Library1,library2:Library2}  # Format: path:name,path2:name2
       - UPDATE_SCHEDULE=${UPDATE_SCHEDULE:-0 */6 * * *}  # Default: every 6 hours
     # Use a custom entrypoint to set up cron jobs and run them
-    entrypoint: >
-      /bin/bash -c "
+    command: >
+      bash -c '
       # Create cron files directory
-      mkdir -p /etc/cron.d
+      mkdir -p /etc/cron.d;
       
       # Process libraries from environment variable
-      IFS=',' read -ra LIB_ARRAY <<< \"$LIBRARIES\"
-      echo '' > /etc/cron.d/process_photos
+      IFS="," read -ra LIB_ARRAY <<< "$LIBRARIES";
       
-      for LIB in \"$${LIB_ARRAY[@]}\"; do
-        IFS=':' read -r LIB_PATH LIB_NAME <<< \"$LIB\"
-        echo \"$UPDATE_SCHEDULE /app/process_library.sh /photos/$LIB_PATH \\\"$LIB_NAME\\\" >> /app/logs/cron.log 2>&1\" >> /etc/cron.d/process_photos
-        echo \"Added scheduled processing for library: $LIB_NAME from path: $LIB_PATH\"
-      done
+      # Create proper cron file with header
+      cat > /etc/cron.d/process_photos << EOC
+# Setting environment variables for cron jobs
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOME=/root
+LANG=en_US.UTF-8
+PYTHONPATH=/app
+
+# Test cron job - runs every minute
+* * * * * root bash -c '"'"'echo "[$(date +\%s)] Cron test successful" >> /app/logs/cron_test.log 2>&1'"'"'
+EOC
+
+      # Find Python path
+      PYTHON_PATH=$(which python3 || which python || echo "python");
+      echo "Using Python path: $PYTHON_PATH";
       
-      # Give execution rights to the cron job
-      chmod 0644 /etc/cron.d/process_photos
+      # Add library processing jobs
+      for LIB in "${LIB_ARRAY[@]}"; do
+        IFS=":" read -r LIB_PATH LIB_NAME <<< "$LIB";
+        echo "$UPDATE_SCHEDULE root bash -c '"'"'cd /app && $PYTHON_PATH /app/process_photos.py --process /photos/$LIB_PATH --library \"$LIB_NAME\" --db /app/data/photo_library.db >> /app/logs/cron_${LIB_NAME}.log 2>&1'"'"'" >> /etc/cron.d/process_photos;
+        echo "Added scheduled processing for library: $LIB_NAME from path: $LIB_PATH";
+      done;
       
-      # Apply cron job
-      crontab /etc/cron.d/process_photos
+      # Set proper permissions
+      chmod 0644 /etc/cron.d/process_photos;
       
-      # Set up logrotate to run daily
-      echo '0 0 * * * /usr/sbin/logrotate /etc/logrotate.d/photo_heatmap --state /app/logrotate.state >> /app/logs/logrotate.log 2>&1' > /etc/cron.d/logrotate_photos
-      chmod 0644 /etc/cron.d/logrotate_photos
-      crontab -l | cat - /etc/cron.d/logrotate_photos | crontab -
-      
-      # Start cron and keep container running
-      cron
-      tail -f /dev/null
-      "
-      
-      # Start cron daemon
-      cron
+      # Restart cron service
+      pkill cron || true;
+      sleep 1;
+      cron -f -L 15 &
       
       # Run initial processing of each library
-      echo 'Running initial processing of libraries...'
-      /app/process_library.sh /photos/library1 'Library1'
-      /app/process_library.sh /photos/library2 'Library2'
+      echo "Running initial processing of libraries...";
+      
+      # Process libraries from libraries.txt
+      if [ -f /app/logs/libraries.txt ]; then
+        while IFS=: read -r LIB_PATH LIB_NAME; do
+          echo "Processing library: $LIB_NAME";
+          $PYTHON_PATH /app/process_photos.py --process "$LIB_PATH" --library "$LIB_NAME" --db /app/data/photo_library.db;
+        done < /app/logs/libraries.txt;
+      fi;
       
       # Keep container running
-      tail -f /dev/null
-      "
+      tail -f /dev/null;
+      '
     restart: unless-stopped
     depends_on:
       - photo-heatmap

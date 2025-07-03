@@ -57,7 +57,7 @@ services:
       - shizue_photos:/photos/shizue:ro
     environment:
       TZ: ${TZ:-Europe/Berlin}
-      UPDATE_INTERVAL: ${UPDATE_INTERVAL:-0 */6 * * *}  # Default: every 6 hours
+      UPDATE_INTERVAL: "*/5 * * * *"  # Every 5 minutes - IMPORTANT: Use quotes around cron expression
     command: ["/bin/sh", "-c", "chmod +x /app/process_libraries.sh && /app/process_libraries.sh"]
     restart: unless-stopped
     healthcheck:

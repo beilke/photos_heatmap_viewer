@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     cron \
     logrotate \
+    crontab \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
@@ -73,22 +74,77 @@ for DIR in /photos/*; do\n\
   fi\n\
 done\n\
 \n\
+# Find the correct Python path first - so it can be used for both initial processing and cron jobs\n\
+PYTHON_PATH=$(which python3 || which python || echo "python")\n\
+echo "Using Python path: $PYTHON_PATH"\n\
+\n\
+# Verify Python path works\n\
+if ! $PYTHON_PATH --version &>/dev/null; then\n\
+  echo "WARNING: Python path $PYTHON_PATH not working, searching alternatives..."\n\
+  PYTHON_PATH=$(find /usr/bin /usr/local/bin -name "python*" | grep -E "python[0-9]?$" | head -1 || echo "python")\n\
+  echo "Using alternative Python path: $PYTHON_PATH"\n\
+fi\n\
+\n\
 # Check if database exists\n\
 if [ ! -f /app/data/photo_library.db ]; then\n\
   echo '"'"'Database not found. Running initial processing...'"'"'\n\
-  while IFS=: read -r LIB_PATH LIB_NAME; do\n\
-    echo "Processing library: $LIB_NAME"\n\
-    python /app/process_photos.py --process "$LIB_PATH" --library "$LIB_NAME"\n\
-  done < /app/logs/libraries.txt\n\
+  mkdir -p /app/data\n\
+  \n\
+  if [ ! -s /app/logs/libraries.txt ]; then\n\
+    echo "ERROR: No photo libraries found. Check if libraries are properly mounted."\n\
+    ls -la /photos/\n\
+    echo "Will continue setup but no photos will be processed."\n\
+  else\n\
+    echo "Found libraries to process:"\n\
+    cat /app/logs/libraries.txt\n\
+    \n\
+    while IFS=: read -r LIB_PATH LIB_NAME; do\n\
+      echo "Processing library: $LIB_NAME at path: $LIB_PATH"\n\
+      echo "Running: $PYTHON_PATH /app/process_photos.py --process \\"$LIB_PATH\\" --library \\"$LIB_NAME\\" --db /app/data/photo_library.db"\n\
+      $PYTHON_PATH /app/process_photos.py --process "$LIB_PATH" --library "$LIB_NAME" --db /app/data/photo_library.db\n\
+      \n\
+      if [ $? -eq 0 ]; then\n\
+        echo "Successfully processed library: $LIB_NAME"\n\
+      else\n\
+        echo "ERROR processing library: $LIB_NAME"\n\
+      fi\n\
+      \n\
+      echo "$(date +"%Y-%m-%d %H:%M:%S"): Initial processing" > "/app/data/last_update_${LIB_NAME}.txt"\n\
+    done < /app/logs/libraries.txt\n\
+  fi\n\
+  \n\
+  if [ -f /app/data/photo_library.db ]; then\n\
+    echo "Database successfully created at /app/data/photo_library.db"\n\
+  else\n\
+    echo "WARNING: Database file was not created. Check for errors above."\n\
+  fi\n\
+else\n\
+  echo "Database found at /app/data/photo_library.db, skipping initial processing"\n\
 fi\n\
 \n\
 # Setup cron for periodic updates\n\
 mkdir -p /etc/cron.d\n\
 \n\
+# Python path already defined above\n\
+\n\
 # Create cron jobs for libraries\n\
 rm -f /etc/cron.d/process_photos\n\
+\n\
+# First create the header with environment settings\n\
+cat > /etc/cron.d/process_photos << '"'"'EOF'"'"'\n\
+# Setting environment variables for cron jobs\n\
+SHELL=/bin/bash\n\
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n\
+HOME=/root\n\
+LANG=en_US.UTF-8\n\
+PYTHONPATH=/app\n\
+\n\
+# Test cron job - runs every minute\n\
+* * * * * root bash -c '"'"'echo "[$(date +\\%s)] Cron test successful" >> /app/logs/cron_test.log 2>&1'"'"'\n\
+EOF\n\
+\n\
 while IFS=: read -r LIB_PATH LIB_NAME; do\n\
-  echo "${UPDATE_INTERVAL} python /app/process_photos.py --process \\"$LIB_PATH\\" --library \\"$LIB_NAME\\" >> /app/logs/cron_${LIB_NAME}.log 2>&1" >> /etc/cron.d/process_photos\n\
+  echo "${UPDATE_INTERVAL} root bash -c '"'"'cd /app && $PYTHON_PATH /app/process_photos.py --process \"${LIB_PATH}\" --library \"${LIB_NAME}\" --db /app/data/photo_library.db >> /app/logs/cron_${LIB_NAME}.log 2>&1'"'"'" >> /etc/cron.d/process_photos\n\
   echo "Added scheduled processing for library: $LIB_NAME"\n\
 done < /app/logs/libraries.txt\n\
 \n\
@@ -108,6 +164,10 @@ crond -f\n\
 EXPOSE 8000
 
 # Health check
+# Add the cron fix script
+COPY fix_cron_format.sh /app/fix_cron_format.sh
+RUN chmod +x /app/fix_cron_format.sh
+
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD ["./healthcheck.sh"]
 
 # Run the server

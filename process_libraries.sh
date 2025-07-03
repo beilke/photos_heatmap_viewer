@@ -1,7 +1,6 @@
-#!/bin/sh
+#!/bin/sh 
 # Script to process photo libraries and set up cron jobs for updates
 
-# Find all library directories in /photos
 echo "Detecting mounted photo libraries..."
 mkdir -p /app/logs
 rm -f /app/logs/libraries.txt
@@ -17,67 +16,99 @@ done
 # Check if database exists
 if [ ! -f /app/data/photo_library.db ]; then
   echo "Database not found. Running initial processing..."
-  while IFS=: read -r LIB_PATH LIB_NAME; do
-    echo "Processing library: $LIB_NAME"
-    python /app/process_photos.py --process "$LIB_PATH" --library "$LIB_NAME"
-  done < /app/logs/libraries.txt
+
+  mkdir -p /app/data
+
+  if [ ! -s /app/logs/libraries.txt ]; then
+    echo "ERROR: No photo libraries found. Check if libraries are properly mounted."
+    ls -la /photos/
+    echo "Will continue setup but no photos will be processed."
+  else
+    echo "Found libraries to process:"
+    cat /app/logs/libraries.txt
+
+    while IFS=: read -r LIB_PATH LIB_NAME; do
+      echo "Processing library: $LIB_NAME at path: $LIB_PATH"
+      echo "Running: /usr/bin/python /app/process_photos.py --process \"$LIB_PATH\" --library \"$LIB_NAME\" --db /app/data/photo_library.db"
+      /usr/bin/python /app/process_photos.py --process "$LIB_PATH" --library "$LIB_NAME" --db /app/data/photo_library.db
+
+      if [ $? -eq 0 ]; then
+        echo "Successfully processed library: $LIB_NAME"
+      else
+        echo "ERROR processing library: $LIB_NAME"
+      fi
+
+      echo "$(date +"%Y-%m-%d %H:%M:%S"): Initial processing" > "/app/data/last_update_${LIB_NAME}.txt"
+    done < /app/logs/libraries.txt
+  fi
+
+  if [ -f /app/data/photo_library.db ]; then
+    echo "Database successfully created at /app/data/photo_library.db"
+  else
+    echo "WARNING: Database file was not created. Check for errors above."
+  fi
+else
+  echo "Database found at /app/data/photo_library.db, skipping initial processing"
 fi
 
 # Setup cron for periodic updates
 mkdir -p /etc/cron.d
 
-# Default cron schedule if not provided
-: ${UPDATE_INTERVAL:="0 */6 * * *"}
+# Use provided UPDATE_INTERVAL or default to every minute
+: ${UPDATE_INTERVAL:="*/1 * * * *"}
 
-# Create cron jobs for libraries
+# Create a properly formatted cron file
 rm -f /etc/cron.d/process_photos
-touch /etc/cron.d/process_photos
-# Add proper SHELL and PATH to crontab to ensure commands work
-echo "SHELL=/bin/sh" >> /etc/cron.d/process_photos
-echo "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" >> /etc/cron.d/process_photos
-echo "" >> /etc/cron.d/process_photos
-while IFS=: read -r LIB_PATH LIB_NAME; do
-  echo "$UPDATE_INTERVAL root python /app/process_photos.py --process \"$LIB_PATH\" --library \"$LIB_NAME\" >> /app/logs/cron_${LIB_NAME}.log 2>&1" >> /etc/cron.d/process_photos
-  echo "Added scheduled processing for library: $LIB_NAME"
-done < /app/logs/libraries.txt
 
-# Give execution rights to the cron job
+# Create cron file content at once rather than line by line to avoid format issues
+cat > /etc/cron.d/process_photos << EOF
+# Setting environment variables for cron jobs
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+HOME=/root
+LANG=en_US.UTF-8
+PYTHONPATH=/app
+
+# Test cron job - runs every minute
+* * * * * root echo "[$(date +\%s)] Cron test successful" >> /app/logs/cron_test.log 2>&1
+EOF
+
+# Find Python executable path
+PYTHON_PATH=$(which python3 || which python || echo "/usr/bin/python")
+echo "Using Python path: $PYTHON_PATH"
+
+# Verify Python path works
+if ! $PYTHON_PATH --version &>/dev/null; then
+  echo "WARNING: Python executable not found at $PYTHON_PATH, searching alternatives..."
+  PYTHON_PATH=$(find /usr/bin /usr/local/bin -name "python*" | grep -E "python[0-9]?$" | head -1 || echo "python")
+  echo "Using alternative Python path: $PYTHON_PATH"
+fi
+
+# Add library processing jobs to the cron file
+if [ -s /app/logs/libraries.txt ]; then
+  while IFS=: read -r LIB_PATH LIB_NAME; do
+    # Format properly for /etc/cron.d/ - use bash -c to wrap the entire command
+    echo "${UPDATE_INTERVAL} root bash -c 'cd /app && $PYTHON_PATH /app/process_photos.py --process \"${LIB_PATH}\" --library \"${LIB_NAME}\" --db /app/data/photo_library.db >> /app/logs/cron_${LIB_NAME}.log 2>&1'" >> /etc/cron.d/process_photos
+    echo "Added scheduled processing for library: $LIB_NAME"
+  done < /app/logs/libraries.txt
+else
+  echo "WARNING: No libraries found to schedule. Check if libraries are properly mounted."
+fi
+
+# Set proper permissions for the cron file
 chmod 0644 /etc/cron.d/process_photos
 
-# Apply cron configuration
-crontab -u root /etc/cron.d/process_photos
-
 echo "Photo processing schedule set up with interval: $UPDATE_INTERVAL"
+echo "Crontab file contents:"
+cat /etc/cron.d/process_photos
 
-# Start cron service based on available commands
-echo "Starting cron service..."
+# Install the cron file
+crontab /etc/cron.d/process_photos
 
-# Debug which cron commands are available
-echo "Available cron commands:"
-which cron crond 2>/dev/null || echo "No cron commands found in PATH"
-echo "Contents of /usr/sbin:"
-ls -la /usr/sbin/cron* 2>/dev/null || echo "No cron files in /usr/sbin"
-echo "Contents of /usr/bin:"
-ls -la /usr/bin/cron* 2>/dev/null || echo "No cron files in /usr/bin"
+# Verify crontab installation
+echo "Verifying crontab installation:"
+crontab -l
 
-if command -v cron >/dev/null 2>&1; then
-  echo "Found cron command, starting with cron -f"
-  # Start cron in foreground to keep container running
-  exec cron -f
-elif command -v service >/dev/null 2>&1; then
-  echo "Found service command, starting cron service"
-  service cron start
-  # Keep container running since service runs in background
-  echo "Keeping container alive with tail -f /dev/null"
-  exec tail -f /dev/null
-elif command -v crond >/dev/null 2>&1; then
-  echo "Found crond command, starting with crond -f"
-  # Start crond in foreground to keep container running
-  exec crond -f
-else
-  echo "WARNING: Could not find cron service or crond command"
-  echo "Will run initial processing only"
-  # Keep container running even without cron
-  echo "Keeping container alive with tail -f /dev/null"
-  exec tail -f /dev/null
-fi
+# Start cron service
+echo "Starting cron service with verbose logging..."
+exec cron -f -L 15
