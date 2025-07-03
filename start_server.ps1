@@ -4,7 +4,7 @@
 param (
     [switch]$debug = $false,
     [int]$port = 8000,
-    [string]$host = "0.0.0.0"
+    [string]$hostAddress = "0.0.0.0"
 )
 
 # Check if running as administrator, which is needed for some operations like process termination
@@ -81,9 +81,9 @@ try {
         $serverArgs += "$port"
     }
     
-    if ($host -ne "0.0.0.0") {
+    if ($hostAddress -ne "0.0.0.0") {
         $serverArgs += "--host"
-        $serverArgs += "$host"
+        $serverArgs += "$hostAddress"
     }
     
     # Combine args into a string for display

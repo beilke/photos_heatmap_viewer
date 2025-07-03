@@ -16,7 +16,7 @@ A tool to visualize a large photo library (1000+ photos) on a heatmap based on g
 - **Clean Database Option**: Start fresh with a clean database when needed
 - **Photo Viewing**: Show actual photos on the map when zoomed in close enough
 - **Photo Clustering**: Automatically groups nearby photos for better visualization
-- **Deduplication**: Prevents duplicate photos from appearing in clusters with both server-side SQL filtering and client-side JavaScript deduplication
+- **Intelligent Deduplication**: Prevents duplicate photos at the same location while allowing same-named photos from different locations to appear on the map
 - **Enhanced Logging**: Debug utilities for troubleshooting
 - **Cross Platform**: Support for Windows, Linux and Docker environments
 
@@ -82,9 +82,15 @@ python server.py
 
 # With debug mode enabled
 python server.py --debug
+.\start_server.ps1 -debug
 
 # With custom port
 python server.py --port 8080
+.\start_server.ps1 -port 8080
+
+# With custom host address
+python server.py --host 127.0.0.1
+.\start_server.ps1 -hostAddress 127.0.0.1
 ```
 
 Once the server is running, open a web browser and navigate to:

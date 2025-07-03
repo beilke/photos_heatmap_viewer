@@ -113,15 +113,15 @@ def api_markers():
         logger.info(f"Found {len(libraries)} libraries")
         
         # Then get photos with location data - include path and ID
-        # Use ROW_NUMBER to ensure we only get one instance of each filename
-        # This prevents duplicates from different paths or with different coordinates
-        # appearing in markers and clusters
+        # Use ROW_NUMBER to ensure we only get one instance of each filename per unique location
+        # This prevents duplicates from the same location while allowing same-named photos
+        # from different locations to appear on the map
         cursor.execute('''
         WITH RankedPhotos AS (
             SELECT 
                 p.id, p.filename, p.path, p.latitude, p.longitude, p.datetime, 
                 p.marker_data, p.library_id, l.name as library_name,
-                ROW_NUMBER() OVER(PARTITION BY p.filename ORDER BY p.id) as rn
+                ROW_NUMBER() OVER(PARTITION BY p.filename, ROUND(p.latitude, 4), ROUND(p.longitude, 4) ORDER BY p.id) as rn
             FROM photos p
             LEFT JOIN libraries l ON p.library_id = l.id
             WHERE p.latitude IS NOT NULL AND p.longitude IS NOT NULL
@@ -354,15 +354,15 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             logger.info(f"Found {len(libraries)} libraries")
             
             # Then get photos with location data - include path
-            # Use ROW_NUMBER to ensure we only get one instance of each unique photo
-            # based on the combination of filename, latitude, and longitude
-            # This prevents duplicates from different paths appearing in clusters
+            # Use ROW_NUMBER to ensure we only get one instance of each unique photo per location
+            # This allows photos with same filename but different coordinates to appear separately
+            # while still preventing true duplicates
             cursor.execute('''
             WITH RankedPhotos AS (
                 SELECT 
                     p.filename, p.path, p.latitude, p.longitude, p.datetime, 
                     p.marker_data, p.library_id, l.name as library_name,
-                    ROW_NUMBER() OVER(PARTITION BY p.filename ORDER BY p.id) as rn
+                    ROW_NUMBER() OVER(PARTITION BY p.filename, ROUND(p.latitude, 4), ROUND(p.longitude, 4) ORDER BY p.id) as rn
                 FROM photos p
                 LEFT JOIN libraries l ON p.library_id = l.id
                 WHERE p.latitude IS NOT NULL AND p.longitude IS NOT NULL
@@ -377,7 +377,7 @@ class PhotoHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             rows = cursor.fetchall()
             photos = []
             
-            logger.info(f"Legacy API: Filtered out duplicate photos with same filename regardless of coordinates, returning {len(rows)} unique photos")
+            logger.info(f"Legacy API: Filtered out duplicate photos with same filename at same coordinates, returning {len(rows)} unique photos")
             
             for row in rows:
                 photo = dict(row)

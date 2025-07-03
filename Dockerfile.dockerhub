@@ -1,0 +1,45 @@
+FROM python:3.9-slim
+
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libheif-dev \
+    tini && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set up working directory
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application files
+COPY *.py /app/
+COPY index.html /app/
+COPY static /app/static/
+
+# Create necessary directories
+RUN mkdir -p /app/data /app/logs
+
+# Set environment variables
+ENV PORT=8000 \
+    HOST="0.0.0.0" \
+    DEBUG="0"
+
+# Expose the port
+EXPOSE 8000
+
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:8000/health || exit 1
+
+# Define volumes for persistent data
+VOLUME ["/app/data", "/app/logs"]
+
+# Use tini as init
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+# Run the server
+CMD ["python", "server.py", "--port", "8000", "--host", "0.0.0.0"]
