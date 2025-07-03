@@ -1,18 +1,20 @@
 version: '3.8'
 
 services:
-  photo-heatmap:
-    build: .
-    image: photo-heatmap:latest
+  photo-heatmap:  
+    image: fbeilke/photo-heatmap-viewer:latest
     container_name: photo-heatmap-viewer
     ports:
-      - "8000:8000"
+      - "8088:8000"
     volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
-      - ${PHOTOS_ROOT_DIR:-./photos}:/photos:ro  # Mount photos directory as read-only
+      - ${DATA_DIR:-./data}:/app/data
+      - ${LOGS_DIR:-./logs}:/app/logs
+      - ${PHOTOS_DIR_LIBRARY1:-./photos/library1}:/photos/library1:ro
+      - ${PHOTOS_DIR_LIBRARY2:-./photos/library2}:/photos/library2:ro
     environment:
-      - TZ=${TZ:-UTC}
+      TZ: ${TZ:-UTC}
+      PHOTO_LIBRARY1_PATH: /photos/library1
+      PHOTO_LIBRARY2_PATH: /photos/library2
     healthcheck:
       test: ["CMD", "/app/healthcheck.sh"]
       interval: 30s
