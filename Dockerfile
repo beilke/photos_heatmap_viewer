@@ -164,9 +164,6 @@ crond -f\n\
 EXPOSE 8000
 
 # Health check
-# Add the cron fix script
-COPY fix_cron_format.sh /app/fix_cron_format.sh
-RUN chmod +x /app/fix_cron_format.sh
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD ["./healthcheck.sh"]
 
