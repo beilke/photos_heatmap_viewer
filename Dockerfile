@@ -56,6 +56,54 @@ RUN echo '#!/bin/bash\n\
 curl -f http://localhost:8000/health || exit 1\n\
 ' > /app/healthcheck.sh && chmod +x /app/healthcheck.sh
 
+# Create process_libraries script for batch processing and scheduling
+RUN echo '#!/bin/sh\n\
+# Script to process photo libraries and set up cron jobs for updates\n\
+\n\
+# Find all library directories in /photos\n\
+echo '"'"'Detecting mounted photo libraries...'"'"'\n\
+mkdir -p /app/logs\n\
+rm -f /app/logs/libraries.txt\n\
+\n\
+for DIR in /photos/*; do\n\
+  if [ -d "$DIR" ]; then\n\
+    NAME=$(basename "$DIR")\n\
+    echo "Found library: $NAME at $DIR"\n\
+    echo "$DIR:$NAME" >> /app/logs/libraries.txt\n\
+  fi\n\
+done\n\
+\n\
+# Check if database exists\n\
+if [ ! -f /app/data/photo_library.db ]; then\n\
+  echo '"'"'Database not found. Running initial processing...'"'"'\n\
+  while IFS=: read -r LIB_PATH LIB_NAME; do\n\
+    echo "Processing library: $LIB_NAME"\n\
+    python /app/process_photos.py --process "$LIB_PATH" --library "$LIB_NAME"\n\
+  done < /app/logs/libraries.txt\n\
+fi\n\
+\n\
+# Setup cron for periodic updates\n\
+mkdir -p /etc/cron.d\n\
+\n\
+# Create cron jobs for libraries\n\
+rm -f /etc/cron.d/process_photos\n\
+while IFS=: read -r LIB_PATH LIB_NAME; do\n\
+  echo "${UPDATE_INTERVAL} python /app/process_photos.py --process \\"$LIB_PATH\\" --library \\"$LIB_NAME\\" >> /app/logs/cron_${LIB_NAME}.log 2>&1" >> /etc/cron.d/process_photos\n\
+  echo "Added scheduled processing for library: $LIB_NAME"\n\
+done < /app/logs/libraries.txt\n\
+\n\
+# Give execution rights to the cron job\n\
+chmod 0644 /etc/cron.d/process_photos\n\
+\n\
+# Apply cron job\n\
+crontab /etc/cron.d/process_photos\n\
+\n\
+echo "Photo processing schedule set up with interval: ${UPDATE_INTERVAL}"\n\
+\n\
+# Start cron and keep container running\n\
+crond -f\n\
+' > /app/process_libraries.sh && chmod +x /app/process_libraries.sh
+
 # Expose port
 EXPOSE 8000
 

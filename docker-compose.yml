@@ -1,20 +1,48 @@
 version: '3.8'
 
+volumes:
+  photo_data:
+    driver_opts:
+      type: none
+      device: ${DATA_DIR:-./data}
+      o: bind
+  photo_logs:
+    driver_opts:
+      type: none
+      device: ${LOGS_DIR:-./logs}
+      o: bind
+
+  library1_photos:
+    driver_opts:
+      type: none
+      device: ${PHOTOS_DIR_LIBRARY1:-./photos/library1}
+      o: bind,ro
+    labels:
+      owner: library1
+  library2_photos:
+    driver_opts:
+      type: none
+      device: ${PHOTOS_DIR_LIBRARY2:-./photos/library2}
+      o: bind,ro
+    labels:
+      owner: library2
+
 services:
   photo-heatmap:  
-    image: fbeilke/photo-heatmap-viewer:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: photo-heatmap:latest
     container_name: photo-heatmap-viewer
     ports:
       - "8088:8000"
     volumes:
-      - ${DATA_DIR:-./data}:/app/data
-      - ${LOGS_DIR:-./logs}:/app/logs
-      - ${PHOTOS_DIR_LIBRARY1:-./photos/library1}:/photos/library1:ro
-      - ${PHOTOS_DIR_LIBRARY2:-./photos/library2}:/photos/library2:ro
+      - photo_data:/app/data
+      - photo_logs:/app/logs
+      - library1_photos:/photos/library1:ro
+      - library2_photos:/photos/library2:ro
     environment:
       TZ: ${TZ:-UTC}
-      PHOTO_LIBRARY1_PATH: /photos/library1
-      PHOTO_LIBRARY2_PATH: /photos/library2
     healthcheck:
       test: ["CMD", "/app/healthcheck.sh"]
       interval: 30s
@@ -22,3 +50,22 @@ services:
       retries: 3
       start_period: 5s
     restart: unless-stopped
+    
+  photo-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: photo-heatmap:latest
+    container_name: photo-heatmap-processor
+    volumes:
+      - photo_data:/app/data
+      - photo_logs:/app/logs
+      - library1_photos:/photos/library1:ro
+      - library2_photos:/photos/library2:ro
+    environment:
+      TZ: ${TZ:-UTC}
+      UPDATE_INTERVAL: ${UPDATE_INTERVAL:-"0 */6 * * *"}  # Default: every 6 hours
+    command: ["/bin/sh", "/app/process_libraries.sh"]
+    restart: unless-stopped
+    depends_on:
+      - photo-heatmap

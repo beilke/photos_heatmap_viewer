@@ -1,0 +1,66 @@
+version: '3.8'
+
+volumes:
+  photo_data:
+    driver_opts:
+      type: none
+      device: ${DATA_DIR:-/volume1/docker/photo-heatmap/data}
+      o: bind
+  photo_logs:
+    driver_opts:
+      type: none
+      device: ${LOGS_DIR:-/volume1/docker/photo-heatmap/logs}
+      o: bind
+  fernando_photos:
+    driver_opts:
+      type: none
+      device: ${PHOTOS_DIR_FERNANDO:-/volume1/homes/fernando/Photos}
+      o: bind,ro
+    labels:
+      owner: fernando
+  shizue_photos:
+    driver_opts:
+      type: none
+      device: ${PHOTOS_DIR_SHIZUE:-/volume1/homes/shizue/Photos}
+      o: bind,ro
+    labels:
+      owner: shizue
+
+services:
+  photo-heatmap:  
+    image: fbeilke/photo-heatmap-viewer:latest
+    container_name: photo-heatmap-viewer
+    ports:
+      - "8088:8000"
+    volumes:
+      - photo_data:/app/data
+      - photo_logs:/app/logs
+      - fernando_photos:/photos/fernando:ro
+      - shizue_photos:/photos/shizue:ro
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    
+  photo-processor:
+    image: fbeilke/photo-heatmap-viewer:latest
+    container_name: photo-heatmap-processor
+    volumes:
+      - photo_data:/app/data
+      - photo_logs:/app/logs
+      - fernando_photos:/photos/fernando:ro
+      - shizue_photos:/photos/shizue:ro
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      UPDATE_INTERVAL: ${UPDATE_INTERVAL:-0 */6 * * *}  # Default: every 6 hours
+    command: ["/bin/sh", "-c", "chmod +x /app/process_libraries.sh && /app/process_libraries.sh"]
+    restart: unless-stopped
+    healthcheck:
+      disable: true
+    depends_on:
+      - photo-heatmap

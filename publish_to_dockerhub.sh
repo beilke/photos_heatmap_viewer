@@ -46,7 +46,10 @@ FROM python:3.9-slim
 RUN apt-get update && \\
     apt-get install -y --no-install-recommends \\
     libheif-dev \\
-    tini && \\
+    tini \\
+    curl \\
+    cron \\
+    procps && \\
     apt-get clean && \\
     rm -rf /var/lib/apt/lists/*
 
@@ -62,20 +65,27 @@ COPY *.py /app/
 COPY index.html /app/
 COPY static /app/static/
 
-# Create necessary directories
-RUN mkdir -p /app/data /app/logs
+# Copy the process_libraries.sh script
+COPY process_libraries.sh /app/
+
+# Create necessary directories and set permissions
+RUN mkdir -p /app/data /app/logs && chmod +x /app/process_libraries.sh
 
 # Set environment variables
 ENV PORT=8000 \\
     HOST="0.0.0.0" \\
-    DEBUG="0"
+    DEBUG="0" \\
+    UPDATE_INTERVAL="0 */6 * * *"
 
 # Expose the port
 EXPOSE 8000
 
+# Create healthcheck script
+RUN echo '#!/bin/bash\ncurl -f http://localhost:8000/health || exit 1' > /app/healthcheck.sh && chmod +x /app/healthcheck.sh
+
 # Add healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \\
-  CMD curl -f http://localhost:8000/health || exit 1
+  CMD /app/healthcheck.sh
 
 # Define volumes for persistent data
 VOLUME ["/app/data", "/app/logs"]
@@ -87,9 +97,9 @@ ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["python", "server.py", "--port", "8000", "--host", "0.0.0.0"]
 EOF
 
-# Build the image
+# Build the image without using cache
 echo "Building Docker image..."
-docker build -f Dockerfile.dockerhub -t $IMAGE_NAME:latest .
+docker build --no-cache -f Dockerfile.dockerhub -t $IMAGE_NAME:latest .
 
 # Tag the image with version and latest
 echo "Tagging images..."

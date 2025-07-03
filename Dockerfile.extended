@@ -1,0 +1,8 @@
+FROM fbeilke/photo-heatmap-viewer:latest
+
+# Copy process libraries script
+COPY process_libraries.sh /app/process_libraries.sh
+RUN chmod +x /app/process_libraries.sh
+
+# Default command still pointing to server
+CMD ["python", "server.py", "--db", "/app/data/photo_library.db", "--host", "0.0.0.0", "--port", "8000"]
